@@ -1,5 +1,6 @@
 /**
  * [INPUT]: 依赖 @/components/ui 的 Button/Badge/Card
+ * [INPUT]: 依赖 @/components/effects 的 Threads
  * [OUTPUT]: 对外提供 Hero 组件
  * [POS]: layout/ 的首屏展示区，承载核心价值主张与行动号召
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,6 +9,7 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Threads } from '@/components/effects'
 
 /* ========================================================================
    Hero - 首屏展示区
@@ -17,14 +19,18 @@ function Hero() {
   return (
     <section className="relative overflow-hidden bg-background py-24 md:py-32">
       {/* ----------------------------------------------------------------
-         背景装饰
+         Threads 背景特效 - 使用设计系统 primary 颜色（黑色）
          ---------------------------------------------------------------- */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
+      <div className="absolute inset-0 z-0">
+        <Threads
+          color={[0, 0, 0]}
+          amplitude={1.2}
+          distance={0.3}
+          enableMouseInteraction={true}
+        />
       </div>
 
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 relative z-10">
         <div className="mx-auto max-w-3xl text-center">
           {/* ----------------------------------------------------------------
              标签
