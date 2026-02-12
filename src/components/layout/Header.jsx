@@ -2,8 +2,9 @@
  * [INPUT]: 依赖 react 的 useState/useEffect，依赖 react-router-dom 的 Link
  *          依赖 framer-motion 的 motion/AnimatePresence
  *          依赖 @/components/ui 的 Button/NavigationMenu
+ *          依赖 ./ThemeToggle 的主题切换按钮
  * [OUTPUT]: 对外提供 Header 组件 (滚动时中间导航收缩隐藏)
- * [POS]: layout/ 的顶部导航栏，承载品牌标识与路由导航
+ * [POS]: layout/ 的顶部导航栏，承载品牌标识 + 路由导航 + 主题切换
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
@@ -11,6 +12,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import ThemeToggle from './ThemeToggle'
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -92,6 +94,7 @@ function Header() {
            操作按钮
            ---------------------------------------------------------------- */}
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="outline" size="sm">
             登录
           </Button>

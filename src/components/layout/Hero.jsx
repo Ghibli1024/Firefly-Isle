@@ -1,33 +1,51 @@
 /**
  * [INPUT]: 依赖 @/components/ui 的 Button/Badge/Card
- * [INPUT]: 依赖 @/components/effects 的 Threads
+ * [INPUT]: 依赖 @/components/effects 的 Threads/LightRays
+ * [INPUT]: 依赖 @/hooks 的 useTheme
  * [OUTPUT]: 对外提供 Hero 组件
  * [POS]: layout/ 的首屏展示区，承载核心价值主张与行动号召
+ *        亮色模式使用 Threads 背景，暗色模式使用 LightRays 背景
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Threads } from '@/components/effects'
+import { Threads, LightRays } from '@/components/effects'
+import { useTheme } from '@/hooks'
 
 /* ========================================================================
    Hero - 首屏展示区
    ======================================================================== */
 
 function Hero() {
+  const { isDark } = useTheme()
+
   return (
     <section className="relative overflow-hidden bg-background py-24 md:py-32">
       {/* ----------------------------------------------------------------
-         Threads 背景特效 - 使用设计系统 primary 颜色（黑色）
+         背景特效 - 亮色: Threads (黑线) / 暗色: LightRays (白光)
          ---------------------------------------------------------------- */}
       <div className="absolute inset-0 z-0">
-        <Threads
-          color={[0, 0, 0]}
-          amplitude={1.2}
-          distance={0.3}
-          enableMouseInteraction={true}
-        />
+        {isDark ? (
+          <LightRays
+            raysColor="#ffffff"
+            raysSpeed={0.8}
+            lightSpread={1.2}
+            rayLength={2}
+            fadeDistance={1.0}
+            saturation={0.6}
+            followMouse={true}
+            mouseInfluence={0.1}
+          />
+        ) : (
+          <Threads
+            color={[0, 0, 0]}
+            amplitude={1.2}
+            distance={0.3}
+            enableMouseInteraction={true}
+          />
+        )}
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
