@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react-router-dom 的 BrowserRouter/Routes/Route
- * [INPUT]: 依赖 @/components/layout 的 Header/Footer
+ * [INPUT]: 依赖 @/components/layout 的 Header/Footer/DesignSystemFab
  * [INPUT]: 依赖 @/pages 的 HomePage/DesignSystemPage
  * [OUTPUT]: 对外提供 App 根组件
  * [POS]: src/ 的应用根组件，承载全局布局与路由
@@ -8,7 +8,7 @@
  */
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Header, Footer } from '@/components/layout'
+import { Header, Footer, DesignSystemFab } from '@/components/layout'
 import { HomePage, DesignSystemPage } from '@/pages'
 
 /* ========================================================================
@@ -27,6 +27,7 @@ function App() {
           </Routes>
         </div>
         <Footer />
+        <DesignSystemFab />
       </div>
     </BrowserRouter>
   )
