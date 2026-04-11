@@ -1,5 +1,48 @@
-# Firefly-Isle：One-page oncology treatment timeline &amp; record builder.
+# Firefly-Isle：One-page oncology treatment timeline & record builder.
 一页萤岛，晚期癌症患者治疗方案管理助手。
 > Keep it running, make it helpful.
-# 项目背景 
+
+## 当前状态
+
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 三类页面骨架、Dark/Light 主题切换基础与 Supabase 客户端占位。
+- 当前 MVP 的实现真相源仍是 `openspec/changes/mvp-core/` 下的 `proposal.md`、`design.md`、`tasks.md` 与 `specs/`。
+- 已实现路由：`/login`、`/app`、`/record/:id`。
+- 尚未实现：真实认证、数据库 schema、LLM 提取、时间线渲染、导出与测试收口。
+
+## 开发启动
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 配置环境变量
+
+复制示例文件并填写 Supabase 项目值：
+
+```bash
+cp .env.local.example .env.local
+```
+
+需要的变量：
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_EDGE_FUNCTION_URL`
+
+### 3. 启动开发环境
+
+```bash
+npm run dev
+```
+
+### 4. 验证当前基线
+
+```bash
+npm run build
+npm run lint
+```
+
+## 项目背景 
 本项目源于癌症患者及其家属的真实需求。晚期癌症患者由于频繁复发和疾病进展，往往需要经历多线治疗。在整理病历和治疗信息的过程中，患者及家属常因信息过载而感到无助；而在异地就医或门诊沟通中，由于患者数量众多，医生能够分配给单个患者的沟通时间有限，难以进行充分、系统的交流。因此，本项目旨在帮助患者更好地进行治疗方案与病历信息的管理。

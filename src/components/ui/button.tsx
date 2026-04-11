@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 class-variance-authority、radix-ui 的 Slot 与 @/lib/utils 的 cn。
+ * [OUTPUT]: 对外提供 Button 组件与 buttonVariants。
+ * [POS]: components/ui 的按钮基元，为主题切换与页面操作提供统一按钮外观。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"

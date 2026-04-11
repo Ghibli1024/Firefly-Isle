@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-- This repository is in an **early implementation baseline** state. A minimal Vite app scaffold and product/spec documents exist, but the MVP tasks in `openspec/changes/mvp-core/` are still largely unimplemented.
+- This repository is in an **early implementation baseline** state. A minimal Vite app scaffold, routing shell, theme system foundation, and product/spec documents exist; the remaining MVP capabilities are still tracked in `openspec/changes/mvp-core/`.
 - The active implementation source of truth is the OpenSpec change `mvp-core` under `openspec/changes/mvp-core/`.
 - Product context lives in `README.md` and `docs/products/`.
 
@@ -19,8 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Current limitation
 
-- There are currently **no verified build, lint, test, or single-test commands** in this repo because the Vite/React application has not been scaffolded yet.
-- After Step 1.x of `openspec/changes/mvp-core/tasks.md` is implemented, update this file with the real npm scripts instead of guessing them.
+- Verified commands at the current baseline: `npm run build`, `npm run lint`, `npm run dev`.
+- Lint currently passes with warnings related to fast-refresh export boundaries in generated/shared modules; resolve those warnings as follow-up work instead of guessing around them.
 
 ## High-level architecture
 

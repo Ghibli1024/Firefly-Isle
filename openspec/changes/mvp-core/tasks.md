@@ -30,15 +30,15 @@
 
 ## 1. 项目脚手架
 
-- [ ] 1.1 用 `npm create vite@latest` 初始化 React + TypeScript 项目，删除模板样板文件
-- [ ] 1.2 安装并配置 Tailwind CSS v4
-- [ ] 1.3 安装 shadcn/ui，运行 `npx shadcn@latest init`，配置主题并建立 Dark / Light 切换基础与本地持久化恢复
-- [ ] 1.4 安装 React Router v6，配置基础路由结构（/login, /app, /record/:id）
-- [ ] 1.5 搭建应用壳层（登录页 / 临床工作区 / 档案详情的基础布局骨架），并将主题切换入口放在壳层级共享结构中，而不是页面局部实现
-- [ ] 1.6 在骨架完成后，再基于 Stitch 的 6 个 Web 原型提炼 3 套页面结构与 1 套共享主题 token，避免按 6 张原型重复实现 6 套页面；实现时不引入 Stitch 运行时依赖
-- [ ] 1.7 安装 Supabase JS 客户端（`@supabase/supabase-js`），创建 `src/lib/supabase.ts` 初始化客户端
-- [ ] 1.8 配置 `.env.local`（VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_EDGE_FUNCTION_URL）
-- [ ] 1.9 当脚手架与本地运行链路首次可用后，更新 README 中的开发启动说明（安装、运行、环境变量）
+- [x] 1.1 用 `npm create vite@latest` 初始化 React + TypeScript 项目，删除模板样板文件
+- [x] 1.2 安装并配置 Tailwind CSS v4
+- [x] 1.3 安装 shadcn/ui，运行 `npx shadcn@latest init`，配置主题并建立 Dark / Light 切换基础与本地持久化恢复
+- [x] 1.4 安装 React Router v6，配置基础路由结构（/login, /app, /record/:id）
+- [x] 1.5 搭建应用壳层（登录页 / 临床工作区 / 档案详情的基础布局骨架），并将主题切换入口放在壳层级共享结构中，而不是页面局部实现
+- [x] 1.6 在骨架完成后，再基于 Stitch 的 6 个 Web 原型提炼 3 套页面结构与 1 套共享主题 token，避免按 6 张原型重复实现 6 套页面；实现时不引入 Stitch 运行时依赖
+- [x] 1.7 安装 Supabase JS 客户端（`@supabase/supabase-js`），创建 `src/lib/supabase.ts` 初始化客户端
+- [x] 1.8 配置 `.env.local`（VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_EDGE_FUNCTION_URL）
+- [x] 1.9 当脚手架与本地运行链路首次可用后，更新 README 中的开发启动说明（安装、运行、环境变量）
 
 ## 2. 数据模型
 
