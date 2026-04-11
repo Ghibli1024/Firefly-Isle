@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-router-dom 的 Link、useLocation，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 DarkTopBar、ArchiveSideNav、LightMasthead 与设计复刻所需的占位图常量。
- * [POS]: components 的设计复刻壳层基元，为 dark/light 登录页、工作区与详情页提供同构导航与主题切换。
+ * [POS]: components 的设计复刻壳层基元，为 dark/light 登录页、工作区与详情页提供同构导航、主题切换与认证出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { Link, useLocation } from 'react-router-dom'
@@ -35,6 +35,13 @@ const lightNavItems = [
   { label: '统计', icon: 'analytics', href: '/login' },
 ]
 
+type ArchiveSideNavProps = {
+  dark: boolean
+  isSigningOut?: boolean
+  onSignOut?: () => void
+  userLabel?: string
+}
+
 function isActive(pathname: string, href: string) {
   if (href === '/record/demo') {
     return pathname.startsWith('/record')
@@ -61,10 +68,11 @@ export function DarkTopBar() {
   )
 }
 
-export function ArchiveSideNav({ dark }: { dark: boolean }) {
+export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
   const { toggleTheme } = useTheme()
   const navItems = dark ? darkNavItems : lightNavItems
+  const resolvedUserLabel = userLabel ?? (dark ? 'ACCESS_PENDING' : 'Visitor Session')
 
   return (
     <aside
@@ -137,19 +145,51 @@ export function ArchiveSideNav({ dark }: { dark: boolean }) {
         </button>
 
         {dark ? (
-          <div className="flex items-center gap-3 border-t border-[#262626] pt-4">
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden border border-[#353534] bg-[#262626]">
-              <img alt="用户头像" src={AVATAR_PLACEHOLDER} />
+          <>
+            <div className="flex items-center gap-3 border-t border-[#262626] pt-4">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden border border-[#353534] bg-[#262626]">
+                <img alt="用户头像" src={AVATAR_PLACEHOLDER} />
+              </div>
+              <div className="overflow-hidden font-['JetBrains_Mono'] text-[10px] uppercase">
+                <div className="truncate text-[#FAFAFA]">{resolvedUserLabel}</div>
+              </div>
             </div>
-            <div className="overflow-hidden font-['JetBrains_Mono'] text-[10px] uppercase">
-              <div className="truncate text-[#FAFAFA]">DR_EXPERT_01</div>
-            </div>
-          </div>
+            {onSignOut ? (
+              <button
+                className="flex items-center justify-between border border-[#262626] px-4 py-3 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.25em] text-[#FAFAFA]/75 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSigningOut}
+                onClick={onSignOut}
+                type="button"
+              >
+                <span>{isSigningOut ? '会话结束中' : '退出登录'}</span>
+                <span className="material-symbols-outlined text-base">logout</span>
+              </button>
+            ) : null}
+          </>
         ) : (
-          <button className="flex items-center gap-3 p-2 font-['Newsreader'] text-[#111111]/60 transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]" type="button">
-            <span className="material-symbols-outlined text-lg">account_circle</span>
-            <span>User Profile</span>
-          </button>
+          <>
+            <div className="border-t border-[#111111]/10 pt-4">
+              <div className="px-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.18em] text-[#111111]/50">
+                {resolvedUserLabel}
+              </div>
+            </div>
+            {onSignOut ? (
+              <button
+                className="flex items-center gap-3 p-2 font-['Newsreader'] text-[#111111]/60 transition-colors hover:bg-[#111111] hover:text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSigningOut}
+                onClick={onSignOut}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-lg">logout</span>
+                <span>{isSigningOut ? 'Ending Session' : 'Sign Out'}</span>
+              </button>
+            ) : (
+              <button className="flex items-center gap-3 p-2 font-['Newsreader'] text-[#111111]/60 transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]" type="button">
+                <span className="material-symbols-outlined text-lg">account_circle</span>
+                <span>User Profile</span>
+              </button>
+            )}
+          </>
         )}
       </div>
     </aside>

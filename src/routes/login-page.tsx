@@ -1,10 +1,13 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 react 的表单状态 hooks，依赖 @/components/app-shell 的设计复刻壳层，依赖 @/lib/theme 与 @/lib/supabase 的认证边界。
  * [OUTPUT]: 对外提供 LoginPage 组件，对应 /login。
- * [POS]: routes 的登录页实现，按 docs/design 中的 dark/light 设计稿完整复刻双主题登录界面。
+ * [POS]: routes 的登录页实现，在复刻 docs/design 双主题登录界面的同时承载邮箱登录、注册与匿名进入。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { type FormEvent, useState } from 'react'
+
 import { ArchiveSideNav, DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
+import { getSupabaseClient, hasSupabaseEnv } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 
 const WECHAT_ICON_URL =
@@ -12,6 +15,29 @@ const WECHAT_ICON_URL =
 
 const GOOGLE_ICON_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDOmWE02XUxPbmd1ZekN9XjAMyJg_-Hd0J8-5_Zqv-d7GjQz6fP-WitTalM_YoIuCZ1M5VDPcDmofR10cNDnHxAKFNOcwcrG0lhf_jBSV7TdIw5jKCdEenY0wrsZV3I1s_BO6E6-kv2cc50dXiFBKRzmfpH0HHDW3avqihQy_xyzvj5Lcp_tpYzo3y1o-LuvtHgloXNi44_Y8uj4CG2UXli-KdQtOdM1uwOJZ2k7soVBhHTHr7pLTn1G9aL62JGYTzZpFu7dG3H3sVZ'
+
+type AuthMode = 'login' | 'sign-up'
+type FeedbackTone = 'error' | 'success' | 'neutral'
+
+type AuthFeedback = {
+  tone: FeedbackTone
+  message: string
+}
+
+type LoginPageProps = {
+  authError?: string | null
+  email: string
+  password: string
+  mode: AuthMode
+  feedback: AuthFeedback | null
+  isSubmitting: boolean
+  onAnonymousLogin: () => void
+  onEmailChange: (value: string) => void
+  onModeChange: (mode: AuthMode) => void
+  onPasswordChange: (value: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onToggleTheme: () => void
+}
 
 function WechatGlyph() {
   return (
@@ -29,7 +55,61 @@ function GoogleGlyph() {
   )
 }
 
-function DarkLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
+function DarkAuthFeedback({ feedback }: { feedback: AuthFeedback | null }) {
+  if (!feedback) {
+    return null
+  }
+
+  const toneClass =
+    feedback.tone === 'error'
+      ? 'border-[#7A1F00] text-[#FF8A65]'
+      : feedback.tone === 'success'
+        ? 'border-[#274B2B] text-[#9CCC65]'
+        : 'border-[#262626] text-[#FAFAFA]/70'
+
+  return (
+    <div className={`border px-4 py-3 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] ${toneClass}`}>
+      {feedback.message}
+    </div>
+  )
+}
+
+function LightAuthFeedback({ feedback }: { feedback: AuthFeedback | null }) {
+  if (!feedback) {
+    return null
+  }
+
+  const toneClass =
+    feedback.tone === 'error'
+      ? 'border-[#ba1a1a] text-[#ba1a1a]'
+      : feedback.tone === 'success'
+        ? 'border-[#205d38] text-[#205d38]'
+        : 'border-[#111111] text-[#5d5f5b]'
+
+  return (
+    <div className={`border px-4 py-3 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] ${toneClass}`}>
+      {feedback.message}
+    </div>
+  )
+}
+
+function DarkLoginPage({
+  authError,
+  email,
+  password,
+  mode,
+  feedback,
+  isSubmitting,
+  onAnonymousLogin,
+  onEmailChange,
+  onModeChange,
+  onPasswordChange,
+  onSubmit,
+  onToggleTheme,
+}: LoginPageProps) {
+  const submitLabel = mode === 'login' ? '验证并进入控制台' : '创建账户并发送验证邮件'
+  const dividerLabel = mode === 'login' ? '或使用邮箱凭证 / OR_EMAIL' : '邮箱建档入口 / CREATE_ACCOUNT'
+
   return (
     <div className="min-h-screen overflow-hidden bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
       <DarkTopBar />
@@ -68,30 +148,60 @@ function DarkLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
 
         <section className="relative flex w-full flex-col justify-center bg-[#0A0A0A] p-12 md:w-[35%] md:p-16">
           <div className="mx-auto w-full max-w-sm space-y-8">
-            <header className="space-y-2">
-              <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#FF3D00]">Authentication</h2>
-              <p className="text-lg font-bold tracking-tight">身份访问控制台</p>
+            <header className="space-y-4">
+              <div className="space-y-2">
+                <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#FF3D00]">Authentication</h2>
+                <p className="text-lg font-bold tracking-tight">身份访问控制台</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 border border-[#262626] p-1">
+                <button
+                  className={`px-3 py-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                    mode === 'login' ? 'bg-[#FF3D00] text-[#0A0A0A]' : 'text-[#FAFAFA]/60 hover:text-[#FAFAFA]'
+                  }`}
+                  onClick={() => onModeChange('login')}
+                  type="button"
+                >
+                  登录
+                </button>
+                <button
+                  className={`px-3 py-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                    mode === 'sign-up' ? 'bg-[#FF3D00] text-[#0A0A0A]' : 'text-[#FAFAFA]/60 hover:text-[#FAFAFA]'
+                  }`}
+                  onClick={() => onModeChange('sign-up')}
+                  type="button"
+                >
+                  注册
+                </button>
+              </div>
             </header>
 
             <div className="mb-8 space-y-4">
-              <button className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA] transition-all hover:border-[#FF3D00] hover:text-[#FF3D00]">
+              <button
+                className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA]/45"
+                disabled
+                type="button"
+              >
                 <WechatGlyph />
                 <span>微信快捷登录 / WECHAT_AUTH</span>
               </button>
-              <button className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA] transition-all hover:border-[#FF3D00] hover:text-[#FF3D00]">
+              <button
+                className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA]/45"
+                disabled
+                type="button"
+              >
                 <GoogleGlyph />
                 <span>谷歌账号登录 / GOOGLE_AUTH</span>
               </button>
               <div className="flex items-center gap-4 py-4">
                 <div className="h-px flex-grow bg-[#262626]" />
-                <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest opacity-30">
-                  或使用邮箱凭证 / OR_EMAIL
-                </span>
+                <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest opacity-30">{dividerLabel}</span>
                 <div className="h-px flex-grow bg-[#262626]" />
               </div>
             </div>
 
-            <form className="space-y-10">
+            <form className="space-y-6" onSubmit={onSubmit}>
+              <DarkAuthFeedback feedback={feedback ?? (authError ? { tone: 'error', message: authError } : null)} />
+
               <div className="group space-y-1">
                 <label
                   className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest opacity-40 transition-colors group-focus-within:text-[#FF3D00]"
@@ -100,10 +210,14 @@ function DarkLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
                   Registered Email
                 </label>
                 <input
+                  autoComplete="email"
                   className="w-full border-b border-[#262626] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[#FAFAFA] outline-none transition-all placeholder:text-sm placeholder:opacity-20 focus:border-[#FF3D00] focus:border-b-2"
                   id="dark-email"
+                  onChange={(event) => onEmailChange(event.target.value)}
                   placeholder="输入临床邮箱"
+                  required
                   type="email"
+                  value={email}
                 />
               </div>
               <div className="group space-y-1">
@@ -114,20 +228,33 @@ function DarkLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
                   Encryption Key
                 </label>
                 <input
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   className="w-full border-b border-[#262626] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[#FAFAFA] outline-none transition-all placeholder:text-sm placeholder:opacity-20 focus:border-[#FF3D00] focus:border-b-2"
                   id="dark-key"
+                  onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="输入 256 位加密密钥"
+                  required
                   type="password"
+                  value={password}
                 />
               </div>
 
-              <div className="pt-6">
+              <div className="space-y-3 pt-3">
                 <button
-                  className="flex w-full items-center justify-between bg-[#FF3D00] px-8 py-5 font-['Inter_Tight'] font-bold text-[#0A0A0A] transition-all hover:bg-[#FAFAFA] active:scale-[0.98]"
+                  className="flex w-full items-center justify-between bg-[#FF3D00] px-8 py-5 font-['Inter_Tight'] font-bold text-[#0A0A0A] transition-all hover:bg-[#FAFAFA] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSubmitting}
                   type="submit"
                 >
-                  <span className="tracking-widest">验证并进入控制台</span>
+                  <span className="tracking-widest">{isSubmitting ? '处理中…' : submitLabel}</span>
                   <span className="material-symbols-outlined">arrow_forward_ios</span>
+                </button>
+                <button
+                  className="w-full border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.24em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isSubmitting}
+                  onClick={onAnonymousLogin}
+                  type="button"
+                >
+                  无需登录，直接使用匿名会话
                 </button>
               </div>
             </form>
@@ -171,7 +298,22 @@ function DarkLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
   )
 }
 
-function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
+function LightLoginPage({
+  authError,
+  email,
+  password,
+  mode,
+  feedback,
+  isSubmitting,
+  onAnonymousLogin,
+  onEmailChange,
+  onModeChange,
+  onPasswordChange,
+  onSubmit,
+  onToggleTheme,
+}: LoginPageProps) {
+  const submitLabel = mode === 'login' ? '验证并进入系统' : '注册并发送验证邮件'
+
   return (
     <div className="ff-light-login-bg min-h-screen font-['Noto_Serif'] text-[#111111]">
       <LightMasthead />
@@ -215,7 +357,7 @@ function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
 
         <section className="w-full md:w-5/12">
           <div className="ff-light-ink-shadow border-2 border-[#111111] bg-[#F9F9F7] p-8">
-            <div className="mb-10 flex items-start justify-between">
+            <div className="mb-8 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-['Playfair_Display'] text-3xl font-bold leading-tight">身份访问控制台</h3>
                 <p className="mt-1 font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight">
@@ -231,15 +373,42 @@ function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="mb-6 grid grid-cols-2 gap-2 border border-[#111111] p-1">
+              <button
+                className={`px-3 py-2 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
+                  mode === 'login' ? 'bg-[#111111] text-[#F9F9F7]' : 'text-[#111111]/60 hover:text-[#111111]'
+                }`}
+                onClick={() => onModeChange('login')}
+                type="button"
+              >
+                登录
+              </button>
+              <button
+                className={`px-3 py-2 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
+                  mode === 'sign-up' ? 'bg-[#111111] text-[#F9F9F7]' : 'text-[#111111]/60 hover:text-[#111111]'
+                }`}
+                onClick={() => onModeChange('sign-up')}
+                type="button"
+              >
+                注册
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <LightAuthFeedback feedback={feedback ?? (authError ? { tone: 'error', message: authError } : null)} />
+
               <div className="group">
                 <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
                   Electronic Mail
                 </label>
                 <input
+                  autoComplete="email"
                   className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[#111111] bg-transparent px-0 py-3 text-[#111111] outline-none placeholder:text-[#111111]/30"
+                  onChange={(event) => onEmailChange(event.target.value)}
                   placeholder="输入邮箱地址"
+                  required
                   type="email"
+                  value={email}
                 />
               </div>
               <div className="group">
@@ -247,18 +416,26 @@ function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
                   Encryption Key / Password
                 </label>
                 <input
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[#111111] bg-transparent px-0 py-3 font-['JetBrains_Mono'] text-[#111111] outline-none placeholder:text-[#111111]/30"
+                  onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="••••••••"
+                  required
                   type="password"
+                  value={password}
                 />
               </div>
-            </div>
 
-            <button className="mt-10 w-full border-2 border-[#111111] bg-[#111111] py-4 font-['Inter'] text-sm font-bold uppercase tracking-widest text-[#F9F9F7] transition-all hover:bg-[#F9F9F7] hover:text-[#111111] active:translate-y-1">
-              验证并进入系统
-            </button>
+              <button
+                className="mt-6 w-full border-2 border-[#111111] bg-[#111111] py-4 font-['Inter'] text-sm font-bold uppercase tracking-widest text-[#F9F9F7] transition-all hover:bg-[#F9F9F7] hover:text-[#111111] active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSubmitting}
+                type="submit"
+              >
+                {isSubmitting ? '处理中…' : submitLabel}
+              </button>
+            </form>
 
-            <div className="relative my-12 flex items-center">
+            <div className="relative my-10 flex items-center">
               <div className="flex-grow border-t border-[#111111]/20" />
               <span className="mx-4 flex-shrink font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest">
                 第三方鉴权
@@ -267,15 +444,32 @@ function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]">
-                <img alt="WeChat" className="h-4 w-4 grayscale group-hover:invert" src={WECHAT_ICON_URL} />
+              <button
+                className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium text-[#111111]/45"
+                disabled
+                type="button"
+              >
+                <img alt="WeChat" className="h-4 w-4 grayscale" src={WECHAT_ICON_URL} />
                 <span className="text-xs uppercase tracking-tight">WeChat</span>
               </button>
-              <button className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]">
-                <img alt="Google" className="h-4 w-4 grayscale group-hover:invert" src={GOOGLE_ICON_URL} />
+              <button
+                className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium text-[#111111]/45"
+                disabled
+                type="button"
+              >
+                <img alt="Google" className="h-4 w-4 grayscale" src={GOOGLE_ICON_URL} />
                 <span className="text-xs uppercase tracking-tight">Google</span>
               </button>
             </div>
+
+            <button
+              className="mt-4 w-full border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.18em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isSubmitting}
+              onClick={onAnonymousLogin}
+              type="button"
+            >
+              无需登录，直接使用匿名会话
+            </button>
 
             <div className="mt-12 border-t border-[#111111]/10 pt-8">
               <p className="text-center text-[11px] italic leading-relaxed opacity-60">
@@ -325,12 +519,96 @@ function LightLoginPage({ onToggleTheme }: { onToggleTheme: () => void }) {
   )
 }
 
-export function LoginPage() {
+export function LoginPage({ authError = null }: { authError?: string | null }) {
   const { theme, toggleTheme } = useTheme()
+  const [mode, setMode] = useState<AuthMode>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  return theme === 'dark' ? (
-    <DarkLoginPage onToggleTheme={toggleTheme} />
-  ) : (
-    <LightLoginPage onToggleTheme={toggleTheme} />
-  )
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!hasSupabaseEnv) {
+      setFeedback({ tone: 'error', message: '缺少 Supabase 环境变量，当前无法完成认证。' })
+      return
+    }
+
+    setIsSubmitting(true)
+    setFeedback(null)
+
+    const supabase = getSupabaseClient()
+
+    if (mode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+      if (error) {
+        setFeedback({ tone: 'error', message: '邮箱或密码错误，请重新确认后再试。' })
+        setIsSubmitting(false)
+        return
+      }
+
+      setFeedback({ tone: 'neutral', message: '认证成功，正在进入工作区。' })
+      setIsSubmitting(false)
+      return
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    })
+
+    if (error) {
+      setFeedback({ tone: 'error', message: '暂时无法完成注册，请稍后再试。' })
+      setIsSubmitting(false)
+      return
+    }
+
+    setPassword('')
+    setMode('login')
+    setFeedback({ tone: 'success', message: '注册成功，请查收验证邮件。' })
+    setIsSubmitting(false)
+  }
+
+  const handleAnonymousLogin = async () => {
+    if (!hasSupabaseEnv) {
+      setFeedback({ tone: 'error', message: '缺少 Supabase 环境变量，当前无法进入匿名模式。' })
+      return
+    }
+
+    setIsSubmitting(true)
+    setFeedback(null)
+
+    const { error } = await getSupabaseClient().auth.signInAnonymously()
+
+    if (error) {
+      setFeedback({ tone: 'error', message: '匿名入口暂时不可用，请稍后再试。' })
+      setIsSubmitting(false)
+      return
+    }
+
+    setFeedback({ tone: 'neutral', message: '匿名会话已建立，正在进入工作区。' })
+    setIsSubmitting(false)
+  }
+
+  const pageProps = {
+    authError,
+    email,
+    password,
+    mode,
+    feedback,
+    isSubmitting,
+    onAnonymousLogin: handleAnonymousLogin,
+    onEmailChange: setEmail,
+    onModeChange: setMode,
+    onPasswordChange: setPassword,
+    onSubmit: handleSubmit,
+    onToggleTheme: toggleTheme,
+  }
+
+  return theme === 'dark' ? <DarkLoginPage {...pageProps} /> : <LightLoginPage {...pageProps} />
 }

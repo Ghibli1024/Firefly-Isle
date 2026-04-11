@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/lib/theme 的 useTheme，依赖 react-router-dom 的 useParams。
  * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id。
- * [POS]: routes 的档案详情实现，按 docs/design 中的 dark/light 档案页面复刻病历展示与时间线结构。
+ * [POS]: routes 的档案详情实现，按 docs/design 中的 dark/light 档案页面复刻病历展示与时间线结构，并暴露退出登录入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -14,11 +14,22 @@ import {
 import { useTheme } from '@/lib/theme'
 import { useParams } from 'react-router-dom'
 
-function DarkRecordPage({ recordId }: { recordId: string }) {
+type RecordPageProps = {
+  isSigningOut?: boolean
+  onSignOut?: () => void
+  userLabel?: string
+}
+
+function DarkRecordPage({
+  isSigningOut,
+  onSignOut,
+  recordId,
+  userLabel,
+}: RecordPageProps & { recordId: string }) {
   return (
     <div className="min-h-screen bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
       <DarkTopBar />
-      <ArchiveSideNav dark />
+      <ArchiveSideNav dark isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
       <main className="min-h-screen bg-[#0A0A0A] p-12 pt-28 md:ml-[15%]">
         <div className="mx-auto max-w-4xl">
@@ -224,19 +235,24 @@ function DarkRecordPage({ recordId }: { recordId: string }) {
   )
 }
 
-function LightRecordPage({ recordId }: { recordId: string }) {
+function LightRecordPage({
+  isSigningOut,
+  onSignOut,
+  recordId,
+  userLabel,
+}: RecordPageProps & { recordId: string }) {
   return (
     <div className="ff-light-record-bg min-h-screen text-[#111111]">
       <div className="flex min-h-screen">
-        <ArchiveSideNav dark={false} />
+        <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
-        <main className="mx-auto flex-grow p-8 max-w-6xl">
+        <main className="mx-auto max-w-6xl flex-grow p-8">
           <header className="mb-12">
             <div className="flex items-end justify-between border-b-4 border-[#111111] pb-2">
               <div className="font-['Playfair_Display'] text-7xl font-black leading-none tracking-tighter">
                 THE ARCHIVE
               </div>
-              <div className="font-['JetBrains_Mono'] text-xs text-right">
+              <div className="font-['JetBrains_Mono'] text-right text-xs">
                 <p>RECORD_ID: {recordId.toUpperCase()}</p>
                 <p>LAST_UPDATED: 2023.10.15</p>
               </div>
@@ -440,9 +456,13 @@ function LightRecordPage({ recordId }: { recordId: string }) {
   )
 }
 
-export function RecordPage() {
+export function RecordPage({ isSigningOut, onSignOut, userLabel }: RecordPageProps) {
   const { id = '2024-OX-0912' } = useParams()
   const { theme } = useTheme()
 
-  return theme === 'dark' ? <DarkRecordPage recordId={id} /> : <LightRecordPage recordId={id} />
+  return theme === 'dark' ? (
+    <DarkRecordPage isSigningOut={isSigningOut} onSignOut={onSignOut} recordId={id} userLabel={userLabel} />
+  ) : (
+    <LightRecordPage isSigningOut={isSigningOut} onSignOut={onSignOut} recordId={id} userLabel={userLabel} />
+  )
 }

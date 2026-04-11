@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，按 docs/design 中的 dark/light 工作区页面复刻输入画布与结构化输出布局。
+ * [POS]: routes 的临床工作区实现，按 docs/design 中的 dark/light 工作区页面复刻输入画布与结构化输出布局，并暴露退出登录入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -12,11 +12,17 @@ import {
 } from '@/components/app-shell'
 import { useTheme } from '@/lib/theme'
 
-function DarkWorkspacePage() {
+type WorkspacePageProps = {
+  isSigningOut?: boolean
+  onSignOut?: () => void
+  userLabel?: string
+}
+
+function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
   return (
     <div className="min-h-screen bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
       <DarkTopBar />
-      <ArchiveSideNav dark />
+      <ArchiveSideNav dark isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
       <main className="ml-0 min-h-screen bg-[#131313] pt-16 md:ml-[15%]">
         <section className="border-b border-[#262626] bg-[#0A0A0A] p-8">
@@ -197,11 +203,11 @@ function DarkWorkspacePage() {
   )
 }
 
-function LightWorkspacePage() {
+function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
   return (
     <div className="ff-light-workspace-bg min-h-screen text-[#111111]">
       <div className="flex min-h-screen">
-        <ArchiveSideNav dark={false} />
+        <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
         <main className="flex-1 overflow-y-auto bg-[#F9F9F7] p-12">
           <header className="mx-auto mb-12 w-full max-w-6xl">
@@ -305,7 +311,7 @@ function LightWorkspacePage() {
                   ))}
                 </div>
               </div>
-              <div className="col-span-9 p-8 bg-white">
+              <div className="col-span-9 bg-white p-8">
                 <div className="mb-8 flex items-center justify-between">
                   <h3 className="font-['Inter'] text-xs font-black uppercase tracking-[0.2em]">
                     治疗时间轴 / TREATMENT TIMELINE
@@ -399,8 +405,12 @@ function LightWorkspacePage() {
   )
 }
 
-export function WorkspacePage() {
+export function WorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
   const { theme } = useTheme()
 
-  return theme === 'dark' ? <DarkWorkspacePage /> : <LightWorkspacePage />
+  return theme === 'dark' ? (
+    <DarkWorkspacePage isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
+  ) : (
+    <LightWorkspacePage isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
+  )
 }

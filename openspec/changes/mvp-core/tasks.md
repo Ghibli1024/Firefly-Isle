@@ -61,12 +61,12 @@
 
 ## 4. 认证
 
-- [ ] 4.1 创建隐私政策门控组件 `PrivacyGate`：首次启动检查 localStorage `privacy_accepted` flag，未接受则显示全屏弹窗并阻塞导航；拒绝或关闭时仍停留在门控状态
-- [ ] 4.2 创建登录页 `/login`：邮箱 + 密码表单，调用 `supabase.auth.signInWithPassword()`，失败显示通用错误（不泄露具体原因）
-- [ ] 4.3 创建注册流程：`supabase.auth.signUp()`，成功后显示「请查收验证邮件」提示
-- [ ] 4.4 添加匿名登录按钮：`supabase.auth.signInAnonymously()`，成功后进入主应用
-- [ ] 4.5 在 App 根组件实现 session 持久化：`supabase.auth.getSession()` + `onAuthStateChange` 监听，session 有效则跳过登录页
-- [ ] 4.6 实现登出：`supabase.auth.signOut()` + 清空本地状态 + 跳转 `/login`
+- [x] 4.1 创建隐私政策门控组件 `PrivacyGate`：首次启动检查 localStorage `privacy_accepted` flag，未接受则显示全屏弹窗并阻塞导航；拒绝或关闭时仍停留在门控状态
+- [x] 4.2 创建登录页 `/login`：邮箱 + 密码表单，调用 `supabase.auth.signInWithPassword()`，失败显示通用错误（不泄露具体原因）
+- [x] 4.3 创建注册流程：`supabase.auth.signUp()`，成功后显示「请查收验证邮件」提示
+- [x] 4.4 添加匿名登录按钮：`supabase.auth.signInAnonymously()`，成功后进入主应用
+- [x] 4.5 在 App 根组件实现 session 持久化：`supabase.auth.getSession()` + `onAuthStateChange` 监听，session 有效则跳过登录页
+- [x] 4.6 实现登出：`supabase.auth.signOut()` + 清空本地状态 + 跳转 `/login`
 
 ## 5. LLM Adapter（Edge Function）
 
