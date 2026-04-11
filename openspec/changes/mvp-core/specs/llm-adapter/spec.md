@@ -22,16 +22,16 @@
 - **WHEN** LLM Adapter 调用 Supabase Edge Function
 - **THEN** 请求 SHALL 携带有效的 Supabase JWT（用户 token 或匿名 token），Edge Function 校验 token 后再转发至 LLM
 
-### Requirement: 支持切换模型
-系统 SHALL 支持通过 ChatOptions 指定模型名称，MVP 默认使用 Claude API。
+### Requirement: 支持 Gemini 模型切换
+系统 SHALL 支持通过 ChatOptions 指定 Gemini 模型名称，MVP 默认使用 Gemini API。
 
 #### Scenario: 默认模型
 - **WHEN** 调用 chat 接口未指定 model 参数
-- **THEN** 系统 SHALL 使用配置文件中定义的默认模型（MVP 阶段为 claude-3-5-haiku-20241022 或同等级别模型）
+- **THEN** 系统 SHALL 使用配置文件中定义的默认 Gemini 模型（MVP 阶段为 `gemini-2.5-flash` 或同等级别模型）
 
 #### Scenario: 指定模型切换
 - **WHEN** 调用 chat 接口时 options.model 有值
-- **THEN** Edge Function SHALL 使用指定模型名称转发请求，不忽略该参数
+- **THEN** Edge Function SHALL 在 Gemini 模型族内使用指定模型名称转发请求，不忽略该参数
 
 ### Requirement: 错误处理与重试
 系统 SHALL 对 LLM 请求失败（网络超时、限流、非法响应）进行统一错误处理，向上层抛出可识别的错误类型。

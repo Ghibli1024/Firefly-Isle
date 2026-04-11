@@ -34,11 +34,11 @@
 - **THEN** 数据库 SHALL 返回空结果集或权限拒绝错误，不暴露任何数据
 
 ### Requirement: 部署区域
-系统 SHALL 使用 Supabase ap-southeast-1（新加坡）节点，降低中国大陆用户访问延迟。
+系统 SHALL 优先使用可用的 APAC 区域部署 Supabase 项目，以降低中国大陆目标用户访问延迟。
 
 #### Scenario: 项目节点配置
 - **WHEN** 创建 Supabase 项目
-- **THEN** 项目区域 SHALL 选择 ap-southeast-1，项目配置文件中 SHALL 记录该节点标识
+- **THEN** 项目区域 SHALL 从可用的 APAC regions 中选择，并以中国大陆目标用户的实际网络测试结果确定最终 region；项目配置文件中 SHALL 记录该节点标识
 
 ### Requirement: updated_at 自动更新
 系统 SHALL 通过数据库触发器在每次 UPDATE 时自动更新 patients.updated_at 字段。

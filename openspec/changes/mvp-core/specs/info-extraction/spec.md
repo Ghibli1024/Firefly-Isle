@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: 自然语言输入转换为 PatientRecord
-系统 SHALL 接受用户自然语言描述，调用 LLM 提取结构化 PatientRecord JSON，提取准确率目标 > 80%。
+系统 SHALL 接受用户自然语言描述，调用 LLM 提取结构化 PatientRecord JSON，用于后续追问、渲染与保存。
 
 #### Scenario: 单次输入完整提取
 - **WHEN** 用户输入包含足够信息的自然语言描述（如「女，52岁，2022年确诊肺腺癌IV期，一线化疗6周期」）

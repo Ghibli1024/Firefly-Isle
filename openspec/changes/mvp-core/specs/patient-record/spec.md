@@ -5,18 +5,18 @@
 
 #### Scenario: 创建最小化 PatientRecord
 - **WHEN** 系统初始化一条患者记录
-- **THEN** 仅 `id` 为必填字符串，其余所有字段均可缺失且不报错
+- **THEN** 系统 SHALL 允许 `PatientRecord` 以最小可用形态存在；若记录尚未落库，`id` 可暂时缺失，其余字段均可缺失且不报错
 
 #### Scenario: basicInfo 包含完整字段集
 - **WHEN** 用户提供患者基本信息
 - **THEN** 系统 SHALL 接受 gender、age、height、weight、tumorType、diagnosisDate、stage 七个可选字段，类型分别为 string/number/number/number/string/string/string
 
 ### Requirement: TreatmentLine 治疗线数据结构
-系统 SHALL 定义 TreatmentLine 接口，lineNumber 为必填数字（1=一线，2=二线，以此类推），其余字段可选。
+系统 SHALL 定义 TreatmentLine 接口，`lineNumber` 为必填数字（1=一线，2=二线，以此类推）；`regimen` 在完整治疗线中应被支持，但在提取中间态或缺失字段待补全时可暂时缺失。
 
 #### Scenario: 治疗线包含完整字段集
 - **WHEN** 系统记录一条晚期治疗线
-- **THEN** 系统 SHALL 接受 lineNumber（必填）、startDate、endDate、regimen（必填）、biopsy、immunohistochemistry、geneticTest 字段
+- **THEN** 系统 SHALL 接受 `lineNumber`、`startDate`、`endDate`、`regimen`、`biopsy`、`immunohistochemistry`、`geneticTest` 字段；其中 `regimen` 在最终完整治疗线中应有值，但在提取与追问阶段可先留空并由后续高亮/追问补全
 
 #### Scenario: treatmentLines 仅用于晚期患者
 - **WHEN** 患者为非晚期

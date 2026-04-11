@@ -16,7 +16,7 @@
 - **THEN** 系统 SHALL 展示可读错误信息（如「邮箱或密码错误」），不暴露具体原因
 
 ### Requirement: 匿名模式
-系统 SHALL 支持用户在不注册的情况下以匿名身份使用，数据存储在本地或关联匿名 Supabase 用户。
+系统 SHALL 支持用户在不注册的情况下以匿名身份使用，并通过 Supabase `signInAnonymously()` 创建匿名 session，将数据关联到匿名用户 uid。
 
 #### Scenario: 匿名模式进入
 - **WHEN** 用户点击「无需登录，直接使用」或类似入口
