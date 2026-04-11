@@ -36,6 +36,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `design.md` — target architecture and design rationale
   - `specs/**/*.md` — requirement-level behavior for each capability
   - `tasks.md` — ordered implementation checklist
+- `supabase/`
+  - `migrations/*.sql` — schema, RLS, trigger, and storage-adjacent infrastructure migrations
 - `.claude/skills/openspec-*` and `.claude/commands/opsx/*`
   - local OpenSpec workflow helpers used by Claude Code
 

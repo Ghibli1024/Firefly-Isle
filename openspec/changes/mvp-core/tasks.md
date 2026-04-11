@@ -51,13 +51,13 @@
 
 ## 3. Supabase 数据库
 
-- [ ] 3.1 编写 `supabase/migrations/001_init.sql`：创建 `patients` 表（id, user_id, basic_info, initial_onset, created_at, updated_at）和 `treatment_lines` 表（patient_id, line_number, regimen 等）
-- [ ] 3.2 为 `patients` 和 `treatment_lines` 启用 RLS，确保 authenticated 和 anon 用户只能访问 `user_id = auth.uid()` 的数据
-- [ ] 3.3 编写 `BEFORE UPDATE` trigger 自动设置 `patients.updated_at = now()`
-- [ ] 3.4 在 Supabase Dashboard 执行 migration SQL，验证表结构、RLS 和级联删除生效
-- [ ] 3.5 确认 Supabase 项目最终 region 从可用 APAC 节点中基于中国大陆链路测试选定，并将节点标识记录到项目配置文档中
-- [ ] 3.6 创建 Supabase Storage bucket（如 `patient-assets`），作为患者相关资源的基础设施边界，不要求在当前 MVP 暴露图片/OCR 上传主流程
-- [ ] 3.7 为 Storage bucket 配置按 user_id / 匿名 uid 隔离的访问策略，并验证不同用户与匿名用户不可访问彼此资源
+- [x] 3.1 编写 `supabase/migrations/001_init.sql`：创建 `patients` 表（id, user_id, basic_info, initial_onset, created_at, updated_at）和 `treatment_lines` 表（patient_id, line_number, regimen 等）
+- [x] 3.2 为 `patients` 和 `treatment_lines` 启用 RLS，确保 authenticated 和 anon 用户只能访问 `user_id = auth.uid()` 的数据
+- [x] 3.3 编写 `BEFORE UPDATE` trigger 自动设置 `patients.updated_at = now()`
+- [x] 3.4 在 Supabase Dashboard 执行 migration SQL，验证表结构、RLS 和级联删除生效
+- [x] 3.5 确认 Supabase 项目最终 region 从可用 APAC 节点中基于中国大陆链路测试选定，并将节点标识记录到项目配置文档中
+- [x] 3.6 创建 Supabase Storage bucket（如 `patient-assets`），作为患者相关资源的基础设施边界，不要求在当前 MVP 暴露图片/OCR 上传主流程
+- [x] 3.7 为 Storage bucket 配置按 user_id / 匿名 uid 隔离的访问策略，并验证不同用户与匿名用户不可访问彼此资源
 
 ## 4. 认证
 

@@ -236,5 +236,5 @@ sequenceDiagram
 
 ## Open Questions
 
-1. **Supabase 项目 region**：优先选择可用的 APAC region，并根据中国大陆目标用户的实际网络测试结果确定最终 region。
+1. **Supabase 项目 region**：已确认当前项目使用新加坡（`ap-southeast-1`）作为最终节点。若后续中国大陆链路实测显示不可接受，再通过新变更调整，不在本次 MVP 变更内反复摇摆。
 2. **隐私政策文本**：MVP 用占位符，正式上线前需法务审核。
