@@ -35,15 +35,19 @@
 - [x] 1.3 安装 shadcn/ui，运行 `npx shadcn@latest init`，配置主题并建立 Dark / Light 切换基础与本地持久化恢复
 - [x] 1.4 安装 React Router v6，配置基础路由结构（/login, /app, /record/:id）
 - [x] 1.5 搭建应用壳层（登录页 / 临床工作区 / 档案详情的基础布局骨架），并将主题切换入口放在壳层级共享结构中，而不是页面局部实现
-- [x] 1.6 在骨架完成后，再基于 Stitch 的 6 个 Web 原型提炼 3 套页面结构与 1 套共享主题 token，避免按 6 张原型重复实现 6 套页面；实现时不引入 Stitch 运行时依赖
+- [x] 1.6 基于 `docs/products/stitch-screen-mapping.md`、`docs/design/dark/` 与 `docs/design/light/` 的真相源，完整复刻 6 个 Web 页面对应的 3 套页面结构与 1 套共享主题 token；当前实现若仅完成工程骨架或近似布局，不得视为完成
+- [x] 1.6a 逐页消费 `docs/design/dark/_1~_3/code.html` 与 `docs/design/light/_1~_3/code.html`，建立登录页 / 临床工作区 / 档案详情在 Dark / Light 下的结构对照矩阵
+- [x] 1.6b 对齐三类页面的分栏比例、导航位置、标题层级、主要信息块位置、关键装饰规则与交互入口，确保 React 实现视觉结果与设计稿一致
+- [x] 1.6c 对齐 Dark / Light 共用与差异化 token：颜色、字体、边框、圆角、阴影/无阴影策略、间距节奏、主题切换表现
+- [x] 1.6d 以 screenshot / HTML 为依据完成一次人工复核，确认当前实现达到“完全复刻设计稿”而不是“工程近似”
 - [x] 1.7 安装 Supabase JS 客户端（`@supabase/supabase-js`），创建 `src/lib/supabase.ts` 初始化客户端
 - [x] 1.8 配置 `.env.local`（VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_EDGE_FUNCTION_URL）
 - [x] 1.9 当脚手架与本地运行链路首次可用后，更新 README 中的开发启动说明（安装、运行、环境变量）
 
 ## 2. 数据模型
 
-- [ ] 2.1 在 `src/types/patient.ts` 定义 `PatientRecord` 和 `TreatmentLine` TypeScript interface
-- [ ] 2.2 创建 archetype 检测工具函数 `getPatientArchetype(record: PatientRecord)` → `'non-advanced' | 'de-novo-advanced' | 'relapsed-advanced'`
+- [x] 2.1 在 `src/types/patient.ts` 定义 `PatientRecord` 和 `TreatmentLine` TypeScript interface
+- [x] 2.2 创建 archetype 检测工具函数 `getPatientArchetype(record: PatientRecord)` → `'non-advanced' | 'de-novo-advanced' | 'relapsed-advanced'`
 
 ## 3. Supabase 数据库
 

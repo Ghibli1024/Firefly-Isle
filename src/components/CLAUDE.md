@@ -3,7 +3,7 @@
 
 成员清单
 CLAUDE.md: 说明页面骨架组件与共享交互组件职责，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-app-shell.tsx: 三类 Web 页面共享壳层，负责头部、导航、左右栏与主画布布局，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+app-shell.tsx: Dark/Light 设计复刻壳层基元，负责导航、顶栏、主题切换与占位素材输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme-toggle.tsx: 全局主题切换入口，供壳层头部复用，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 ui/: shadcn/ui 基础组件与轻量封装
 

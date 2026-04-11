@@ -9,5 +9,6 @@ index.css: 全局 token、主题变量与共享布局样式，[PROTOCOL]: 变更
 components/: 页面骨架、主题开关与 UI 组件
 lib/: 主题状态、Supabase 客户端与通用工具
 routes/: 登录页、临床工作区、档案详情三类页面骨架
+types/: PatientRecord 等领域模型与判定工具
 
 法则: 壳层先于业务，主题先于页面，路由只装配不承载细节。

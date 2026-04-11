@@ -7,18 +7,21 @@
 - **WHEN** 实现 MVP 前端页面结构
 - **THEN** 系统 SHALL 仅以登录页面、临床工作区、档案详情作为基础页面结构，不要求实现 Mobile 页面结构
 
-### Requirement: Stitch 仅作为设计输入
-系统 SHALL 将 Stitch 原型作为设计输入来源，而不是运行时依赖。
+### Requirement: 页面结构必须复刻设计稿
+系统 SHALL 以 `docs/design/dark/` 与 `docs/design/light/` 中对应页面导出的 HTML / screenshot 作为页面结构实现的直接真相源，登录页面、临床工作区、档案详情三类页面在 React 中必须复刻设计稿，而不是仅提供松散相似的工程骨架。
 
-#### Scenario: 运行时不连接 Stitch
-- **WHEN** 应用在浏览器中运行
-- **THEN** 前端 SHALL 不依赖 Stitch MCP 或 Stitch 运行时 API 提供页面结构或数据
+#### Scenario: 登录页复刻 Dark / Light 页面结构
+- **WHEN** 系统实现 `/login` 的 Dark 或 Light 页面
+- **THEN** 页面 SHALL 对齐 `docs/design/dark/_1/code.html` 或 `docs/design/light/_1/code.html` 的分栏结构、标题层级、表单区位置、导航与主题切换位置
 
-#### Scenario: 设计读取真相源
-- **WHEN** 需要读取当前设计原型的页面名称或底层页面资源
-- **THEN** 系统 SHALL 以 `screenInstances.label` 作为页面名称真相源，并通过 `sourceScreen -> get_screen(...)` 读取底层资源
+#### Scenario: 临床工作区复刻 Dark / Light 页面结构
+- **WHEN** 系统实现 `/app` 的 Dark 或 Light 页面
+- **THEN** 页面 SHALL 对齐 `docs/design/dark/_2/code.html` 或 `docs/design/light/_2/code.html` 的主画布、导航脊柱、信息栏与关键装饰规则
 
-### Requirement: 主题切换入口位于应用壳层
+#### Scenario: 档案详情复刻 Dark / Light 页面结构
+- **WHEN** 系统实现 `/record/:id` 的 Dark 或 Light 页面
+- **THEN** 页面 SHALL 对齐 `docs/design/dark/_3/code.html` 或 `docs/design/light/_3/code.html` 的病历概览区、主表格区、侧栏结构与标题编排
+
 系统 SHALL 将主题切换能力放置在应用壳层中，而不是绑定到单个业务页面的局部实现中。
 
 #### Scenario: 主题切换作用于全局页面结构

@@ -35,11 +35,14 @@
 
 - Stitch 在本项目中是**设计输入**，不是前端运行时依赖；React 应用不应在运行时连接 Stitch MCP。
 - MVP 前端只参考 `docs/products/stitch-screen-mapping.md` 中的 6 个 **Web** 原型：`登录页面 / 临床工作区 / 档案详情` × `Dark / Light`。
+- 除 Stitch 页面映射外，`docs/design/` 下的设计系统与导出 HTML 也是当前实现的强约束输入：
+  - Dark 主题真相源：`docs/design/dark/firefly_precision/DESIGN.md` + `docs/design/dark/_{1,2,3}/code.html`
+  - Light 主题真相源：`docs/design/light/ink_archive/DESIGN.md` + `docs/design/light/_{1,2,3}/code.html`
 - Mobile 原型当前不进入 MVP 实现输入，只作为后续移动端阶段的参考。
 - 页面名称以 `screenInstances.label` 为唯一真相源；若需要读取页面 HTML、截图或结构细节，先由页面名称解析到 `sourceScreen`，再读取 `get_screen(name=sourceScreen)`。
-- 前端实现目标是 **3 套页面结构 + 1 套共享主题 token 系统**，而不是按 6 张原型重复实现 6 套页面。
-- 设计原型对 **信息架构、页面区域划分、主题方向与关键视觉元素** 具有强约束；实现时不做像素级机械临摹，而是在保持结构忠实的前提下，用工程化组件与 token 体系重建高级感与设计表达。
-- Light / Dark 主题切换属于 MVP 范围，默认 Dark，允许用户手动切换到 Light，并记住上次选择；该能力需在设计系统阶段纳入，而不是在页面完成后补做皮肤层。
+- 前端实现目标仍是 **3 套页面结构 + 1 套共享主题 token 系统**，但这些结构与 token 必须以 `docs/design/` 中的 dark/light 设计系统与对应页面 HTML 为直接来源，而不是自由发挥式“提炼”。
+- 设计原型对 **信息架构、页面区域划分、主题方向、字体系统、间距比例、导航布局、标题层级与关键视觉元素** 具有强约束；当前要求从“工程化重建”提升为**完全复刻 Stitch/设计稿视觉与结构**，仅允许为 React 组件化与数据接线做必要的技术性改写，不允许擅自改变视觉结果。
+- Light / Dark 主题切换属于 MVP 范围，默认 Dark，允许用户手动切换到 Light，并记住上次选择；切换后的视觉结果必须分别对齐 `docs/design/dark/` 与 `docs/design/light/` 的对应页面。
 
 ## Scope Clarifications
 
@@ -156,9 +159,9 @@ sequenceDiagram
 
 ### 2. CSS 方案：Tailwind CSS v4 + shadcn/ui
 
-**选择理由：** shadcn/ui 组件无运行时依赖，直接复制到项目中可完全掌控样式，适合高度定制的医疗场景 UI。Tailwind v4 性能更好，JIT 模式默认开启。
+**选择理由：** 当前实现仍使用 Tailwind v4 + shadcn/ui 作为工程载体，但其职责被收紧为**复刻设计稿的技术实现手段**，而不是驱动视觉风格的来源。最终视觉必须服从 `docs/design/` 与 Stitch 导出的页面结果，不能因为组件库默认外观而偏离设计稿。
 
-**对比 MUI：** MUI 组件库体积大，覆盖样式成本高，且 Material Design 风格不适合「温暖、人性化」的医疗产品定位。
+**对比 MUI：** MUI 组件库体积大，覆盖样式成本高，且其默认视觉语言与当前 `docs/design/dark` / `docs/design/light` 的编辑式医疗界面不一致。
 
 ### 3. 后端：Supabase（Auth + PostgreSQL + RLS + Edge Functions）
 
@@ -200,6 +203,7 @@ sequenceDiagram
 - 前端脚手架可运行，主题系统已建立，默认 Dark / 手动切换 Light / 恢复上次选择可验证。
 - 登录页、临床工作区、档案详情三类页面的基础布局骨架已经形成。
 - Stitch 的 Web-only 设计输入规则已经落地到页面结构与主题对齐策略中。
+- `docs/design/dark/` 与 `docs/design/light/` 的设计系统和对应页面 HTML 已被逐页消费，当前实现与 6 个 Web 页面在结构、分栏、层级、字体、色彩与关键视觉元素上达到可接受的复刻精度，而不是仅有占位骨架。
 - Supabase 客户端与环境变量基础配置已经就绪。
 
 ### Phase 2 — MVP 核心功能完成标准
