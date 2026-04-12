@@ -6,6 +6,8 @@ CLAUDE.md: 说明前端基础设施模块职责，[PROTOCOL]: 变更时更新此
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 auth.tsx: Supabase session 恢复、认证状态广播与 signOut 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm/: 前端 LLM adapter 目录，收敛 chat 接口、类型与错误映射
+extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase.ts: Supabase 客户端初始化与环境变量边界，区分 Auth 所需 env 与 Edge Function 所需 env，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 utils.ts: 类名合并等无业务状态工具，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

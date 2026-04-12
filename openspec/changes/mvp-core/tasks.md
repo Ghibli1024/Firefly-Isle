@@ -82,14 +82,14 @@
 
 ## 6. 信息提取
 
-- [ ] 6.1 编写提取 prompt 模板（`src/lib/extractionPrompt.ts`）：含完整 `PatientRecord` TypeScript interface 作为 schema 约束，要求输出纯 JSON
-- [ ] 6.2 实现 `extractPatientRecord(input: string): Promise<PatientRecord>`：调用 llmAdapter → strip markdown fences → JSON.parse → 产出可进入追问与渲染流程的 `PatientRecord`
-- [ ] 6.3 对 age、height、weight、lineNumber 等数值字段做类型归一化，并对 diagnosisDate、startDate、endDate、triggerDate 做日期格式归一化（YYYY-MM-DD 或 YYYY-MM）
-- [ ] 6.4 实现关键字段缺失检测：`getMissingCriticalFields(record: PatientRecord) → string[]`（关键字段：tumorType, stage, regimen）
-- [ ] 6.5 实现追问循环：最多 3 轮；关键字段补全后提前终止；第 3 轮后即使仍不完整也返回当前结果；同轮缺失字段必须合并为一次追问
-- [ ] 6.6 定义追问补充结果与现有 `PatientRecord` 的 merge 规则，明确 treatmentLines 与字段冲突时的合并策略
-- [ ] 6.7 JSON 解析失败时显示用户友好错误提示 + 提供重试按钮
-- [ ] 6.8 当核心主流程、MVP 能力边界或项目当前阶段状态发生可感知变化后，更新 README 中的功能说明与项目状态
+- [x] 6.1 编写提取 prompt 模板（`src/lib/extractionPrompt.ts`）：含完整 `PatientRecord` TypeScript interface 作为 schema 约束，要求输出纯 JSON
+- [x] 6.2 实现 `extractPatientRecord(input: string): Promise<PatientRecord>`：调用 llmAdapter → strip markdown fences → JSON.parse → 产出可进入追问与渲染流程的 `PatientRecord`
+- [x] 6.3 对 age、height、weight、lineNumber 等数值字段做类型归一化，并对 diagnosisDate、startDate、endDate、triggerDate 做日期格式归一化（YYYY-MM-DD 或 YYYY-MM）
+- [x] 6.4 实现关键字段缺失检测：`getMissingCriticalFields(record: PatientRecord) → string[]`（关键字段：tumorType, stage, regimen）
+- [x] 6.5 实现追问循环：最多 3 轮；关键字段补全后提前终止；第 3 轮后即使仍不完整也返回当前结果；同轮缺失字段必须合并为一次追问
+- [x] 6.6 定义追问补充结果与现有 `PatientRecord` 的 merge 规则，明确 treatmentLines 与字段冲突时的合并策略
+- [x] 6.7 JSON 解析失败时显示用户友好错误提示 + 提供重试按钮
+- [x] 6.8 当核心主流程、MVP 能力边界或项目当前阶段状态发生可感知变化后，更新 README 中的功能说明与项目状态
 
 ## 7. 时间线表格渲染
 

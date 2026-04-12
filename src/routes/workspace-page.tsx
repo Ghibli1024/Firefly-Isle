@@ -1,16 +1,27 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，按 docs/design 中的 dark/light 工作区页面复刻输入画布与结构化输出布局，并暴露退出登录入口。
+ * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复与结果预览，并保留 Dark/Light 复刻骨架。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { useMemo, useState } from 'react'
+
 import {
   ArchiveSideNav,
   DarkTopBar,
   QR_PLACEHOLDER,
   SCAN_PLACEHOLDER,
 } from '@/components/app-shell'
+import {
+  buildFollowUpQuestion,
+  extractPatientRecord,
+  ExtractionParseError,
+  getMissingCriticalFields,
+  MAX_FOLLOW_UP_ROUNDS,
+} from '@/lib/extraction'
+import { ChatError } from '@/lib/llm'
 import { useTheme } from '@/lib/theme'
+import type { PatientRecord } from '@/types/patient'
 
 type WorkspacePageProps = {
   isSigningOut?: boolean
@@ -18,7 +29,228 @@ type WorkspacePageProps = {
   userLabel?: string
 }
 
+type ExtractionState = {
+  currentQuestion: string | null
+  error: string | null
+  extractionInput: string
+  followUpAnswers: string[]
+  isExtracting: boolean
+  record: PatientRecord | null
+  remainingMissing: string[]
+  retryAnswer: string | null
+  retryMode: 'initial' | 'follow-up' | null
+}
+
+const EMPTY_RECORD: PatientRecord = {
+  treatmentLines: [],
+}
+
+function getNextQuestion(missingFields: string[], followUpCount: number) {
+  if (missingFields.length === 0 || followUpCount >= MAX_FOLLOW_UP_ROUNDS) {
+    return null
+  }
+
+  return buildFollowUpQuestion(missingFields)
+}
+
+function useExtractionState() {
+  const [state, setState] = useState<ExtractionState>({
+    currentQuestion: null,
+    error: null,
+    extractionInput: '',
+    followUpAnswers: [],
+    isExtracting: false,
+    record: null,
+    remainingMissing: [],
+    retryAnswer: null,
+    retryMode: null,
+  })
+
+  async function runInitialExtraction() {
+    if (!state.extractionInput.trim()) {
+      setState((current) => ({
+        ...current,
+        error: '请先输入病情描述，再开始提取。',
+        retryMode: null,
+      }))
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      currentQuestion: null,
+      error: null,
+      followUpAnswers: [],
+      isExtracting: true,
+      record: null,
+      remainingMissing: [],
+      retryAnswer: null,
+      retryMode: null,
+    }))
+
+    try {
+      const record = await extractPatientRecord(state.extractionInput)
+      const missingFields = getMissingCriticalFields(record)
+
+      setState((current) => ({
+        ...current,
+        currentQuestion: getNextQuestion(missingFields, 0),
+        followUpAnswers: [],
+        isExtracting: false,
+        record,
+        remainingMissing: missingFields,
+        retryAnswer: null,
+        retryMode: null,
+      }))
+    } catch (error) {
+      const message =
+        error instanceof ExtractionParseError
+          ? '解析失败，请检查返回内容后重试。'
+          : error instanceof ChatError && error.name === 'LLMInvalidResponseError'
+            ? '解析失败，请重试一次。'
+            : '提取失败，请稍后重试。'
+
+      setState((current) => ({
+        ...current,
+        error: message,
+        isExtracting: false,
+        retryAnswer: null,
+        retryMode: 'initial',
+      }))
+    }
+  }
+
+  async function runFollowUpExtraction(answer: string) {
+    if (!answer.trim() || !state.record) {
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      error: null,
+      isExtracting: true,
+      retryAnswer: null,
+      retryMode: null,
+    }))
+
+    try {
+      const nextRecord = await extractPatientRecord(answer, state.record)
+      const missingFields = getMissingCriticalFields(nextRecord)
+
+      setState((current) => {
+        const followUpAnswers = [...current.followUpAnswers, answer]
+
+        return {
+          ...current,
+          currentQuestion: getNextQuestion(missingFields, followUpAnswers.length),
+          followUpAnswers,
+          isExtracting: false,
+          record: nextRecord,
+          remainingMissing: missingFields,
+          retryAnswer: null,
+          retryMode: null,
+        }
+      })
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error:
+          error instanceof ExtractionParseError
+            ? '追问解析失败，请重试这轮补充。'
+            : '追问合并失败，请重新提交这轮补充。',
+        isExtracting: false,
+        retryAnswer: answer,
+        retryMode: 'follow-up',
+      }))
+    }
+  }
+
+  async function retryLastAction() {
+    if (state.retryMode === 'follow-up' && state.retryAnswer) {
+      await runFollowUpExtraction(state.retryAnswer)
+      return
+    }
+
+    await runInitialExtraction()
+  }
+
+  function setExtractionInput(extractionInput: string) {
+    setState((current) => ({ ...current, extractionInput }))
+  }
+
+  return {
+    ...state,
+    retryLastAction,
+    runFollowUpExtraction,
+    runInitialExtraction,
+    setExtractionInput,
+  }
+}
+
+
+function renderBasicInfo(record: PatientRecord) {
+  return [
+    ['Gender / 性别', record.basicInfo?.gender],
+    ['Age / 年龄', record.basicInfo?.age?.toString()],
+    ['Tumor Type / 肿瘤类型', record.basicInfo?.tumorType],
+    ['Stage / 分期', record.basicInfo?.stage],
+  ]
+}
+
+function renderTimelineSummary(record: PatientRecord) {
+  const items: Array<{ date: string; tag: string; title: string; desc: string; active: boolean }> = []
+
+  if (record.initialOnset) {
+    items.push({
+      active: true,
+      date: record.initialOnset.triggerDate ?? '未提供',
+      desc: record.initialOnset.treatment ?? '待补充初发治疗方案',
+      tag: 'Initial Onset',
+      title: '初发诊断区块',
+    })
+  }
+
+  for (const line of record.treatmentLines) {
+    items.push({
+      active: false,
+      date: `${line.startDate ?? '未提供'} → ${line.endDate ?? '至今'}`,
+      desc: line.regimen ?? '待补充当前治疗方案',
+      tag: `Line ${line.lineNumber}`,
+      title: `治疗线 ${line.lineNumber}`,
+    })
+  }
+
+  if (items.length === 0) {
+    items.push({
+      active: true,
+      date: '待提取',
+      desc: '提交患者描述后，这里会显示结构化结果。',
+      tag: 'Waiting',
+      title: '尚未生成结构化结果',
+    })
+  }
+
+  return items
+}
+
 function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
+  const {
+    currentQuestion,
+    error,
+    extractionInput,
+    isExtracting,
+    record,
+    remainingMissing,
+    retryLastAction,
+    retryMode,
+    runFollowUpExtraction,
+    runInitialExtraction,
+    setExtractionInput,
+  } = useExtractionState()
+  const [followUpInput, setFollowUpInput] = useState('')
+  const displayRecord = record ?? EMPTY_RECORD
+  const summaryItems = useMemo(() => renderTimelineSummary(displayRecord), [displayRecord])
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
       <DarkTopBar />
@@ -33,19 +265,37 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
               </label>
               <textarea
                 className="h-48 w-full resize-none border-0 border-b border-[#262626] bg-[#1A1A1A] p-4 text-[#FAFAFA] outline-none placeholder:text-[#353534] focus:border-[#FF3D00] focus:border-b-2"
+                onChange={(event) => setExtractionInput(event.target.value)}
                 placeholder="请描述患者的病情及治疗历程..."
+                value={extractionInput}
               />
             </div>
 
+            {error ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{error}</div> : null}
+
+            {retryMode ? (
+              <button
+                className="border border-[#262626] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA]/70"
+                onClick={() => void retryLastAction()}
+                type="button"
+              >
+                {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
+              </button>
+            ) : null}
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="group flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#262626] bg-[#131313] py-10 transition-colors hover:border-[#FF3D00]">
+              <button
+                className="group flex flex-col items-center justify-center border-2 border-dashed border-[#262626] bg-[#131313] py-10 transition-colors hover:border-[#FF3D00]"
+                onClick={() => void runInitialExtraction()}
+                type="button"
+              >
                 <span className="material-symbols-outlined mb-2 text-4xl text-[#353534] group-hover:text-[#FF3D00]">
-                  upload_file
+                  auto_awesome
                 </span>
                 <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#353534] group-hover:text-[#FAFAFA]">
-                  点击或拖拽上传图片/PDF
+                  {isExtracting ? '提取中…' : '开始结构化提取'}
                 </span>
-              </div>
+              </button>
               <div className="flex items-center justify-center">
                 <button className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-3 bg-[#FF3D00] text-[#0A0A0A] transition-colors hover:bg-[#FAFAFA]">
                   <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -55,6 +305,29 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
                 </button>
               </div>
             </div>
+
+            {currentQuestion ? (
+              <div className="border border-[#262626] bg-[#131313] p-6">
+                <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[#FF3D00]">FOLLOW UP</div>
+                <p className="mt-3 text-sm leading-7 text-[#FAFAFA]/80">{currentQuestion}</p>
+                <textarea
+                  className="mt-4 h-28 w-full resize-none border border-[#262626] bg-[#0A0A0A] p-4 outline-none focus:border-[#FF3D00]"
+                  onChange={(event) => setFollowUpInput(event.target.value)}
+                  placeholder="一次性补充缺失信息..."
+                  value={followUpInput}
+                />
+                <button
+                  className="mt-4 border border-[#FF3D00] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FF3D00]"
+                  onClick={() => {
+                    void runFollowUpExtraction(followUpInput)
+                    setFollowUpInput('')
+                  }}
+                  type="button"
+                >
+                  提交补充
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -73,114 +346,34 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-['JetBrains_Mono'] text-xs font-bold">REPORT_ID: 2024-X0892</p>
-                <p className="font-['JetBrains_Mono'] text-xs">DATE: 2024.05.20</p>
+                <p className="font-['JetBrains_Mono'] text-xs font-bold">REPORT_ID: LIVE-DRAFT</p>
+                <p className="font-['JetBrains_Mono'] text-xs">MISSING: {remainingMissing.length}</p>
               </div>
             </div>
 
             <div className="mb-8 grid grid-cols-4 border-2 border-[#0A0A0A]">
-              {[
-                ['AGE / 年龄', '54'],
-                ['BLOOD TYPE / 血型', 'A+'],
-                ['GENDER / 性别', '女'],
-                ['WEIGHT / 体重', '62 KG'],
-              ].map(([label, value], index) => (
-                <div
-                  key={label}
-                  className={`bg-[#F0F0F0] p-2 ${index < 3 ? 'border-r border-[#0A0A0A]' : ''}`}
-                >
+              {renderBasicInfo(displayRecord).map(([label, value], index) => (
+                <div key={label} className={`bg-[#F0F0F0] p-2 ${index < 3 ? 'border-r border-[#0A0A0A]' : ''}`}>
                   <label className="block font-['JetBrains_Mono'] text-[9px] font-bold">{label}</label>
-                  <span className="text-lg font-bold">{value}</span>
+                  <span className={`text-lg font-bold ${value ? '' : 'text-[#FF3D00]'}`}>{value ?? '待补充'}</span>
                 </div>
               ))}
             </div>
 
             <div className="mb-8">
               <h2 className="mb-2 inline-block bg-[#0A0A0A] px-4 py-1 text-sm font-bold uppercase tracking-widest text-white">
-                初发区块 / PRIMARY ONSET
+                追问与治疗摘要 / EXTRACTION SUMMARY
               </h2>
-              <table className="w-full border-2 border-[#0A0A0A] border-collapse">
-                <tbody>
-                  <tr className="border-b border-[#0A0A0A]">
-                    <td className="w-1/4 border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 font-bold">触发时间</td>
-                    <td className="w-3/4 p-2">2022-03-15</td>
-                  </tr>
-                  <tr className="border-b border-[#0A0A0A]">
-                    <td className="border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 font-bold">初始方案</td>
-                    <td className="p-2 font-medium">改良根治术 + AC-T 化疗方案</td>
-                  </tr>
-                  <tr className="border-b border-[#0A0A0A]">
-                    <td className="border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 font-bold">免疫组化 (IHC)</td>
-                    <td className="p-2">
-                      <div className="grid grid-cols-4 gap-4">
-                        {[
-                          ['ER', '80%(+)'],
-                          ['PR', '20%(+)'],
-                          ['HER2', '1(+)'],
-                          ['Ki67', '15%'],
-                        ].map(([label, value]) => (
-                          <div key={label}>
-                            <span className="block text-[10px] opacity-60">{label}</span>
-                            <span className="font-bold">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 font-bold">基因检测</td>
-                    <td className="p-2 text-sm italic">BRCA1/2 突变：阴性 (Negative)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mb-8">
-              <h2 className="mb-2 inline-block bg-[#0A0A0A] px-4 py-1 text-sm font-bold uppercase tracking-widest text-white">
-                治疗线区块 / TREATMENT LINES
-              </h2>
-              {[
-                {
-                  title: '一线治疗 / FIRST LINE',
-                  period: '2022.06 - 2023.01',
-                  regimen: '他莫昔芬 (Tamoxifen) 20mg qd po',
-                  biopsy: '左锁骨上淋巴结穿刺 (2022-05-30)',
-                  ihc: 'ER(90%+), PR(10%+), HER2(0), Ki67(10%)',
-                  gene: '未见明显驱动基因突变',
-                  highlight: false,
-                },
-                {
-                  title: '二线治疗 / SECOND LINE',
-                  period: '2023.02 - 至今',
-                  regimen: '氟维司群 + CDK4/6 抑制剂 (阿贝西利)',
-                  biopsy: '肝脏占位穿刺活检 (2023-02-10)',
-                  ihc: 'ER(70%+), PR(-), HER2(1+), Ki67(30%)',
-                  gene: 'PIK3CA 突变阳性',
-                  highlight: true,
-                },
-              ].map((line) => (
-                <div className="mb-4 border-2 border-[#0A0A0A]" key={line.title}>
+              {summaryItems.map((item) => (
+                <div className="mb-4 border-2 border-[#0A0A0A]" key={`${item.tag}-${item.date}-${item.title}`}>
                   <div className="flex items-center justify-between bg-[#0A0A0A] p-2 text-white">
-                    <span className="text-xs font-bold tracking-tighter">{line.title}</span>
-                    <span className="font-['JetBrains_Mono'] text-[10px]">{line.period}</span>
+                    <span className="text-xs font-bold tracking-tighter">{item.title}</span>
+                    <span className="font-['JetBrains_Mono'] text-[10px]">{item.date}</span>
                   </div>
-                  <table className="w-full border-collapse">
-                    <tbody>
-                      {[
-                        ['用药情况', line.regimen],
-                        ['穿刺/活检', line.biopsy],
-                        ['免疫组化', line.ihc],
-                        ['基因检测', line.gene],
-                      ].map(([label, value], index) => (
-                        <tr className={index < 3 ? 'border-b border-[#0A0A0A]' : ''} key={label}>
-                          <td className="w-1/4 border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 text-xs font-bold">{label}</td>
-                          <td className={`p-2 text-sm ${line.highlight && label === '基因检测' ? 'font-bold text-[#FF3D00]' : ''}`}>
-                            {value}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="grid grid-cols-[160px_1fr]">
+                    <div className="border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 text-xs font-bold">{item.tag}</div>
+                    <div className="p-2 text-sm">{item.desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -204,6 +397,24 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
 }
 
 function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
+  const {
+    currentQuestion,
+    error,
+    extractionInput,
+    followUpAnswers,
+    isExtracting,
+    record,
+    remainingMissing,
+    retryLastAction,
+    retryMode,
+    runFollowUpExtraction,
+    runInitialExtraction,
+    setExtractionInput,
+  } = useExtractionState()
+  const [followUpInput, setFollowUpInput] = useState('')
+  const displayRecord = record ?? EMPTY_RECORD
+  const summaryItems = useMemo(() => renderTimelineSummary(displayRecord), [displayRecord])
+
   return (
     <div className="ff-light-workspace-bg min-h-screen text-[#111111]">
       <div className="flex min-h-screen">
@@ -236,14 +447,58 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                     文字输入 / TEXT INPUT
                   </label>
                   <span className="font-['JetBrains_Mono'] text-[10px] font-bold text-[#CC0000]">
-                    READY TO ANALYZE
+                    {isExtracting ? 'ANALYZING' : 'READY TO ANALYZE'}
                   </span>
                 </div>
                 <textarea
                   className="h-48 w-full resize-none border-0 bg-transparent text-xl leading-relaxed outline-none placeholder:opacity-20"
+                  onChange={(event) => setExtractionInput(event.target.value)}
                   placeholder="在此输入患者病史或临床表现描述..."
+                  value={extractionInput}
                 />
+                <div className="mt-6 flex items-center gap-4">
+                  <button
+                    className="border-2 border-[#111111] bg-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#F9F9F7]"
+                    onClick={() => void runInitialExtraction()}
+                    type="button"
+                  >
+                    {isExtracting ? '提取中…' : '开始提取'}
+                  </button>
+                  {error ? <span className="text-sm text-[#ba1a1a]">{error}</span> : null}
+                  {retryMode ? (
+                    <button
+                      className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
+                      onClick={() => void retryLastAction()}
+                      type="button"
+                    >
+                      {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
+                    </button>
+                  ) : null}
+                </div>
               </div>
+
+              {currentQuestion ? (
+                <div className="ff-light-ink-shadow border-2 border-[#111111] bg-white p-6">
+                  <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">FOLLOW UP</h3>
+                  <p className="mt-3 text-sm leading-7">{currentQuestion}</p>
+                  <textarea
+                    className="mt-4 h-32 w-full resize-none border-2 border-[#111111] bg-transparent p-4 outline-none"
+                    onChange={(event) => setFollowUpInput(event.target.value)}
+                    placeholder="一次性补充缺失信息..."
+                    value={followUpInput}
+                  />
+                  <button
+                    className="mt-4 border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
+                    onClick={() => {
+                      void runFollowUpExtraction(followUpInput)
+                      setFollowUpInput('')
+                    }}
+                    type="button"
+                  >
+                    提交补充
+                  </button>
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#111111] bg-[#e0e0db]/20 p-6 transition-colors hover:bg-[#e0e0db]/40">
@@ -271,7 +526,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   Instructional
                 </h3>
                 <p className="ff-light-drop-cap text-sm italic leading-relaxed">
-                  Please ensure all medical records are anonymized before processing. The AI engine will cross-reference current symptoms with historic records to generate a comprehensive structural report.
+                  先输入完整病史，再根据追问一次性补充缺失的临床关键字段。当前仅对肿瘤类型、分期与治疗方案触发追问。
                 </p>
               </div>
               <div className="bg-[#111111] p-6 text-[#F9F9F7]">
@@ -279,9 +534,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   Current Parameters
                 </h4>
                 <ul className="space-y-2 font-['JetBrains_Mono'] text-[11px] opacity-80">
-                  <li className="flex justify-between"><span>MODEL</span><span>CLINIC-V4</span></li>
-                  <li className="flex justify-between"><span>SENSITIVITY</span><span>HIGH</span></li>
-                  <li className="flex justify-between"><span>LANGUAGE</span><span>ZH-CN</span></li>
+                  <li className="flex justify-between"><span>MODEL</span><span>GEMINI</span></li>
+                  <li className="flex justify-between"><span>FOLLOW UPS</span><span>MAX 3</span></li>
+                  <li className="flex justify-between"><span>MISSING</span><span>{remainingMissing.length}</span></li>
                 </ul>
               </div>
             </div>
@@ -299,14 +554,12 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   患者元数据
                 </h3>
                 <div className="space-y-6">
-                  {[
-                    ['Age / 年龄', '45'],
-                    ['Blood Type / 血型', 'AB+'],
-                    ['Sex / 性别', '女'],
-                  ].map(([label, value]) => (
+                  {renderBasicInfo(displayRecord).map(([label, value]) => (
                     <div key={label}>
                       <span className="block font-['JetBrains_Mono'] text-[10px] uppercase opacity-60">{label}</span>
-                      <span className="font-['Newsreader'] text-3xl font-bold">{value}</span>
+                      <span className={`font-['Newsreader'] text-3xl font-bold ${value ? '' : 'text-[#ba1a1a]'}`}>
+                        {value ?? '待补充'}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -324,31 +577,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                 </div>
 
                 <div className="relative space-y-12 border-l-2 border-[#111111]/10 pl-12">
-                  {[
-                    {
-                      date: '2024.04.12',
-                      tag: 'Primary Symptom',
-                      title: '初步诊断：持续性偏头痛',
-                      desc: '患者主诉头痛伴有恶心，休息后无明显缓解。既往有轻度高血压病史。',
-                      active: true,
-                    },
-                    {
-                      date: '2024.04.28',
-                      tag: 'Lab Result',
-                      title: '生化检查与影像学分析',
-                      desc: 'CT扫描未见明显占位，实验室检查显示炎性指标轻微升高。建议进行进一步睡眠监测。',
-                      active: false,
-                    },
-                    {
-                      date: '2024.05.15',
-                      tag: 'Observation',
-                      title: '随访与用药调整',
-                      desc: '目前采用联合用药方案，患者反馈症状频率降低 40%。继续观察治疗方案的耐受性。',
-                      active: false,
-                    },
-                  ].map((item, index) => (
-                    <div className="relative" key={item.title}>
-                      <span className={`absolute -left-[54px] top-0 h-3 w-3 ${index === 2 ? 'border-2 border-[#111111] bg-[#F9F9F7]' : 'bg-[#111111]'} ${item.active ? '' : 'opacity-40'}`} />
+                  {summaryItems.map((item, index) => (
+                    <div className="relative" key={`${item.tag}-${item.date}-${item.title}`}>
+                      <span className={`absolute -left-[54px] top-0 h-3 w-3 ${index === summaryItems.length - 1 ? 'border-2 border-[#111111] bg-[#F9F9F7]' : 'bg-[#111111]'} ${item.active ? '' : 'opacity-40'}`} />
                       <div className="flex items-start justify-between">
                         <span className={`px-2 py-1 font-['JetBrains_Mono'] text-xs font-bold ${item.active ? 'bg-[#111111] text-[#F9F9F7]' : 'border border-[#111111]'}`}>
                           {item.date}
@@ -367,7 +598,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   <div>
                     <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
                     <p className="text-xs italic opacity-60">
-                      "The digital extraction of these patterns suggests a correlation between environmental stressors and acute episodes..."
+                      {remainingMissing.length > 0
+                        ? `仍待补充：${remainingMissing.join('、')}`
+                        : '关键临床字段已补齐，可进入下一阶段渲染。'}
                     </p>
                   </div>
                   <div className="flex flex-col justify-end">
@@ -380,7 +613,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                           <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">
                             Verified by AI Agent
                           </p>
-                          <p className="font-['JetBrains_Mono'] text-[9px] opacity-60">CONFIDENCE: 98.4%</p>
+                          <p className="font-['JetBrains_Mono'] text-[9px] opacity-60">FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}</p>
                         </div>
                       </div>
                       <span className="material-symbols-outlined text-[#CC0000]">verified</span>
