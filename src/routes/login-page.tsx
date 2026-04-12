@@ -52,9 +52,6 @@ export function LoginPage({ authError = null }: { authError?: string | null }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
     })
 
     if (error) {

@@ -24,7 +24,7 @@
   - `supabase/functions/llm-proxy/index.ts`
   - `src/lib/llm/index.ts`
   - `src/lib/llm/types.ts`
-- 尚未完成的部分：`GEMINI_API_KEY` / `DEFAULT_GEMINI_MODEL` secret 配置与 `supabase functions deploy llm-proxy` 仍需执行
+- 若你是从零重建 Supabase 项目，仍需重新配置 `GEMINI_API_KEY` / `DEFAULT_GEMINI_MODEL` secret，并重新部署 `supabase functions deploy llm-proxy`
 
 真相源文件：
 
@@ -56,7 +56,8 @@
 因此在 Dashboard 的 Auth 配置里至少检查：
 
 - Email provider 可用
-- Anonymous Sign-In 已开启
+- Anonymous Sign-In 已开启；如果前端匿名入口返回 422，优先回到这里核对是否被关闭
+- Site URL 至少指向一个有效回跳地址；如果你希望验证邮件直接回到当前本地 origin，或后续重新显式传入 `emailRedirectTo`，再把该 origin 加入 Additional Redirect URLs
 
 说明：匿名登录不是“无身份”。Supabase 会为匿名用户创建真实 uid，所以后面的 `auth.uid()` RLS 和 Storage policy 仍然成立。
 
@@ -364,6 +365,34 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
   - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash"`
   - `supabase functions deploy llm-proxy`
 
+### 8.6 匿名入口返回 422
+
+典型返回：
+
+```json
+{"code":"anonymous_provider_disabled","message":"Anonymous sign-ins are disabled"}
+```
+
+优先检查：
+
+- Dashboard → Auth Providers 中的 Anonymous Sign-In 是否被关闭
+- 当前前端是否真的调用了 `supabase.auth.signInAnonymously()`，而不是被别的登录流兜底
+
+### 8.7 邮箱注册返回 400
+
+当前实现默认直接调用：
+
+- `supabase.auth.signUp({ email, password })`
+
+也就是说，默认注册流程不再强依赖 `emailRedirectTo: window.location.origin`。
+
+如果本地注册仍然直接 400，优先检查：
+
+- Dashboard → Auth URL Configuration 的 Site URL 是否有效
+- 是否有其他分支/旧代码重新显式传入 `emailRedirectTo`
+- 如果你希望验证邮件回到本地开发 origin，Additional Redirect URLs 是否已包含当前 origin（例如 `http://127.0.0.1:5173`、`http://localhost:5173` 或当前实际端口）
+- 当前本地访问地址是否和 allow list 完全一致（协议、host、端口都要一致）
+
 ## 9. 一次性恢复清单
 
 从零恢复时，按这个顺序做：
@@ -372,14 +401,15 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 2. 保存数据库密码与 `project_ref`
 3. 创建 Personal Access Token，完成 `supabase login`
 4. 复制 `.env.local.example`，填好 3 个 Vite 变量
-5. 从 Dashboard 复制 session pooler URI
-6. 执行 `supabase db push --db-url '<完整 pooler 连接串>'`
-7. 在 Dashboard 手动创建 `patient-assets`
-8. 在 SQL Editor 执行 Storage policy SQL
-9. 用两个不同用户 + 一个匿名用户验证隔离
-10. 配置 `GEMINI_API_KEY` 与 `DEFAULT_GEMINI_MODEL`
-11. 执行 `supabase functions deploy llm-proxy`
-12. 再开始 `6.x` 的信息提取主流程
+5. 在 Dashboard 检查 Email provider、Anonymous Sign-In；如需让验证邮件回到当前本地 origin 或后续重新显式传入 `emailRedirectTo`，再配置本地 origin redirect allow list
+6. 从 Dashboard 复制 session pooler URI
+7. 执行 `supabase db push --db-url '<完整 pooler 连接串>'`
+8. 在 Dashboard 手动创建 `patient-assets`
+9. 在 SQL Editor 执行 Storage policy SQL
+10. 用两个不同用户 + 一个匿名用户验证隔离
+11. 配置 `GEMINI_API_KEY` 与 `DEFAULT_GEMINI_MODEL`
+12. 执行 `supabase functions deploy llm-proxy`
+13. 再开始 `6.x` 的信息提取主流程
 
 ## 10. 当前已知文档漂移
 

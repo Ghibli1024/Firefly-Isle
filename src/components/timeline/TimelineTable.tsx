@@ -141,13 +141,13 @@ function getLabelClass(theme: Theme) {
 function getValueClass(theme: Theme, filled: boolean, prominent: boolean) {
   if (theme === 'dark') {
     return prominent
-      ? `font-['Inter_Tight'] text-2xl font-black tracking-tight ${filled ? 'text-[#FAFAFA]' : 'text-[#FAFAFA]/70'}`
-      : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[#FAFAFA]/88' : 'text-[#FAFAFA]/70'}`
+      ? `font-['Inter_Tight'] text-2xl font-black tracking-tight ${filled ? 'text-[#FAFAFA]' : 'text-[rgba(250,250,250,0.7)]'}`
+      : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[rgba(250,250,250,0.88)]' : 'text-[rgba(250,250,250,0.7)]'}`
   }
 
   return prominent
-    ? `font-['Newsreader'] text-[28px] font-bold tracking-tight ${filled ? 'text-[#111111]' : 'text-[#111111]/70'}`
-    : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[#111111]/82' : 'text-[#111111]/70'}`
+    ? `font-['Newsreader'] text-[28px] font-bold tracking-tight ${filled ? 'text-[#111111]' : 'text-[rgba(17,17,17,0.7)]'}`
+    : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[rgba(17,17,17,0.82)]' : 'text-[rgba(17,17,17,0.7)]'}`
 }
 
 function getCellClass(theme: Theme, critical: boolean, filled: boolean) {
@@ -189,7 +189,7 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
             </p>
           </div>
         </div>
-        <span className="min-w-[160px] self-start border border-[#262626] bg-[#0A0A0A] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA]/70 sm:self-auto">
+        <span className="min-w-[160px] self-start border border-[#262626] bg-[#0A0A0A] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[rgba(250,250,250,0.7)] sm:self-auto">
           {badge ?? '\u00A0'}
         </span>
       </div>
@@ -199,7 +199,7 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-baseline gap-4">
-        <span className="font-['Playfair_Display'] text-5xl font-black text-[#111111]/12 sm:text-6xl">
+        <span className="font-['Playfair_Display'] text-5xl font-black text-[rgba(17,17,17,0.12)] sm:text-6xl">
           {padOrder(order)}
         </span>
         <div>
@@ -242,7 +242,7 @@ function DataCell({
   return (
     <div
       className={`${getCellClass(theme, critical, filled)} flex min-h-[108px] flex-col justify-between gap-4 p-4 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[#FF3D00]/60 hover:bg-inherit' : ''
+        isInteractive ? 'cursor-text transition-colors hover:border-[rgba(255,61,0,0.6)] hover:bg-inherit' : ''
       }`}
       onClick={() => {
         if (!isInteractive || isEditing) {
@@ -317,7 +317,7 @@ function NarrativeCell({
   return (
     <div
       className={`${getCellClass(theme, critical, filled)} flex min-h-[176px] flex-col gap-4 p-5 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[#FF3D00]/60 hover:bg-inherit' : ''
+        isInteractive ? 'cursor-text transition-colors hover:border-[rgba(255,61,0,0.6)] hover:bg-inherit' : ''
       }`}
       onClick={() => {
         if (!isInteractive || isEditing) {
@@ -680,7 +680,7 @@ export function TreatmentLineBlock({
 
 function EmptyState({ theme }: { theme: Theme }) {
   return (
-    <div className={`${getSectionClass(theme)} ${theme === 'dark' ? 'text-[#FAFAFA]/70' : 'text-[#111111]/70'}`}>
+    <div className={`${getSectionClass(theme)} ${theme === 'dark' ? 'text-[rgba(250,250,250,0.7)]' : 'text-[rgba(17,17,17,0.7)]'}`}>
       <div className={getLabelClass(theme)}>TIMELINE_STATE</div>
       <p
         className={

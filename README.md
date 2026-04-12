@@ -8,7 +8,8 @@
 - 当前 MVP 的实现真相源仍是 `openspec/changes/mvp-core/` 下的 `proposal.md`、`design.md`、`tasks.md` 与 `specs/`。
 - 已实现路由：`/login`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
 - 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。
-- 尚未实现：10.x 集成验证收口、11.x 部署链路与上线前复核。
+- 10.x 集成验证已完成：`10.1` 端到端主链路、`10.2` RLS 双会话隔离、`10.3` 匿名模式恢复、`10.4` 隐私门控、`10.5` 主题恢复、`10.6` PDF/PNG 导出命名与失败提示、`10.7` 文档同步、`10.8` phase exit criteria 收口、`10.9` README 复核均已完成。
+- 尚未实现：11.x 部署链路与上线前复核。
 
 ## 开发启动
 
@@ -31,6 +32,12 @@ cp .env.local.example .env.local
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_SUPABASE_EDGE_FUNCTION_URL`
+
+如果要跑认证主链路，还需要在 Supabase Dashboard 的 Auth Providers / URL Configuration 里确认：
+
+- Email provider 已启用
+- Anonymous Sign-In 已启用（否则“无需登录，直接使用匿名会话”会返回 422）
+- 如需让验证邮件确认后回到当前本地 origin，再把该 origin 加入 Auth URL Configuration 的 Site URL / Additional Redirect URLs；当前注册流程默认不强依赖 `emailRedirectTo`
 
 如果要跑 LLM adapter / Edge Function，还需要在 Supabase 项目里配置：
 
