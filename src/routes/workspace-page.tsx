@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复与结果预览，并保留 Dark/Light 复刻骨架。
+ * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复与结构化时间线预览，并保留 Dark/Light 复刻骨架。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import {
   ArchiveSideNav,
@@ -12,6 +12,7 @@ import {
   QR_PLACEHOLDER,
   SCAN_PLACEHOLDER,
 } from '@/components/app-shell'
+import { TimelineTable } from '@/components/timeline/TimelineTable'
 import {
   buildFollowUpQuestion,
   extractPatientRecord,
@@ -188,51 +189,6 @@ function useExtractionState() {
 }
 
 
-function renderBasicInfo(record: PatientRecord) {
-  return [
-    ['Gender / 性别', record.basicInfo?.gender],
-    ['Age / 年龄', record.basicInfo?.age?.toString()],
-    ['Tumor Type / 肿瘤类型', record.basicInfo?.tumorType],
-    ['Stage / 分期', record.basicInfo?.stage],
-  ]
-}
-
-function renderTimelineSummary(record: PatientRecord) {
-  const items: Array<{ date: string; tag: string; title: string; desc: string; active: boolean }> = []
-
-  if (record.initialOnset) {
-    items.push({
-      active: true,
-      date: record.initialOnset.triggerDate ?? '未提供',
-      desc: record.initialOnset.treatment ?? '待补充初发治疗方案',
-      tag: 'Initial Onset',
-      title: '初发诊断区块',
-    })
-  }
-
-  for (const line of record.treatmentLines) {
-    items.push({
-      active: false,
-      date: `${line.startDate ?? '未提供'} → ${line.endDate ?? '至今'}`,
-      desc: line.regimen ?? '待补充当前治疗方案',
-      tag: `Line ${line.lineNumber}`,
-      title: `治疗线 ${line.lineNumber}`,
-    })
-  }
-
-  if (items.length === 0) {
-    items.push({
-      active: true,
-      date: '待提取',
-      desc: '提交患者描述后，这里会显示结构化结果。',
-      tag: 'Waiting',
-      title: '尚未生成结构化结果',
-    })
-  }
-
-  return items
-}
-
 function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
   const {
     currentQuestion,
@@ -249,7 +205,6 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
   } = useExtractionState()
   const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
-  const summaryItems = useMemo(() => renderTimelineSummary(displayRecord), [displayRecord])
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
@@ -351,32 +306,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
               </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-4 border-2 border-[#0A0A0A]">
-              {renderBasicInfo(displayRecord).map(([label, value], index) => (
-                <div key={label} className={`bg-[#F0F0F0] p-2 ${index < 3 ? 'border-r border-[#0A0A0A]' : ''}`}>
-                  <label className="block font-['JetBrains_Mono'] text-[9px] font-bold">{label}</label>
-                  <span className={`text-lg font-bold ${value ? '' : 'text-[#FF3D00]'}`}>{value ?? '待补充'}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mb-8">
-              <h2 className="mb-2 inline-block bg-[#0A0A0A] px-4 py-1 text-sm font-bold uppercase tracking-widest text-white">
-                追问与治疗摘要 / EXTRACTION SUMMARY
-              </h2>
-              {summaryItems.map((item) => (
-                <div className="mb-4 border-2 border-[#0A0A0A]" key={`${item.tag}-${item.date}-${item.title}`}>
-                  <div className="flex items-center justify-between bg-[#0A0A0A] p-2 text-white">
-                    <span className="text-xs font-bold tracking-tighter">{item.title}</span>
-                    <span className="font-['JetBrains_Mono'] text-[10px]">{item.date}</span>
-                  </div>
-                  <div className="grid grid-cols-[160px_1fr]">
-                    <div className="border-r border-[#0A0A0A] bg-[#F0F0F0] p-2 text-xs font-bold">{item.tag}</div>
-                    <div className="p-2 text-sm">{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <TimelineTable record={displayRecord} theme="dark" />
 
             <div className="mt-12 flex items-center justify-between border-t-2 border-[#0A0A0A] pt-4">
               <div className="max-w-[400px] font-['JetBrains_Mono'] text-[9px]">
@@ -413,7 +343,6 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
   } = useExtractionState()
   const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
-  const summaryItems = useMemo(() => renderTimelineSummary(displayRecord), [displayRecord])
 
   return (
     <div className="ff-light-workspace-bg min-h-screen text-[#111111]">
@@ -547,77 +476,32 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               <h2 className="font-['Newsreader'] text-4xl font-bold tracking-tighter">临床结构化报告</h2>
               <div className="h-[2px] flex-1 bg-[#111111]" />
             </div>
-            <div className="grid grid-cols-12 gap-0 border-2 border-[#111111] bg-white">
-              <div className="col-span-3 border-r-2 border-[#111111] bg-[#f4f4f2] p-6">
-                <h3 className="mb-6 flex items-center gap-2 font-['Inter'] text-xs font-black uppercase tracking-[0.2em]">
-                  <span className="material-symbols-outlined text-sm">person_search</span>
-                  患者元数据
-                </h3>
-                <div className="space-y-6">
-                  {renderBasicInfo(displayRecord).map(([label, value]) => (
-                    <div key={label}>
-                      <span className="block font-['JetBrains_Mono'] text-[10px] uppercase opacity-60">{label}</span>
-                      <span className={`font-['Newsreader'] text-3xl font-bold ${value ? '' : 'text-[#ba1a1a]'}`}>
-                        {value ?? '待补充'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="col-span-9 bg-white p-8">
-                <div className="mb-8 flex items-center justify-between">
-                  <h3 className="font-['Inter'] text-xs font-black uppercase tracking-[0.2em]">
-                    治疗时间轴 / TREATMENT TIMELINE
-                  </h3>
-                  <div className="flex gap-2">
-                    <span className="h-2 w-2 bg-[#111111]" />
-                    <span className="h-2 w-2 bg-[#111111]/20" />
-                    <span className="h-2 w-2 bg-[#111111]/20" />
-                  </div>
-                </div>
+            <div className="border-2 border-[#111111] bg-white p-8">
+              <TimelineTable record={displayRecord} theme="light" />
 
-                <div className="relative space-y-12 border-l-2 border-[#111111]/10 pl-12">
-                  {summaryItems.map((item, index) => (
-                    <div className="relative" key={`${item.tag}-${item.date}-${item.title}`}>
-                      <span className={`absolute -left-[54px] top-0 h-3 w-3 ${index === summaryItems.length - 1 ? 'border-2 border-[#111111] bg-[#F9F9F7]' : 'bg-[#111111]'} ${item.active ? '' : 'opacity-40'}`} />
-                      <div className="flex items-start justify-between">
-                        <span className={`px-2 py-1 font-['JetBrains_Mono'] text-xs font-bold ${item.active ? 'bg-[#111111] text-[#F9F9F7]' : 'border border-[#111111]'}`}>
-                          {item.date}
-                        </span>
-                        <span className={`font-['Inter'] text-[10px] font-bold uppercase ${item.active ? 'text-[#CC0000]' : 'text-[#111111]/40'}`}>
-                          {item.tag}
-                        </span>
-                      </div>
-                      <h4 className="mt-2 font-['Newsreader'] text-xl font-bold">{item.title}</h4>
-                      <p className="mt-1 text-sm text-[#111111]/70">{item.desc}</p>
-                    </div>
-                  ))}
+              <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[#111111]/10 pt-8">
+                <div>
+                  <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
+                  <p className="text-xs italic opacity-60">
+                    {remainingMissing.length > 0
+                      ? `仍待补充：${remainingMissing.join('、')}`
+                      : '关键临床字段已补齐，可进入下一阶段渲染。'}
+                  </p>
                 </div>
-
-                <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[#111111]/10 pt-8">
-                  <div>
-                    <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
-                    <p className="text-xs italic opacity-60">
-                      {remainingMissing.length > 0
-                        ? `仍待补充：${remainingMissing.join('、')}`
-                        : '关键临床字段已补齐，可进入下一阶段渲染。'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col justify-end">
-                    <div className="flex items-center justify-between bg-[#eeeeec] p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center bg-[#111111] font-['Playfair_Display'] text-xl font-black text-[#F9F9F7]">
-                          AI
-                        </div>
-                        <div>
-                          <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">
-                            Verified by AI Agent
-                          </p>
-                          <p className="font-['JetBrains_Mono'] text-[9px] opacity-60">FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}</p>
-                        </div>
+                <div className="flex flex-col justify-end">
+                  <div className="flex items-center justify-between bg-[#eeeeec] p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center bg-[#111111] font-['Playfair_Display'] text-xl font-black text-[#F9F9F7]">
+                        AI
                       </div>
-                      <span className="material-symbols-outlined text-[#CC0000]">verified</span>
+                      <div>
+                        <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">
+                          Verified by AI Agent
+                        </p>
+                        <p className="font-['JetBrains_Mono'] text-[9px] opacity-60">FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}</p>
+                      </div>
                     </div>
+                    <span className="material-symbols-outlined text-[#CC0000]">verified</span>
                   </div>
                 </div>
               </div>

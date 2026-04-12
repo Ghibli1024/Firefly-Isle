@@ -93,11 +93,11 @@
 
 ## 7. 时间线表格渲染
 
-- [ ] 7.1 创建 `TimelineTable` 组件，接收 `PatientRecord` prop，根据 archetype 渲染对应布局
-- [ ] 7.2 实现 `BasicInfoBlock`：渲染性别、年龄、身高/体重、肿瘤类型、诊断日期、分期
-- [ ] 7.3 实现 `InitialOnsetBlock`：在 `initialOnset` 存在时渲染初发时间、治疗方案、免疫组化、基因检测；适用于 non-advanced 与 relapsed-advanced 场景
-- [ ] 7.4 实现 `TreatmentLineBlock`：循环渲染每条治疗线（线号、方案、起止日期、活检、免疫组化、基因检测）
-- [ ] 7.5 仅对临床关键缺失字段（`tumorType`、`stage`、`regimen`）应用明显高亮；非关键空字段保持留白，不渲染 `undefined`、`null` 或统一 `?` 占位符
+- [x] 7.1 创建 `TimelineTable` 组件，接收 `PatientRecord` prop，根据 archetype 渲染对应布局
+- [x] 7.2 实现 `BasicInfoBlock`：渲染性别、年龄、身高/体重、肿瘤类型、诊断日期、分期
+- [x] 7.3 实现 `InitialOnsetBlock`：在 `initialOnset` 存在时渲染初发时间、治疗方案、免疫组化、基因检测；适用于 non-advanced 与 relapsed-advanced 场景
+- [x] 7.4 实现 `TreatmentLineBlock`：循环渲染每条治疗线（线号、方案、起止日期、活检、免疫组化、基因检测）
+- [x] 7.5 仅对临床关键缺失字段（`tumorType`、`stage`、`regimen`）应用明显高亮；非关键空字段保持留白，不渲染 `undefined`、`null` 或统一 `?` 占位符
 
 ## 8. 表格编辑
 
