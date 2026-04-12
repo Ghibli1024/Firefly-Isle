@@ -3,6 +3,7 @@
 
 成员清单
 CLAUDE.md: 说明 Supabase 基础设施目录与迁移边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+functions/: Edge Functions 模块目录，承载 llm-proxy 等服务端安全边界
 migrations/: PostgreSQL schema、RLS 与 trigger 迁移脚本
 
 法则: 先把数据库边界写死，再让应用层接入，不在前端里偷渡权限逻辑。

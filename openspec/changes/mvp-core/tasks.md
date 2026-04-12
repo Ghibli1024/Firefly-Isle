@@ -70,15 +70,15 @@
 
 ## 5. LLM Adapter（Edge Function）
 
-- [ ] 5.1 在 `supabase/functions/llm-proxy/index.ts` 创建 Edge Function：验证 JWT，接收 `messages` 与可选 `model` 参数，转发到 Gemini API
-- [ ] 5.2 使用 fetch 调用 Gemini API，读取 `GEMINI_API_KEY`，默认模型为 `gemini-2.5-flash`
-- [ ] 5.3 统一 Edge Function 响应格式：成功时返回文本内容，失败时返回具名可识别错误（如 `LLMTimeoutError`、`LLMRateLimitError`、`LLMInvalidResponseError`）
-- [ ] 5.4 对无效 JWT、超过 30 秒的超时和 429 限流实现明确错误处理，不在前端暴露任何 API Key
-- [ ] 5.5 在 Supabase Dashboard 配置 `GEMINI_API_KEY` secret 和默认模型环境变量
-- [ ] 5.6 部署 Edge Function：`supabase functions deploy llm-proxy`
-- [ ] 5.7 创建前端封装 `src/lib/llm/`：`chat(messages: Message[], options?: ChatOptions) → Promise<string>`
-- [ ] 5.8 前端默认使用 Gemini 模型，允许通过 `options.model` 覆盖具体 Gemini 模型名
-- [ ] 5.9 当外部依赖或接入方式发生变化后，更新 README 中的接入与配置说明
+- [x] 5.1 在 `supabase/functions/llm-proxy/index.ts` 创建 Edge Function：验证 JWT，接收 `messages` 与可选 `model` 参数，转发到 Gemini API
+- [x] 5.2 使用 fetch 调用 Gemini API，读取 `GEMINI_API_KEY`，默认模型为 `gemini-2.5-flash`
+- [x] 5.3 统一 Edge Function 响应格式：成功时返回文本内容，失败时返回具名可识别错误（如 `LLMTimeoutError`、`LLMRateLimitError`、`LLMInvalidResponseError`）
+- [x] 5.4 对无效 JWT、超过 30 秒的超时和 429 限流实现明确错误处理，不在前端暴露任何 API Key
+- [x] 5.5 在 Supabase Dashboard 配置 `GEMINI_API_KEY` secret 和默认模型环境变量
+- [x] 5.6 部署 Edge Function：`supabase functions deploy llm-proxy`
+- [x] 5.7 创建前端封装 `src/lib/llm/`：`chat(messages: Message[], options?: ChatOptions) → Promise<string>`
+- [x] 5.8 前端默认使用 Gemini 模型，允许通过 `options.model` 覆盖具体 Gemini 模型名
+- [x] 5.9 当外部依赖或接入方式发生变化后，更新 README 中的接入与配置说明
 
 ## 6. 信息提取
 

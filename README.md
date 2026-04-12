@@ -4,10 +4,11 @@
 
 ## 当前状态
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线** 与 **4.x 认证主链路**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 三类页面骨架、Dark/Light 主题切换、隐私门控、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录。
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路** 与 **5.x LLM adapter 边界**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 三类页面骨架、Dark/Light 主题切换、隐私门控、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界。
 - 当前 MVP 的实现真相源仍是 `openspec/changes/mvp-core/` 下的 `proposal.md`、`design.md`、`tasks.md` 与 `specs/`。
 - 已实现路由：`/login`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
-- 尚未实现：数据库写入链路、LLM 提取、时间线真实渲染、导出与测试收口。
+- 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；完成 secret 配置与函数部署后，即可通过 Supabase Edge Function 代理 Gemini 请求。
+- 尚未实现：数据库写入链路、信息提取主流程、时间线真实渲染、导出与测试收口。
 
 ## 开发启动
 
@@ -31,13 +32,34 @@ cp .env.local.example .env.local
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_SUPABASE_EDGE_FUNCTION_URL`
 
+如果要跑 LLM adapter / Edge Function，还需要在 Supabase 项目里配置：
+
+- secret：`GEMINI_API_KEY`
+- function env：`DEFAULT_GEMINI_MODEL=gemini-2.5-flash`
+
 ### 3. 启动开发环境
 
 ```bash
 npm run dev
 ```
 
-### 4. 验证当前基线
+### 4. 配置并部署 llm-proxy（5.x）
+
+在 Supabase 项目里先配置 secret 和默认模型：
+
+```bash
+supabase secrets set GEMINI_API_KEY="<your-gemini-api-key>" DEFAULT_GEMINI_MODEL="gemini-2.5-flash"
+```
+
+然后部署函数：
+
+```bash
+supabase functions deploy llm-proxy
+```
+
+部署完成后，前端统一通过 `src/lib/llm/index.ts` 的 `chat(messages, options)` 调用该函数，不直接访问 Gemini。
+
+### 5. 验证当前基线
 
 ```bash
 npm run build

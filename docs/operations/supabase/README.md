@@ -1,0 +1,391 @@
+<!--
+[INPUT]: 依赖 /supabase/migrations/001_init.sql、/.env.local.example、/src/lib/supabase.ts 与 OpenSpec 中已完成的 3.1~3.7 事实。
+[OUTPUT]: 提供 Firefly-Isle 的 Supabase 从零配置、db push、bucket、storage policy、术语与常见错误手册。
+[POS]: docs/operations/supabase 的主 runbook，供下次重新配置项目时直接照做。
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
+
+# Firefly-Isle Supabase 操作手册
+
+这份手册只做一件事：下次从零恢复 Supabase 配置时，不靠记忆，按顺序把项目拉回可用状态。
+
+## 0. 当前项目事实
+
+- 项目 `project_ref`：`irkjblpzmclqekxbexll`
+- 区域：新加坡 `ap-southeast-1`
+- 前端环境变量：
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+  - `VITE_SUPABASE_EDGE_FUNCTION_URL`
+- 已落库迁移：`/Users/Totoro/Desktop/Firefly-Isle/supabase/migrations/001_init.sql`
+- 已创建 Storage bucket：`patient-assets`
+- 已验证完成的阶段：OpenSpec `3.1 ~ 3.7`
+- 当前已实现的 5.x 代码边界：
+  - `supabase/functions/llm-proxy/index.ts`
+  - `src/lib/llm/index.ts`
+  - `src/lib/llm/types.ts`
+- 尚未完成的部分：`GEMINI_API_KEY` / `DEFAULT_GEMINI_MODEL` secret 配置与 `supabase functions deploy llm-proxy` 仍需执行
+
+真相源文件：
+
+- `/Users/Totoro/Desktop/Firefly-Isle/supabase/migrations/001_init.sql`
+- `/Users/Totoro/Desktop/Firefly-Isle/.env.local.example`
+- `/Users/Totoro/Desktop/Firefly-Isle/src/lib/supabase.ts`
+- `/Users/Totoro/Desktop/Firefly-Isle/openspec/changes/mvp-core/tasks.md`
+- `/Users/Totoro/Desktop/Firefly-Isle/openspec/changes/mvp-core/design.md`
+
+## 1. 从零创建 Supabase 项目
+
+### 1.1 创建项目
+
+在 Supabase Dashboard 新建项目时，固定这些事实：
+
+- Region 选 `Singapore (ap-southeast-1)`
+- 记下 `project_ref`
+- 保存数据库密码，不要只记在脑子里
+
+为什么必须选新加坡：当前项目已经把 APAC 实测后的最终节点固定为 `ap-southeast-1`。后面如果换区，URL、pooler host、函数域名和文档都要一起改。
+
+### 1.2 认证设置
+
+当前项目规划依赖两种登录模式：
+
+- Email + Password
+- Anonymous Sign-In
+
+因此在 Dashboard 的 Auth 配置里至少检查：
+
+- Email provider 可用
+- Anonymous Sign-In 已开启
+
+说明：匿名登录不是“无身份”。Supabase 会为匿名用户创建真实 uid，所以后面的 `auth.uid()` RLS 和 Storage policy 仍然成立。
+
+## 2. CLI 与 Token
+
+### 2.1 安装 CLI
+
+如果本机还没装：
+
+```bash
+brew install supabase/tap/supabase
+supabase --version
+```
+
+### 2.2 获取访问令牌
+
+在 Supabase 账号设置里创建 Personal Access Token，然后执行：
+
+```bash
+supabase login
+```
+
+如果你更喜欢显式 token，也可以先导出环境变量：
+
+```bash
+export SUPABASE_ACCESS_TOKEN="<your-personal-access-token>"
+```
+
+### 2.3 可选：link 项目
+
+```bash
+supabase link --project-ref irkjblpzmclqekxbexll
+```
+
+这一步只算方便，不算真相源。当前项目已经验证过的迁移路径是显式 `--db-url`，不要把成功与否押在本地 link 状态上。
+
+## 3. 前端环境变量
+
+### 3.1 复制模板
+
+```bash
+cp .env.local.example .env.local
+```
+
+### 3.2 填入项目值
+
+```dotenv
+VITE_SUPABASE_URL=https://irkjblpzmclqekxbexll.supabase.co
+VITE_SUPABASE_ANON_KEY=<dashboard anon key>
+VITE_SUPABASE_EDGE_FUNCTION_URL=https://irkjblpzmclqekxbexll.functions.supabase.co
+```
+
+注意：
+
+- `VITE_SUPABASE_ANON_KEY` 从 Dashboard 复制，不写进 git
+- `VITE_SUPABASE_EDGE_FUNCTION_URL` 可以先填好；在 `llm-proxy` 未部署前，请求它会 404，这是正常现象
+- 三个值里的 `project_ref` 必须一致
+
+## 4. 数据库迁移：只走已验证路径
+
+### 4.1 迁移文件
+
+当前唯一迁移文件：
+
+- `supabase/migrations/001_init.sql`
+
+它负责：
+
+- 创建 `patients`
+- 创建 `treatment_lines`
+- 启用 RLS
+- 创建 owner-only policies
+- 创建 `patients.updated_at` trigger
+
+### 4.2 获取 session pooler 连接串
+
+从 Supabase Dashboard 复制 session pooler URI。当前项目已验证成功的主机模式是：
+
+```text
+postgresql://postgres.<project_ref>:<db_password>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+```
+
+重点：
+
+- 用 session pooler / PgBouncer 地址
+- 不要把 `.temp/pooler-url` 里的无密码片段当成最终连接串
+- 不要依赖记忆里的旧密码
+
+### 4.3 推送迁移
+
+```bash
+supabase db push --db-url 'postgresql://postgres.<project_ref>:<db_password>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres'
+```
+
+这个项目已经成功走通过一次的，是这条显式 `--db-url` 路径。
+
+### 4.4 推送后检查清单
+
+在 SQL Editor 或数据库检查里确认：
+
+- `public.patients` 存在
+- `public.treatment_lines` 存在
+- 两张表的 RLS 都开启
+- `patients_set_updated_at` trigger 存在
+- `treatment_lines.patient_id -> patients.id` 级联删除存在
+
+可直接跑这些 SQL：
+
+```sql
+select tablename, rowsecurity
+from pg_tables
+where schemaname = 'public'
+  and tablename in ('patients', 'treatment_lines');
+
+select policyname, tablename
+from pg_policies
+where schemaname = 'public'
+  and tablename in ('patients', 'treatment_lines')
+order by tablename, policyname;
+
+select tgname
+from pg_trigger
+where tgname = 'patients_set_updated_at';
+```
+
+## 5. Storage bucket
+
+### 5.1 创建 bucket
+
+在 Dashboard → Storage 中手动创建：
+
+- bucket 名：`patient-assets`
+- 公有访问：关闭
+
+当前 MVP 只是先把 Storage 基础设施边界落好，还没有把上传流程接进主 UI。
+
+### 5.2 对象路径约定
+
+所有对象 key 必须以用户 uid 作为第一段目录：
+
+```text
+<uid>/<filename>
+<uid>/images/<filename>
+<uid>/attachments/<filename>
+```
+
+不要把文件直接丢到 bucket 根目录。路径第一段如果不是 uid，后面的 policy 会直接拒绝访问。
+
+## 6. Storage policy
+
+当前 repo 里还没有独立版本化的 Storage policy SQL，因此下次恢复时直接在 SQL Editor 执行下面这份脚本。
+
+```sql
+drop policy if exists patient_assets_select_own on storage.objects;
+create policy patient_assets_select_own
+  on storage.objects
+  for select
+  to authenticated
+  using (
+    bucket_id = 'patient-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists patient_assets_insert_own on storage.objects;
+create policy patient_assets_insert_own
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'patient-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists patient_assets_update_own on storage.objects;
+create policy patient_assets_update_own
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'patient-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'patient-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists patient_assets_delete_own on storage.objects;
+create policy patient_assets_delete_own
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'patient-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+```
+
+为什么是 `to authenticated` 而不是额外给 `anon`：
+
+- 本项目的“匿名模式”指 Supabase Anonymous Sign-In
+- 这种模式下用户仍然拥有真实 uid
+- 因此仍然走 `auth.uid()` 和 `authenticated` 角色逻辑
+
+### 6.1 Storage 验证清单
+
+至少做一次人工验证：
+
+- 用户 A 上传 `A_UID/test.txt`，自己可读
+- 用户 B 读取 `A_UID/test.txt` 失败
+- 匿名用户读取 `A_UID/test.txt` 失败
+- 上传到 `wrong-prefix/test.txt` 失败
+
+## 7. 术语表
+
+### project_ref
+
+Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数域名、pooler 用户名都会用到它。
+
+### anon key
+
+前端可见的匿名公钥。它不是 service role key，但也不能乱提交进仓库。
+
+### service role key
+
+高权限后端密钥。前端绝不能使用，也不应该放进 `.env.local`。
+
+### session pooler / PgBouncer
+
+数据库连接池入口。这个项目的 `db push` 已验证通过的是显式 `--db-url` + pooler URI。
+
+### cmux
+
+`cmux` 不是本项目概念。
+
+如果你脑子里想的是“为什么 `db push` 这里有个特殊地址”，你要找的其实不是 `cmux`，而是：
+
+- session pooler
+- PgBouncer
+- 连接池地址
+
+一句话：本项目没有 `cmux`，这里只有 Supabase 的 pooler / PgBouncer 连接池地址。
+
+## 8. 常见错误
+
+### 8.1 `Missing Supabase environment variables in .env.local`
+
+原因：`.env.local` 没填全，或者 key 名拼错。
+
+检查：
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_EDGE_FUNCTION_URL`
+
+### 8.2 `supabase db push` 连接失败
+
+常见原因：
+
+- 用了旧密码
+- 用了非 pooler 地址
+- 复制了不完整连接串
+- region host 不匹配
+
+先回 Dashboard 重新复制完整 session pooler URI，再执行一次，不要猜。
+
+### 8.3 查询/写入被 RLS 拒绝
+
+典型症状：
+
+- 查不到自己刚写入的数据
+- 插入时报 policy error
+
+优先检查：
+
+- 当前 session 是否真的登录成功
+- `patients.user_id` 是否等于当前 `auth.uid()`
+- `treatment_lines.patient_id` 指向的 patient 是否属于当前用户
+
+### 8.4 Storage 返回 403
+
+优先检查：
+
+- bucket 是否真叫 `patient-assets`
+- policy 是否已创建
+- 对象 key 第一段是否为当前 uid
+- 当前用户是否真的有 session
+
+### 8.5 Edge Function URL 404
+
+这是当前阶段最容易误判的点之一。
+
+原因通常是：
+
+- `VITE_SUPABASE_EDGE_FUNCTION_URL` 已填
+- 但 `llm-proxy` 还没部署，或者部署后函数名不匹配
+
+也就是说：URL 可以存在，但函数可能尚未上线。
+
+当前实现真相源：
+
+- `supabase/functions/llm-proxy/index.ts` 已存在
+- 前端统一入口是 `src/lib/llm/index.ts`
+- 真正对外可用仍取决于：
+  - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash"`
+  - `supabase functions deploy llm-proxy`
+
+## 9. 一次性恢复清单
+
+从零恢复时，按这个顺序做：
+
+1. 新建 Supabase 项目，Region 选 `ap-southeast-1`
+2. 保存数据库密码与 `project_ref`
+3. 创建 Personal Access Token，完成 `supabase login`
+4. 复制 `.env.local.example`，填好 3 个 Vite 变量
+5. 从 Dashboard 复制 session pooler URI
+6. 执行 `supabase db push --db-url '<完整 pooler 连接串>'`
+7. 在 Dashboard 手动创建 `patient-assets`
+8. 在 SQL Editor 执行 Storage policy SQL
+9. 用两个不同用户 + 一个匿名用户验证隔离
+10. 配置 `GEMINI_API_KEY` 与 `DEFAULT_GEMINI_MODEL`
+11. 执行 `supabase functions deploy llm-proxy`
+12. 再开始 `6.x` 的信息提取主流程
+
+## 10. 当前已知文档漂移
+
+这不是阻塞，但下次排查时别被旧文档带偏：
+
+- `README.md` 仍有“数据库 schema 尚未实现”的旧描述
+- `docs/products/spec.md` 仍写 `001_initial_schema.sql`，真实文件是 `001_init.sql`
+
+当这些旧文档和本手册冲突时，以迁移文件和实际目录为准。
