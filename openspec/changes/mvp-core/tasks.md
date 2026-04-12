@@ -101,9 +101,9 @@
 
 ## 8. 表格编辑
 
-- [ ] 8.1 为每个表格字段添加点击编辑能力（inline edit）：点击字段 → 变为 input/textarea → 自动 focus
-- [ ] 8.2 编辑确认后更新本地 `PatientRecord` state，并按字段归属同步更新 `patients` 或对应的 `treatment_lines` 记录；空字符串保存为 `undefined`
-- [ ] 8.3 确保编辑模式下 input/textarea 不导致表格布局明显跳变，行高/列宽误差控制在可接受范围内
+- [x] 8.1 为每个表格字段添加点击编辑能力（inline edit）：点击字段 → 变为 input/textarea → 自动 focus
+- [x] 8.2 编辑确认后更新本地 `PatientRecord` state，并按字段归属同步更新 `patients` 或对应的 `treatment_lines` 记录；空字符串保存为 `undefined`
+- [x] 8.3 确保编辑模式下 input/textarea 不导致表格布局明显跳变，行高/列宽误差控制在可接受范围内
 
 ## 9. 导出
 

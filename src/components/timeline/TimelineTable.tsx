@@ -1,40 +1,57 @@
 /**
- * [INPUT]: 依赖 @/types/patient 的 PatientRecord 与 getPatientArchetype。
+ * [INPUT]: 依赖 react 的 useState，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
  * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock 与 TreatmentLineBlock。
- * [POS]: components/timeline 的正式时间线表格渲染器，负责三种 archetype 的区块布局与关键缺失字段高亮。
+ * [POS]: components/timeline 的正式时间线表格渲染器，负责三种 archetype 的区块布局、关键缺失字段高亮与行内编辑入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { useState } from 'react'
+
 import {
   getPatientArchetype,
   type BasicInfo,
   type InitialOnset,
   type PatientArchetype,
+  type PatientFieldTarget,
   type PatientRecord,
   type TreatmentLine,
 } from '@/types/patient'
 
 type Theme = 'dark' | 'light'
 
+type EditorState = {
+  id: string
+  value: string
+}
+
 type TimelineTableProps = {
+  disabled?: boolean
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
   record: PatientRecord
   theme: Theme
 }
 
-type BasicInfoBlockProps = {
-  basicInfo?: BasicInfo
+type SharedBlockProps = {
+  disabled: boolean
+  editor: EditorState | null
+  onBeginEdit: (cellId: string, value: string) => void
+  onCancelEdit: () => void
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onUpdateEditorValue: (value: string) => void
   theme: Theme
 }
 
-type InitialOnsetBlockProps = {
+type BasicInfoBlockProps = SharedBlockProps & {
+  basicInfo?: BasicInfo
+}
+
+type InitialOnsetBlockProps = SharedBlockProps & {
   initialOnset: InitialOnset
   order: number
-  theme: Theme
 }
 
-type TreatmentLineBlockProps = {
+type TreatmentLineBlockProps = SharedBlockProps & {
   line: TreatmentLine
   order: number
-  theme: Theme
 }
 
 type SectionHeaderProps = {
@@ -46,8 +63,17 @@ type SectionHeaderProps = {
 }
 
 type CellProps = {
+  cellId: string
   critical?: boolean
+  disabled: boolean
+  editValue: string
+  editor: EditorState | null
   label: string
+  onBeginEdit: (cellId: string, value: string) => void
+  onCancelEdit: () => void
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onUpdateEditorValue: (value: string) => void
+  target: PatientFieldTarget
   theme: Theme
   value?: string
 }
@@ -144,6 +170,10 @@ function padOrder(order: number) {
   return String(order).padStart(2, '0')
 }
 
+function getEditValue(value: unknown) {
+  return value === undefined || value === null ? '' : String(value)
+}
+
 function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderProps) {
   if (theme === 'dark') {
     return (
@@ -188,40 +218,213 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
   )
 }
 
-function DataCell({ critical = false, label, theme, value }: CellProps) {
+function DataCell({
+  cellId,
+  critical = false,
+  disabled,
+  editValue,
+  editor,
+  label,
+  onBeginEdit,
+  onCancelEdit,
+  onCommitField,
+  onUpdateEditorValue,
+  target,
+  theme,
+  value,
+}: CellProps) {
   const rendered = display(value)
   const filled = rendered !== undefined
   const prominent = !label.includes('免疫组化') && !label.includes('基因检测') && !label.includes('活检')
+  const isEditing = editor?.id === cellId
+  const isInteractive = onCommitField !== undefined && !disabled
 
   return (
-    <div className={`${getCellClass(theme, critical, filled)} flex min-h-[108px] flex-col justify-between gap-4 p-4`}>
+    <div
+      className={`${getCellClass(theme, critical, filled)} flex min-h-[108px] flex-col justify-between gap-4 p-4 ${
+        isInteractive ? 'cursor-text transition-colors hover:border-[#FF3D00]/60 hover:bg-inherit' : ''
+      }`}
+      onClick={() => {
+        if (!isInteractive || isEditing) {
+          return
+        }
+
+        onBeginEdit(cellId, editValue)
+      }}
+      onKeyDown={(event) => {
+        if (!isInteractive || isEditing) {
+          return
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onBeginEdit(cellId, editValue)
+        }
+      }}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+    >
       <span className={getLabelClass(theme)}>{label}</span>
-      <span className={getValueClass(theme, filled, prominent)}>{rendered ?? '\u00A0'}</span>
+      {isEditing ? (
+        <input
+          autoFocus
+          className={`${getValueClass(theme, true, prominent)} min-h-[32px] w-full bg-transparent outline-none placeholder:opacity-40`}
+          onBlur={(event) => {
+            void onCommitField?.(target, event.currentTarget.value)
+          }}
+          onChange={(event) => onUpdateEditorValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              onCancelEdit()
+              return
+            }
+
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              event.currentTarget.blur()
+            }
+          }}
+          value={editor?.value ?? ''}
+        />
+      ) : (
+        <span className={getValueClass(theme, filled, prominent)}>{rendered ?? '\u00A0'}</span>
+      )}
     </div>
   )
 }
 
-function NarrativeCell({ critical = false, label, theme, value }: CellProps) {
+function NarrativeCell({
+  cellId,
+  critical = false,
+  disabled,
+  editValue,
+  editor,
+  label,
+  onBeginEdit,
+  onCancelEdit,
+  onCommitField,
+  onUpdateEditorValue,
+  target,
+  theme,
+  value,
+}: CellProps) {
   const rendered = display(value)
   const filled = rendered !== undefined
+  const isEditing = editor?.id === cellId
+  const isInteractive = onCommitField !== undefined && !disabled
 
   return (
-    <div className={`${getCellClass(theme, critical, filled)} flex min-h-[176px] flex-col gap-4 p-5`}>
+    <div
+      className={`${getCellClass(theme, critical, filled)} flex min-h-[176px] flex-col gap-4 p-5 ${
+        isInteractive ? 'cursor-text transition-colors hover:border-[#FF3D00]/60 hover:bg-inherit' : ''
+      }`}
+      onClick={() => {
+        if (!isInteractive || isEditing) {
+          return
+        }
+
+        onBeginEdit(cellId, editValue)
+      }}
+      onKeyDown={(event) => {
+        if (!isInteractive || isEditing) {
+          return
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onBeginEdit(cellId, editValue)
+        }
+      }}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+    >
       <span className={getLabelClass(theme)}>{label}</span>
-      <div className={getValueClass(theme, filled, false)}>{rendered ?? '\u00A0'}</div>
+      {isEditing ? (
+        <textarea
+          autoFocus
+          className={`${getValueClass(theme, true, false)} min-h-[104px] w-full flex-1 resize-none bg-transparent outline-none placeholder:opacity-40`}
+          onBlur={(event) => {
+            void onCommitField?.(target, event.currentTarget.value)
+          }}
+          onChange={(event) => onUpdateEditorValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              onCancelEdit()
+            }
+          }}
+          value={editor?.value ?? ''}
+        />
+      ) : (
+        <div className={getValueClass(theme, filled, false)}>{rendered ?? '\u00A0'}</div>
+      )}
     </div>
   )
 }
 
-export function BasicInfoBlock({ basicInfo, theme }: BasicInfoBlockProps) {
+export function BasicInfoBlock({
+  basicInfo,
+  disabled,
+  editor,
+  onBeginEdit,
+  onCancelEdit,
+  onCommitField,
+  onUpdateEditorValue,
+  theme,
+}: BasicInfoBlockProps) {
   const fields = [
-    { label: 'Gender / 性别', value: display(basicInfo?.gender) },
-    { label: 'Age / 年龄', value: formatMetric(basicInfo?.age, '岁') },
-    { label: 'Height / 身高', value: formatMetric(basicInfo?.height, 'cm') },
-    { label: 'Weight / 体重', value: formatMetric(basicInfo?.weight, 'kg') },
-    { critical: true, label: 'Tumor Type / 肿瘤类型', value: display(basicInfo?.tumorType) },
-    { label: 'Diagnosis Date / 诊断日期', value: display(basicInfo?.diagnosisDate) },
-    { critical: true, label: 'Stage / 分期', value: display(basicInfo?.stage) },
+    {
+      cellId: 'basicInfo.gender',
+      editValue: getEditValue(basicInfo?.gender),
+      label: 'Gender / 性别',
+      target: { field: 'gender', section: 'basicInfo' } as const,
+      value: display(basicInfo?.gender),
+    },
+    {
+      cellId: 'basicInfo.age',
+      editValue: getEditValue(basicInfo?.age),
+      label: 'Age / 年龄',
+      target: { field: 'age', section: 'basicInfo' } as const,
+      value: formatMetric(basicInfo?.age, '岁'),
+    },
+    {
+      cellId: 'basicInfo.height',
+      editValue: getEditValue(basicInfo?.height),
+      label: 'Height / 身高',
+      target: { field: 'height', section: 'basicInfo' } as const,
+      value: formatMetric(basicInfo?.height, 'cm'),
+    },
+    {
+      cellId: 'basicInfo.weight',
+      editValue: getEditValue(basicInfo?.weight),
+      label: 'Weight / 体重',
+      target: { field: 'weight', section: 'basicInfo' } as const,
+      value: formatMetric(basicInfo?.weight, 'kg'),
+    },
+    {
+      cellId: 'basicInfo.tumorType',
+      critical: true,
+      editValue: getEditValue(basicInfo?.tumorType),
+      label: 'Tumor Type / 肿瘤类型',
+      target: { field: 'tumorType', section: 'basicInfo' } as const,
+      value: display(basicInfo?.tumorType),
+    },
+    {
+      cellId: 'basicInfo.diagnosisDate',
+      editValue: getEditValue(basicInfo?.diagnosisDate),
+      label: 'Diagnosis Date / 诊断日期',
+      target: { field: 'diagnosisDate', section: 'basicInfo' } as const,
+      value: display(basicInfo?.diagnosisDate),
+    },
+    {
+      cellId: 'basicInfo.stage',
+      critical: true,
+      editValue: getEditValue(basicInfo?.stage),
+      label: 'Stage / 分期',
+      target: { field: 'stage', section: 'basicInfo' } as const,
+      value: display(basicInfo?.stage),
+    },
   ]
 
   return (
@@ -251,14 +454,39 @@ export function BasicInfoBlock({ basicInfo, theme }: BasicInfoBlockProps) {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {fields.map((field) => (
-          <DataCell critical={field.critical} key={field.label} label={field.label} theme={theme} value={field.value} />
+          <DataCell
+            cellId={field.cellId}
+            critical={field.critical}
+            disabled={disabled}
+            editValue={field.editValue}
+            editor={editor}
+            key={field.label}
+            label={field.label}
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={field.target}
+            theme={theme}
+            value={field.value}
+          />
         ))}
       </div>
     </section>
   )
 }
 
-export function InitialOnsetBlock({ initialOnset, order, theme }: InitialOnsetBlockProps) {
+export function InitialOnsetBlock({
+  disabled,
+  editor,
+  initialOnset,
+  onBeginEdit,
+  onCancelEdit,
+  onCommitField,
+  onUpdateEditorValue,
+  order,
+  theme,
+}: InitialOnsetBlockProps) {
   return (
     <article className="space-y-6">
       <SectionHeader
@@ -269,17 +497,81 @@ export function InitialOnsetBlock({ initialOnset, order, theme }: InitialOnsetBl
         theme={theme}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-        <NarrativeCell critical label="治疗方案 / REGIMEN" theme={theme} value={initialOnset.treatment} />
+        <NarrativeCell
+          cellId="initialOnset.treatment"
+          critical
+          disabled={disabled}
+          editValue={getEditValue(initialOnset.treatment)}
+          editor={editor}
+          label="治疗方案 / REGIMEN"
+          onBeginEdit={onBeginEdit}
+          onCancelEdit={onCancelEdit}
+          onCommitField={onCommitField}
+          onUpdateEditorValue={onUpdateEditorValue}
+          target={{ field: 'treatment', section: 'initialOnset' }}
+          theme={theme}
+          value={initialOnset.treatment}
+        />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          <NarrativeCell label="免疫组化 / IHC" theme={theme} value={initialOnset.immunohistochemistry} />
-          <NarrativeCell label="基因检测 / GENETIC" theme={theme} value={initialOnset.geneticTest} />
+          <DataCell
+            cellId="initialOnset.triggerDate"
+            disabled={disabled}
+            editValue={getEditValue(initialOnset.triggerDate)}
+            editor={editor}
+            label="Trigger Date / 初发时间"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'triggerDate', section: 'initialOnset' }}
+            theme={theme}
+            value={display(initialOnset.triggerDate)}
+          />
+          <NarrativeCell
+            cellId="initialOnset.immunohistochemistry"
+            disabled={disabled}
+            editValue={getEditValue(initialOnset.immunohistochemistry)}
+            editor={editor}
+            label="免疫组化 / IHC"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'immunohistochemistry', section: 'initialOnset' }}
+            theme={theme}
+            value={initialOnset.immunohistochemistry}
+          />
+          <NarrativeCell
+            cellId="initialOnset.geneticTest"
+            disabled={disabled}
+            editValue={getEditValue(initialOnset.geneticTest)}
+            editor={editor}
+            label="基因检测 / GENETIC"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'geneticTest', section: 'initialOnset' }}
+            theme={theme}
+            value={initialOnset.geneticTest}
+          />
         </div>
       </div>
     </article>
   )
 }
 
-export function TreatmentLineBlock({ line, order, theme }: TreatmentLineBlockProps) {
+export function TreatmentLineBlock({
+  disabled,
+  editor,
+  line,
+  onBeginEdit,
+  onCancelEdit,
+  onCommitField,
+  onUpdateEditorValue,
+  order,
+  theme,
+}: TreatmentLineBlockProps) {
   return (
     <article className="space-y-6">
       <SectionHeader
@@ -291,16 +583,95 @@ export function TreatmentLineBlock({ line, order, theme }: TreatmentLineBlockPro
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="grid gap-4">
-          <NarrativeCell critical label="治疗方案 / REGIMEN" theme={theme} value={line.regimen} />
+          <NarrativeCell
+            cellId={`treatmentLine.${line.lineNumber}.regimen`}
+            critical
+            disabled={disabled}
+            editValue={getEditValue(line.regimen)}
+            editor={editor}
+            label="治疗方案 / REGIMEN"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'regimen', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+            theme={theme}
+            value={line.regimen}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
-            <DataCell label="Start Date / 开始时间" theme={theme} value={display(line.startDate)} />
-            <DataCell label="End Date / 结束时间" theme={theme} value={display(line.endDate)} />
+            <DataCell
+              cellId={`treatmentLine.${line.lineNumber}.startDate`}
+              disabled={disabled}
+              editValue={getEditValue(line.startDate)}
+              editor={editor}
+              label="Start Date / 开始时间"
+              onBeginEdit={onBeginEdit}
+              onCancelEdit={onCancelEdit}
+              onCommitField={onCommitField}
+              onUpdateEditorValue={onUpdateEditorValue}
+              target={{ field: 'startDate', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+              theme={theme}
+              value={display(line.startDate)}
+            />
+            <DataCell
+              cellId={`treatmentLine.${line.lineNumber}.endDate`}
+              disabled={disabled}
+              editValue={getEditValue(line.endDate)}
+              editor={editor}
+              label="End Date / 结束时间"
+              onBeginEdit={onBeginEdit}
+              onCancelEdit={onCancelEdit}
+              onCommitField={onCommitField}
+              onUpdateEditorValue={onUpdateEditorValue}
+              target={{ field: 'endDate', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+              theme={theme}
+              value={display(line.endDate)}
+            />
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          <NarrativeCell label="活检 / BIOPSY" theme={theme} value={line.biopsy} />
-          <NarrativeCell label="免疫组化 / IHC" theme={theme} value={line.immunohistochemistry} />
-          <NarrativeCell label="基因检测 / GENETIC" theme={theme} value={line.geneticTest} />
+          <NarrativeCell
+            cellId={`treatmentLine.${line.lineNumber}.biopsy`}
+            disabled={disabled}
+            editValue={getEditValue(line.biopsy)}
+            editor={editor}
+            label="活检 / BIOPSY"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'biopsy', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+            theme={theme}
+            value={line.biopsy}
+          />
+          <NarrativeCell
+            cellId={`treatmentLine.${line.lineNumber}.immunohistochemistry`}
+            disabled={disabled}
+            editValue={getEditValue(line.immunohistochemistry)}
+            editor={editor}
+            label="免疫组化 / IHC"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'immunohistochemistry', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+            theme={theme}
+            value={line.immunohistochemistry}
+          />
+          <NarrativeCell
+            cellId={`treatmentLine.${line.lineNumber}.geneticTest`}
+            disabled={disabled}
+            editValue={getEditValue(line.geneticTest)}
+            editor={editor}
+            label="基因检测 / GENETIC"
+            onBeginEdit={onBeginEdit}
+            onCancelEdit={onCancelEdit}
+            onCommitField={onCommitField}
+            onUpdateEditorValue={onUpdateEditorValue}
+            target={{ field: 'geneticTest', lineNumber: line.lineNumber, section: 'treatmentLine' }}
+            theme={theme}
+            value={line.geneticTest}
+          />
         </div>
       </div>
     </article>
@@ -325,8 +696,9 @@ function EmptyState({ theme }: { theme: Theme }) {
   )
 }
 
-export function TimelineTable({ record, theme }: TimelineTableProps) {
+export function TimelineTable({ disabled = false, onCommitField, record, theme }: TimelineTableProps) {
   const archetype = getPatientArchetype(record)
+  const [editor, setEditor] = useState<EditorState | null>(null)
   const sections: Array<
     | { kind: 'initial-onset'; value: InitialOnset }
     | { kind: 'treatment-line'; value: TreatmentLine }
@@ -338,6 +710,31 @@ export function TimelineTable({ record, theme }: TimelineTableProps) {
 
   for (const line of [...record.treatmentLines].sort((left, right) => left.lineNumber - right.lineNumber)) {
     sections.push({ kind: 'treatment-line', value: line })
+  }
+
+  function beginEdit(cellId: string, value: string) {
+    if (!onCommitField || disabled) {
+      return
+    }
+
+    setEditor({ id: cellId, value })
+  }
+
+  function cancelEdit() {
+    setEditor(null)
+  }
+
+  function updateEditorValue(value: string) {
+    setEditor((current) => (current ? { ...current, value } : current))
+  }
+
+  async function commitField(target: PatientFieldTarget, value: string) {
+    if (!onCommitField) {
+      return
+    }
+
+    setEditor(null)
+    await onCommitField(target, value)
   }
 
   return (
@@ -384,22 +781,43 @@ export function TimelineTable({ record, theme }: TimelineTableProps) {
       </header>
 
       <div className="space-y-8 px-6 py-6 sm:px-8 sm:py-8">
-        <BasicInfoBlock basicInfo={record.basicInfo} theme={theme} />
+        <BasicInfoBlock
+          basicInfo={record.basicInfo}
+          disabled={disabled}
+          editor={editor}
+          onBeginEdit={beginEdit}
+          onCancelEdit={cancelEdit}
+          onCommitField={commitField}
+          onUpdateEditorValue={updateEditorValue}
+          theme={theme}
+        />
 
         {sections.length === 0 ? <EmptyState theme={theme} /> : null}
 
         {sections.map((section, index) =>
           section.kind === 'initial-onset' ? (
             <InitialOnsetBlock
+              disabled={disabled}
+              editor={editor}
               initialOnset={section.value}
               key={`initial-onset-${section.value.triggerDate ?? index}`}
+              onBeginEdit={beginEdit}
+              onCancelEdit={cancelEdit}
+              onCommitField={commitField}
+              onUpdateEditorValue={updateEditorValue}
               order={index + 1}
               theme={theme}
             />
           ) : (
             <TreatmentLineBlock
+              disabled={disabled}
+              editor={editor}
               key={`treatment-line-${section.value.lineNumber}`}
               line={section.value}
+              onBeginEdit={beginEdit}
+              onCancelEdit={cancelEdit}
+              onCommitField={commitField}
+              onUpdateEditorValue={updateEditorValue}
               order={index + 1}
               theme={theme}
             />

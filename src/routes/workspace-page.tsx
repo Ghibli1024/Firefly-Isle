@@ -1,18 +1,18 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复与结构化时间线预览，并保留 Dark/Light 复刻骨架。
+ * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览与 inline edit 持久化，并保留 Dark/Light 复刻骨架。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   ArchiveSideNav,
   DarkTopBar,
   QR_PLACEHOLDER,
-  SCAN_PLACEHOLDER,
 } from '@/components/app-shell'
 import { TimelineTable } from '@/components/timeline/TimelineTable'
+import { useAuth } from '@/lib/auth'
 import {
   buildFollowUpQuestion,
   extractPatientRecord,
@@ -21,8 +21,9 @@ import {
   MAX_FOLLOW_UP_ROUNDS,
 } from '@/lib/extraction'
 import { ChatError } from '@/lib/llm'
+import { getSupabaseClient } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
-import type { PatientRecord } from '@/types/patient'
+import type { PatientFieldTarget, PatientRecord, TreatmentLine } from '@/types/patient'
 
 type WorkspacePageProps = {
   isSigningOut?: boolean
@@ -36,14 +37,200 @@ type ExtractionState = {
   extractionInput: string
   followUpAnswers: string[]
   isExtracting: boolean
+  isSaving: boolean
   record: PatientRecord | null
   remainingMissing: string[]
   retryAnswer: string | null
   retryMode: 'initial' | 'follow-up' | null
 }
 
+type PatientRow = {
+  basic_info: PatientRecord['basicInfo'] | null
+  id: string
+  initial_onset: PatientRecord['initialOnset'] | null
+}
+
+type TreatmentLineRow = {
+  biopsy: string | null
+  end_date: string | null
+  genetic_test: string | null
+  immunohistochemistry: string | null
+  line_number: number
+  regimen: string | null
+  start_date: string | null
+}
+
 const EMPTY_RECORD: PatientRecord = {
   treatmentLines: [],
+}
+
+function parseNumericField(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return undefined
+  }
+
+  const normalized = Number(trimmed)
+  return Number.isFinite(normalized) ? normalized : undefined
+}
+
+function parseTextField(value: string) {
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function normalizeFieldValue(target: PatientFieldTarget, value: string) {
+  if (target.section === 'basicInfo' && ['age', 'height', 'weight'].includes(target.field)) {
+    return parseNumericField(value)
+  }
+
+  return parseTextField(value)
+}
+
+function ensurePatientShell(record: PatientRecord): PatientRecord {
+  return {
+    ...record,
+    basicInfo: record.basicInfo ?? {},
+    initialOnset: record.initialOnset,
+    treatmentLines: record.treatmentLines,
+  }
+}
+
+function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, rawValue: string): PatientRecord {
+  const baseRecord = ensurePatientShell(record)
+  const value = normalizeFieldValue(target, rawValue)
+
+  if (target.section === 'basicInfo') {
+    return {
+      ...baseRecord,
+      basicInfo: {
+        ...baseRecord.basicInfo,
+        [target.field]: value,
+      },
+    }
+  }
+
+  if (target.section === 'initialOnset') {
+    return {
+      ...baseRecord,
+      initialOnset: {
+        ...baseRecord.initialOnset,
+        [target.field]: value,
+      },
+    }
+  }
+
+  return {
+    ...baseRecord,
+    treatmentLines: baseRecord.treatmentLines.map((line) =>
+      line.lineNumber === target.lineNumber
+        ? {
+            ...line,
+            [target.field]: value,
+          }
+        : line,
+    ),
+  }
+}
+
+function getPatientPayload(record: PatientRecord) {
+  return {
+    basic_info: record.basicInfo ?? {},
+    initial_onset: record.initialOnset ? record.initialOnset : null,
+  }
+}
+
+function getTreatmentLinePayload(line: TreatmentLine, patientId: string) {
+  return {
+    biopsy: line.biopsy ?? null,
+    end_date: line.endDate ?? null,
+    genetic_test: line.geneticTest ?? null,
+    immunohistochemistry: line.immunohistochemistry ?? null,
+    line_number: line.lineNumber,
+    patient_id: patientId,
+    regimen: line.regimen ?? null,
+    start_date: line.startDate ?? null,
+  }
+}
+
+function getSaveErrorMessage(target: PatientFieldTarget) {
+  return target.section === 'treatmentLine' ? '治疗线保存失败，请稍后重试。' : '患者信息保存失败，请稍后重试。'
+}
+
+function mapTreatmentLineRow(row: TreatmentLineRow): TreatmentLine {
+  return {
+    biopsy: row.biopsy ?? undefined,
+    endDate: row.end_date ?? undefined,
+    geneticTest: row.genetic_test ?? undefined,
+    immunohistochemistry: row.immunohistochemistry ?? undefined,
+    lineNumber: row.line_number,
+    regimen: row.regimen ?? undefined,
+    startDate: row.start_date ?? undefined,
+  }
+}
+
+function mapPatientRow(patient: PatientRow, lines: TreatmentLineRow[]): PatientRecord {
+  return {
+    basicInfo: patient.basic_info ?? undefined,
+    id: patient.id,
+    initialOnset: patient.initial_onset ?? undefined,
+    treatmentLines: lines.map(mapTreatmentLineRow).sort((left, right) => left.lineNumber - right.lineNumber),
+  }
+}
+
+async function loadLatestPatientRecord(userId: string) {
+  const supabase = getSupabaseClient()
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('id, basic_info, initial_onset')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<PatientRow>()
+
+  if (patientError) {
+    throw patientError
+  }
+
+  if (!patient) {
+    return null
+  }
+
+  const { data: lines, error: linesError } = await supabase
+    .from('treatment_lines')
+    .select('line_number, start_date, end_date, regimen, biopsy, immunohistochemistry, genetic_test')
+    .eq('patient_id', patient.id)
+    .order('line_number', { ascending: true })
+    .returns<TreatmentLineRow[]>()
+
+  if (linesError) {
+    throw linesError
+  }
+
+  return mapPatientRow(patient, lines ?? [])
+}
+
+async function ensurePatientRecordExists(record: PatientRecord, userId: string) {
+  if (record.id) {
+    return record.id
+  }
+
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('patients')
+    .insert({
+      ...getPatientPayload(record),
+      user_id: userId,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data.id
 }
 
 function getNextQuestion(missingFields: string[], followUpCount: number) {
@@ -55,17 +242,74 @@ function getNextQuestion(missingFields: string[], followUpCount: number) {
 }
 
 function useExtractionState() {
+  const { user } = useAuth()
   const [state, setState] = useState<ExtractionState>({
     currentQuestion: null,
     error: null,
     extractionInput: '',
     followUpAnswers: [],
     isExtracting: false,
+    isSaving: false,
     record: null,
     remainingMissing: [],
     retryAnswer: null,
     retryMode: null,
   })
+
+  useEffect(() => {
+    if (!user) {
+      setState((current) => {
+        if (current.record === null && current.remainingMissing.length === 0) {
+          return current
+        }
+
+        return {
+          ...current,
+          currentQuestion: null,
+          error: null,
+          record: null,
+          remainingMissing: [],
+          retryAnswer: null,
+          retryMode: null,
+        }
+      })
+      return
+    }
+
+    let active = true
+
+    void loadLatestPatientRecord(user.id)
+      .then((record) => {
+        if (!active || !record) {
+          return
+        }
+
+        const missingFields = getMissingCriticalFields(record)
+        setState((current) => ({
+          ...current,
+          currentQuestion: getNextQuestion(missingFields, current.followUpAnswers.length),
+          error: null,
+          record,
+          remainingMissing: missingFields,
+          retryAnswer: null,
+          retryMode: null,
+        }))
+      })
+      .catch(() => {
+        if (!active) {
+          return
+        }
+
+        setState((current) => ({
+          ...current,
+          error: current.record ? current.error : '无法恢复最近一次患者记录，请刷新后重试。',
+        }))
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
 
   async function runInitialExtraction() {
     if (!state.extractionInput.trim()) {
@@ -92,13 +336,22 @@ function useExtractionState() {
     try {
       const record = await extractPatientRecord(state.extractionInput)
       const missingFields = getMissingCriticalFields(record)
+      let persistedRecord = record
+      let persistenceError: string | null = null
+
+      try {
+        persistedRecord = await persistField(record)
+      } catch {
+        persistenceError = '患者记录保存失败，请稍后重试。'
+      }
 
       setState((current) => ({
         ...current,
         currentQuestion: getNextQuestion(missingFields, 0),
+        error: persistenceError,
         followUpAnswers: [],
         isExtracting: false,
-        record,
+        record: persistedRecord,
         remainingMissing: missingFields,
         retryAnswer: null,
         retryMode: null,
@@ -152,6 +405,24 @@ function useExtractionState() {
           retryMode: null,
         }
       })
+
+      try {
+        const persistedRecord = await persistField(nextRecord)
+        const nextMissing = getMissingCriticalFields(persistedRecord)
+
+        setState((current) => ({
+          ...current,
+          currentQuestion: getNextQuestion(nextMissing, current.followUpAnswers.length),
+          error: null,
+          record: persistedRecord,
+          remainingMissing: nextMissing,
+        }))
+      } catch {
+        setState((current) => ({
+          ...current,
+          error: '患者记录保存失败，请稍后重试。',
+        }))
+      }
     } catch (error) {
       setState((current) => ({
         ...current,
@@ -175,12 +446,84 @@ function useExtractionState() {
     await runInitialExtraction()
   }
 
+  async function persistField(record: PatientRecord) {
+    if (!user) {
+      throw new Error('Missing authenticated user.')
+    }
+
+    const patientId = await ensurePatientRecordExists(record, user.id)
+    const persistedRecord = record.id ? record : { ...record, id: patientId }
+    const supabase = getSupabaseClient()
+
+    const { error: patientError } = await supabase.from('patients').update(getPatientPayload(persistedRecord)).eq('id', patientId)
+
+    if (patientError) {
+      throw patientError
+    }
+
+    if (persistedRecord.treatmentLines.length > 0) {
+      const { error: lineError } = await supabase
+        .from('treatment_lines')
+        .upsert(
+          persistedRecord.treatmentLines.map((line) => getTreatmentLinePayload(line, patientId)),
+          { onConflict: 'patient_id,line_number' },
+        )
+
+      if (lineError) {
+        throw lineError
+      }
+    }
+
+    return persistedRecord
+  }
+
+  async function handleFieldCommit(target: PatientFieldTarget, value: string) {
+    if (!state.record) {
+      return
+    }
+
+    const previousRecord = state.record
+    const nextRecord = applyFieldUpdate(previousRecord, target, value)
+    const nextMissing = getMissingCriticalFields(nextRecord)
+
+    setState((current) => ({
+      ...current,
+      currentQuestion: getNextQuestion(nextMissing, current.followUpAnswers.length),
+      error: null,
+      isSaving: true,
+      record: nextRecord,
+      remainingMissing: nextMissing,
+      retryAnswer: null,
+      retryMode: null,
+    }))
+
+    try {
+      const persistedRecord = await persistField(nextRecord)
+
+      setState((current) => ({
+        ...current,
+        isSaving: false,
+        record: persistedRecord,
+      }))
+    } catch {
+      setState((current) => ({
+        ...current,
+        currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
+        error: getSaveErrorMessage(target),
+        isSaving: false,
+        record: previousRecord,
+        remainingMissing: getMissingCriticalFields(previousRecord),
+      }))
+    }
+  }
+
   function setExtractionInput(extractionInput: string) {
     setState((current) => ({ ...current, extractionInput }))
   }
 
   return {
     ...state,
+    handleFieldCommit,
     retryLastAction,
     runFollowUpExtraction,
     runInitialExtraction,
@@ -194,7 +537,9 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
     currentQuestion,
     error,
     extractionInput,
+    handleFieldCommit,
     isExtracting,
+    isSaving,
     record,
     remainingMissing,
     retryLastAction,
@@ -227,6 +572,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
             </div>
 
             {error ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{error}</div> : null}
+            {isSaving ? <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[#FF3D00]">保存中…</div> : null}
 
             {retryMode ? (
               <button
@@ -306,7 +652,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
               </div>
             </div>
 
-            <TimelineTable record={displayRecord} theme="dark" />
+            <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="dark" />
 
             <div className="mt-12 flex items-center justify-between border-t-2 border-[#0A0A0A] pt-4">
               <div className="max-w-[400px] font-['JetBrains_Mono'] text-[9px]">
@@ -332,7 +678,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
     error,
     extractionInput,
     followUpAnswers,
+    handleFieldCommit,
     isExtracting,
+    isSaving,
     record,
     remainingMissing,
     retryLastAction,
@@ -394,6 +742,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                     {isExtracting ? '提取中…' : '开始提取'}
                   </button>
                   {error ? <span className="text-sm text-[#ba1a1a]">{error}</span> : null}
+                  {isSaving ? <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[#CC0000]">保存中…</span> : null}
                   {retryMode ? (
                     <button
                       className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
@@ -429,16 +778,15 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#111111] bg-[#e0e0db]/20 p-6 transition-colors hover:bg-[#e0e0db]/40">
-                  <img alt="Upload placeholder" className="mb-2 h-20 w-20 object-cover" src={SCAN_PLACEHOLDER} />
-                  <span className="font-['Inter'] text-xs font-bold uppercase tracking-widest">
-                    图片及 PDF 输入
-                  </span>
-                  <span className="mt-1 font-['JetBrains_Mono'] text-[10px] opacity-50">
-                    Drag & Drop Documents
-                  </span>
-                </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <button
+                  className="border-2 border-[#111111] bg-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={isExtracting || isSaving}
+                  onClick={() => void runInitialExtraction()}
+                  type="button"
+                >
+                  {isExtracting ? '提取中…' : '开始提取'}
+                </button>
                 <div className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center bg-[#CC0000] p-6 text-white transition-all hover:-translate-y-1">
                   <span className="material-symbols-outlined mb-2 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                     mic
@@ -477,7 +825,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               <div className="h-[2px] flex-1 bg-[#111111]" />
             </div>
             <div className="border-2 border-[#111111] bg-white p-8">
-              <TimelineTable record={displayRecord} theme="light" />
+              <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="light" />
 
               <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[#111111]/10 pt-8">
                 <div>
