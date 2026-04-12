@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**，并落下 **6.x 信息提取主链路雏形**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 三类页面骨架、Dark/Light 主题切换、隐私门控、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge 与 `/app` 内最小提取交互。
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 三类页面骨架、Dark/Light 主题切换、隐私门控、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`，以及 `/app` 内 PDF / PNG 导出。
 - 当前 MVP 的实现真相源仍是 `openspec/changes/mvp-core/` 下的 `proposal.md`、`design.md`、`tasks.md` 与 `specs/`。
 - 已实现路由：`/login`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
-- 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`。
-- 尚未实现：数据库写入链路、时间线真实渲染、导出与测试收口。
+- 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。
+- 尚未实现：10.x 集成验证收口、11.x 部署链路与上线前复核。
 
 ## 开发启动
 

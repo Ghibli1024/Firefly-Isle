@@ -107,10 +107,10 @@
 
 ## 9. 导出
 
-- [ ] 9.1 安装 `html2canvas` 和 `jspdf`
-- [ ] 9.2 实现 PDF 导出：截取 `TimelineTable` DOM → html2canvas（scale=2）→ jsPDF 生成 A4 PDF → 触发下载，文件名为 `firefly-{YYYY-MM-DD}.pdf`
-- [ ] 9.3 实现 PNG 导出：同上流程，跳过 jsPDF，直接 `canvas.toBlob()` → 触发下载，文件名为 `firefly-{YYYY-MM-DD}.png`
-- [ ] 9.4 导出期间显示 loading 状态，完成后恢复交互；失败时显示用户可读错误，并输出完整控制台错误信息
+- [x] 9.1 安装 `html2canvas` 和 `jspdf`
+- [x] 9.2 实现 PDF 导出：截取 `TimelineTable` DOM → html2canvas（scale=2）→ jsPDF 生成 A4 PDF → 触发下载，文件名为 `firefly-{YYYY-MM-DD}.pdf`
+- [x] 9.3 实现 PNG 导出：同上流程，跳过 jsPDF，直接 `canvas.toBlob()` → 触发下载，文件名为 `firefly-{YYYY-MM-DD}.png`
+- [x] 9.4 导出期间显示 loading 状态，完成后恢复交互；失败时显示用户可读错误，并输出完整控制台错误信息
 
 ## 10. 集成验证
 

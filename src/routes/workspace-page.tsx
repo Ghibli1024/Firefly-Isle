@@ -1,10 +1,13 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览与 inline edit 持久化，并保留 Dark/Light 复刻骨架。
+ * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览、inline edit 持久化与 PDF/PNG 导出，并保留 Dark/Light 复刻骨架。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 
 import {
   ArchiveSideNav,
@@ -34,8 +37,11 @@ type WorkspacePageProps = {
 type ExtractionState = {
   currentQuestion: string | null
   error: string | null
+  exportError: string | null
+  exportFormat: 'pdf' | 'png' | null
   extractionInput: string
   followUpAnswers: string[]
+  isExporting: boolean
   isExtracting: boolean
   isSaving: boolean
   record: PatientRecord | null
@@ -62,6 +68,70 @@ type TreatmentLineRow = {
 
 const EMPTY_RECORD: PatientRecord = {
   treatmentLines: [],
+}
+
+function getExportFileBase() {
+  const date = new Date().toISOString().slice(0, 10)
+  return `firefly-${date}`
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = fileName
+  link.click()
+
+  URL.revokeObjectURL(url)
+}
+
+async function renderReportCanvas(element: HTMLElement) {
+  return html2canvas(element, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+  })
+}
+
+async function exportReportAsPng(element: HTMLElement) {
+  const canvas = await renderReportCanvas(element)
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/png')
+  })
+
+  if (!blob) {
+    throw new Error('Failed to create PNG blob.')
+  }
+
+  downloadBlob(blob, `${getExportFileBase()}.png`)
+}
+
+async function exportReportAsPdf(element: HTMLElement) {
+  const canvas = await renderReportCanvas(element)
+  const image = canvas.toDataURL('image/png')
+  const pdf = new jsPDF({ format: 'a4', orientation: 'portrait', unit: 'mm' })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const imageHeight = (canvas.height * pageWidth) / canvas.width
+  let remainingHeight = imageHeight
+  let offsetY = 0
+
+  pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
+  remainingHeight -= pageHeight
+
+  while (remainingHeight > 0) {
+    offsetY = remainingHeight - imageHeight
+    pdf.addPage()
+    pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
+    remainingHeight -= pageHeight
+  }
+
+  pdf.save(`${getExportFileBase()}.pdf`)
+}
+
+function getExportErrorMessage(format: 'pdf' | 'png') {
+  return format === 'pdf' ? 'PDF 导出失败，请稍后重试。' : 'PNG 导出失败，请稍后重试。'
 }
 
 function parseNumericField(value: string) {
@@ -243,11 +313,15 @@ function getNextQuestion(missingFields: string[], followUpCount: number) {
 
 function useExtractionState() {
   const { user } = useAuth()
+  const reportRef = useRef<HTMLDivElement | null>(null)
   const [state, setState] = useState<ExtractionState>({
     currentQuestion: null,
     error: null,
+    exportError: null,
+    exportFormat: null,
     extractionInput: '',
     followUpAnswers: [],
+    isExporting: false,
     isExtracting: false,
     isSaving: false,
     record: null,
@@ -517,27 +591,71 @@ function useExtractionState() {
     }
   }
 
+  async function handleExport(format: 'pdf' | 'png') {
+    if (!reportRef.current || state.isExporting) {
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      exportError: null,
+      exportFormat: format,
+      isExporting: true,
+    }))
+
+    try {
+      if (format === 'pdf') {
+        await exportReportAsPdf(reportRef.current)
+      } else {
+        await exportReportAsPng(reportRef.current)
+      }
+
+      setState((current) => ({
+        ...current,
+        exportFormat: null,
+        isExporting: false,
+      }))
+    } catch (error) {
+      console.error(error)
+      setState((current) => ({
+        ...current,
+        exportError: getExportErrorMessage(format),
+        exportFormat: null,
+        isExporting: false,
+      }))
+    }
+  }
+
+  function setReportRef(node: HTMLDivElement | null) {
+    reportRef.current = node
+  }
+
   function setExtractionInput(extractionInput: string) {
     setState((current) => ({ ...current, extractionInput }))
   }
 
   return {
     ...state,
+    handleExport,
     handleFieldCommit,
     retryLastAction,
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
+    setReportRef,
   }
 }
-
 
 function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
   const {
     currentQuestion,
     error,
+    exportError,
+    exportFormat,
     extractionInput,
+    handleExport,
     handleFieldCommit,
+    isExporting,
     isExtracting,
     isSaving,
     record,
@@ -547,6 +665,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
+    setReportRef,
   } = useExtractionState()
   const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
@@ -572,6 +691,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
             </div>
 
             {error ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{error}</div> : null}
+            {exportError ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{exportError}</div> : null}
             {isSaving ? <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[#FF3D00]">保存中…</div> : null}
 
             {retryMode ? (
@@ -584,9 +704,9 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
               </button>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
               <button
-                className="group flex flex-col items-center justify-center border-2 border-dashed border-[#262626] bg-[#131313] py-10 transition-colors hover:border-[#FF3D00]"
+                className="group flex flex-col items-center justify-center border-2 border-dashed border-[#262626] bg-[#131313] py-10 transition-colors hover:border-[#FF3D00] md:col-span-2"
                 onClick={() => void runInitialExtraction()}
                 type="button"
               >
@@ -597,14 +717,22 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
                   {isExtracting ? '提取中…' : '开始结构化提取'}
                 </span>
               </button>
-              <div className="flex items-center justify-center">
-                <button className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-3 bg-[#FF3D00] text-[#0A0A0A] transition-colors hover:bg-[#FAFAFA]">
-                  <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    mic
-                  </span>
-                  <span className="font-['Inter_Tight'] text-xl font-black uppercase tracking-tighter">语音录入</span>
-                </button>
-              </div>
+              <button
+                className="border border-[#262626] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA] disabled:cursor-not-allowed disabled:text-[#FAFAFA]/40"
+                disabled={isExtracting || isSaving || isExporting}
+                onClick={() => void handleExport('pdf')}
+                type="button"
+              >
+                {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
+              </button>
+              <button
+                className="border border-[#262626] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA] disabled:cursor-not-allowed disabled:text-[#FAFAFA]/40"
+                disabled={isExtracting || isSaving || isExporting}
+                onClick={() => void handleExport('png')}
+                type="button"
+              >
+                {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
+              </button>
             </div>
 
             {currentQuestion ? (
@@ -633,7 +761,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
         </section>
 
         <section className="flex-1 bg-[#131313] p-8">
-          <div className="relative mx-auto max-w-6xl overflow-hidden bg-white p-10 text-[#0A0A0A] shadow-2xl">
+          <div ref={setReportRef} className="relative mx-auto max-w-6xl overflow-hidden bg-white p-10 text-[#0A0A0A] shadow-2xl">
             <div className="pointer-events-none absolute right-0 top-0 select-none text-8xl font-black opacity-5 -rotate-12">
               FORENSIC
             </div>
@@ -676,9 +804,13 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
   const {
     currentQuestion,
     error,
+    exportError,
+    exportFormat,
     extractionInput,
     followUpAnswers,
+    handleExport,
     handleFieldCommit,
+    isExporting,
     isExtracting,
     isSaving,
     record,
@@ -688,6 +820,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
+    setReportRef,
   } = useExtractionState()
   const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
@@ -742,6 +875,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                     {isExtracting ? '提取中…' : '开始提取'}
                   </button>
                   {error ? <span className="text-sm text-[#ba1a1a]">{error}</span> : null}
+                  {exportError ? <span className="text-sm text-[#ba1a1a]">{exportError}</span> : null}
                   {isSaving ? <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[#CC0000]">保存中…</span> : null}
                   {retryMode ? (
                     <button
@@ -778,14 +912,30 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-4 gap-6">
                 <button
                   className="border-2 border-[#111111] bg-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={isExtracting || isSaving}
+                  disabled={isExtracting || isSaving || isExporting}
                   onClick={() => void runInitialExtraction()}
                   type="button"
                 >
                   {isExtracting ? '提取中…' : '开始提取'}
+                </button>
+                <button
+                  className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={isExtracting || isSaving || isExporting}
+                  onClick={() => void handleExport('pdf')}
+                  type="button"
+                >
+                  {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
+                </button>
+                <button
+                  className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={isExtracting || isSaving || isExporting}
+                  onClick={() => void handleExport('png')}
+                  type="button"
+                >
+                  {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
                 </button>
                 <div className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center bg-[#CC0000] p-6 text-white transition-all hover:-translate-y-1">
                   <span className="material-symbols-outlined mb-2 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -824,7 +974,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               <h2 className="font-['Newsreader'] text-4xl font-bold tracking-tighter">临床结构化报告</h2>
               <div className="h-[2px] flex-1 bg-[#111111]" />
             </div>
-            <div className="border-2 border-[#111111] bg-white p-8">
+            <div ref={setReportRef} className="border-2 border-[#111111] bg-white p-8">
               <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="light" />
 
               <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[#111111]/10 pt-8">
