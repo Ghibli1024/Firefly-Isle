@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate，依赖 ThemeProvider、AuthProvider、PrivacyGate 与三类页面。
+ * [INPUT]: 依赖 react 的 useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate，依赖 ThemeProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF 与四类页面。
  * [OUTPUT]: 对外提供 App 组件。
- * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化与 /login、/app、/record/:id 页面。
+ * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化与 /login、/privacy、/app、/record/:id 页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useMemo } from 'react'
@@ -9,8 +9,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { PrivacyGate } from '@/components/privacy-gate'
 import { AuthProvider, useAuth } from '@/lib/auth'
+import { PRIVACY_PAGE_HREF } from '@/lib/privacy'
 import { ThemeProvider, useTheme } from '@/lib/theme'
 import { LoginPage } from '@/routes/login-page'
+import { PrivacyPage } from '@/routes/privacy-page'
 import { RecordPage } from '@/routes/record-page'
 import { WorkspacePage } from '@/routes/workspace-page'
 
@@ -58,6 +60,10 @@ function AppRoutes() {
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate replace to="/app" /> : <LoginPage authError={authError} />}
+      />
+      <Route
+        path={PRIVACY_PAGE_HREF}
+        element={<PrivacyPage />}
       />
       <Route
         path="/app"

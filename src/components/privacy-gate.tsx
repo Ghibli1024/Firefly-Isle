@@ -1,13 +1,15 @@
 /**
- * [INPUT]: 依赖 react 的 PropsWithChildren、useEffect、useState，依赖 @/lib/privacy 的隐私文案与 localStorage key，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 react 的 PropsWithChildren、useEffect、useState，依赖 react-router-dom 的 Link、useLocation，依赖 @/lib/privacy 的隐私文案、独立隐私页路由与 localStorage key，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 PrivacyGate 组件。
- * [POS]: components 的全局隐私门控层，在用户本地确认前阻塞整个应用入口。
+ * [POS]: components 的全局隐私门控层，在用户本地确认前阻塞整个应用入口，并为独立隐私页放行访问。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type PropsWithChildren, useEffect, useState } from 'react'
 
+import { Link, useLocation } from 'react-router-dom'
 import {
   PRIVACY_ACCEPTED_STORAGE_KEY,
+  PRIVACY_PAGE_HREF,
   PRIVACY_POLICY_ITEMS,
   PRIVACY_POLICY_SUMMARY,
 } from '@/lib/privacy'
@@ -57,6 +59,12 @@ function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void;
           >
             我已了解并继续
           </button>
+          <Link
+            className="flex flex-1 items-center justify-center border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00]"
+            to={PRIVACY_PAGE_HREF}
+          >
+            查看完整隐私条款
+          </Link>
           <button
             className="flex-1 border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00]"
             onClick={onStayBlocked}
@@ -98,7 +106,7 @@ function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void
           ))}
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
           <button
             className="border-2 border-[#111111] bg-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#F9F9F7] transition-colors hover:bg-[#F9F9F7] hover:text-[#111111]"
             onClick={onAccept}
@@ -106,6 +114,12 @@ function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void
           >
             同意并继续
           </button>
+          <Link
+            className="flex items-center justify-center border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]"
+            to={PRIVACY_PAGE_HREF}
+          >
+            查看完整隐私条款
+          </Link>
           <button
             className="border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]"
             onClick={onStayBlocked}
@@ -120,8 +134,10 @@ function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void
 }
 
 export function PrivacyGate({ children }: PropsWithChildren) {
+  const { pathname } = useLocation()
   const { theme } = useTheme()
   const [accepted, setAccepted] = useState(readPrivacyAccepted)
+  const shouldBypassGate = pathname === PRIVACY_PAGE_HREF
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -130,14 +146,14 @@ export function PrivacyGate({ children }: PropsWithChildren) {
 
     const previousOverflow = document.body.style.overflow
 
-    if (!accepted) {
+    if (!accepted && !shouldBypassGate) {
       document.body.style.overflow = 'hidden'
     }
 
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [accepted])
+  }, [accepted, shouldBypassGate])
 
   const acceptPrivacy = () => {
     window.localStorage.setItem(PRIVACY_ACCEPTED_STORAGE_KEY, 'true')
@@ -152,7 +168,7 @@ export function PrivacyGate({ children }: PropsWithChildren) {
   return (
     <>
       {children}
-      {accepted ? null : theme === 'dark' ? (
+      {accepted || shouldBypassGate ? null : theme === 'dark' ? (
         <DarkPrivacyOverlay onAccept={acceptPrivacy} onStayBlocked={stayBlocked} />
       ) : (
         <LightPrivacyOverlay onAccept={acceptPrivacy} onStayBlocked={stayBlocked} />

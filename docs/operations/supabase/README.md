@@ -393,7 +393,42 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 - 如果你希望验证邮件回到本地开发 origin，Additional Redirect URLs 是否已包含当前 origin（例如 `http://127.0.0.1:5173`、`http://localhost:5173` 或当前实际端口）
 - 当前本地访问地址是否和 allow list 完全一致（协议、host、端口都要一致）
 
-## 9. 一次性恢复清单
+## 9. 发布前 Supabase 安全与可用性复核
+
+在 11.5 收口前，至少逐项确认下面这些点，而不是只看本地开发环境能否跑通。
+
+### 9.1 RLS / 数据隔离复核
+
+- 用两个不同已登录账户验证：用户 A 看不到用户 B 的 `patients` / `treatment_lines`
+- 若保留匿名模式，再用匿名会话验证：匿名 uid 只能读写自己的记录
+- 随机抽查新建、编辑、刷新恢复、退出后重登这几条链路，确认 `user_id = auth.uid()` 约束没有被绕开
+- 若发布环境更换了 Supabase 项目，重新执行一遍 `4.4 推送后检查清单`
+
+### 9.2 Storage 访问策略复核
+
+- `patient-assets` bucket 仍为私有
+- `storage.objects` 上的 policy 仍存在，且路径第一段必须是 uid
+- 用户 A 无法读取用户 B 的对象
+- 匿名会话无法读取其他匿名 uid 或注册用户的对象
+- 错误前缀（如 `wrong-prefix/test.txt`）仍会被拒绝
+
+### 9.3 Edge Function / 核心链路复核
+
+- `llm-proxy` 已部署到当前发布环境，对应 `VITE_SUPABASE_EDGE_FUNCTION_URL` 可达
+- 前端请求仍只打到 Supabase Edge Function，不直接暴露模型 API key
+- 发布环境里至少手动走一遍：登录/匿名进入 → 提取 → 追问 → 渲染 → 编辑 → 导出
+- 若当前发布环境关闭了 Anonymous Sign-In，就不要把匿名模式写成“已可用”；先改配置，或同步改 spec / README / 产品文案
+
+### 9.4 当前 11.5 已知缺口
+
+截至当前仓库状态，下面这些仍不能视为“已完成复核”：
+
+- 还没有一份针对发布环境的已执行 11.5 勾选记录
+- Storage policy 仍是手工 SQL，不是迁移文件的一部分
+- `llm-proxy` 的发布环境可用性仍依赖外部 secret 与 deploy 状态
+- 匿名模式是否可用取决于 Dashboard 的 Auth provider 配置，不能只从前端代码推断
+
+## 10. 一次性恢复清单
 
 从零恢复时，按这个顺序做：
 

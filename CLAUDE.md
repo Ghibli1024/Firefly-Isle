@@ -36,6 +36,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `design.md` — target architecture and design rationale
   - `specs/**/*.md` — requirement-level behavior for each capability
   - `tasks.md` — ordered implementation checklist
+- `.github/`
+  - `workflows/*.yml` — GitHub Actions CI/CD workflows for verification and Cloudflare Pages deploy
+- `public/`
+  - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
 - `supabase/`
   - `migrations/*.sql` — schema, RLS, trigger, and storage-adjacent infrastructure migrations
 - `.claude/skills/openspec-*` and `.claude/commands/opsx/*`

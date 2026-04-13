@@ -218,8 +218,9 @@ sequenceDiagram
 ### Phase 4 — 部署完成标准
 - 当前 MVP 功能已完成手动验收。
 - GitHub Actions 与 Cloudflare Pages 部署链路可用，基础隐私条款页面已就绪。
-- 导出跨浏览器验证与 Supabase RLS 安全审查已完成。
-- 若当前 MVP 仅保留 Storage 基础设施边界，则 bucket 与访问策略已验证；若后续扩展患者资源上传流程，不在本阶段完成标准内。
+- 导出跨浏览器验证已完成，并至少对目标浏览器中的 Chrome / Safari 留有验收记录；若发布范围扩大，再补 Firefox / Edge。
+- Supabase RLS 安全审查已完成；若当前 MVP 仍保留 Storage 基础设施边界，则 bucket 与访问策略也已在发布环境完成复核。
+- 发布环境的核心链路（登录/匿名进入 → 提取 → 追问 → 渲染 → 编辑 → 导出）已至少手动验收一轮。
 
 ## Risk matrix
 

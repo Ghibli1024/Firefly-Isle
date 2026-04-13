@@ -1,12 +1,14 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖登录页表单状态与回调 props。
+ * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 @/components/app-shell 的设计复刻壳层，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖登录页表单状态 props。
  * [OUTPUT]: 对外提供 LoginPageView 组件，以及 AuthMode / AuthFeedback / LoginPageViewProps 类型。
- * [POS]: components 的登录页展示层，承载 Dark/Light 双主题复刻结构，不负责 Supabase 认证状态机。
+ * [POS]: components 的登录页展示层，承载 Dark/Light 双主题复刻结构、认证表单展示与产品入口隐私页跳转，不负责 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { Link } from 'react-router-dom'
 import { type FormEvent } from 'react'
 
 import { ArchiveSideNav, DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
+import { PRIVACY_PAGE_HREF, PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
 import type { Theme } from '@/lib/theme'
 
 const WECHAT_ICON_URL =
@@ -256,6 +258,11 @@ function DarkLoginView({
                 >
                   无需登录，直接使用匿名会话
                 </button>
+                <div className="text-center text-[11px] italic leading-relaxed opacity-60">
+                  <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
+                    查看完整隐私条款
+                  </Link>
+                </div>
               </div>
             </form>
 
@@ -472,9 +479,12 @@ function LightLoginView({
             </button>
 
             <div className="mt-12 border-t border-[#111111]/10 pt-8">
-              <p className="text-center text-[11px] italic leading-relaxed opacity-60">
-                "继续即代表您同意本平台的《数据隐私协议》与《临床研究伦理规范》。我们对所有医疗数据采用零知识证明存储。"
-              </p>
+              <p className="text-center text-[11px] italic leading-relaxed opacity-60">{PRIVACY_POLICY_SUMMARY}</p>
+              <div className="mt-4 text-center text-[11px] uppercase tracking-[0.2em]">
+                <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
+                  查看完整隐私条款
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -497,9 +507,9 @@ function LightLoginView({
         <div className="flex flex-col items-center justify-between font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest opacity-60 md:flex-row">
           <span>© 2024 一页萤岛 ARCHIVE SYSTEM</span>
           <div className="mt-4 flex gap-8 md:mt-0">
-            <a className="underline underline-offset-4" href="#">
-              Legal Disclaimer
-            </a>
+            <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
+              Privacy Policy
+            </Link>
             <a className="underline underline-offset-4" href="#">
               System Status
             </a>

@@ -1,9 +1,11 @@
 /**
- * [INPUT]: 无运行时外部依赖，只承载隐私文案与本地确认 key。
- * [OUTPUT]: 对外提供隐私门控存储 key、摘要文案与条目列表。
- * [POS]: lib 的隐私真相源，为首次门控与后续独立隐私页提供同一份文本基础。
+ * [INPUT]: 无运行时外部依赖，只承载隐私文案、独立隐私页路由与本地确认 key。
+ * [OUTPUT]: 对外提供隐私页 href、隐私门控存储 key、摘要文案与条目列表。
+ * [POS]: lib 的隐私真相源，为首次门控与独立隐私页提供同一份文本基础。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+export const PRIVACY_PAGE_HREF = '/privacy'
+
 export const PRIVACY_ACCEPTED_STORAGE_KEY = 'privacy_accepted'
 
 export const PRIVACY_POLICY_SUMMARY =

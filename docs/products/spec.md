@@ -746,8 +746,10 @@ interface TreatmentLine {
 
 ### Step 4.2 — 上线 Checklist
 - [ ] 所有当前 MVP 功能手动验收
-- [ ] PDF 导出跨浏览器验证
+- [ ] PDF / PNG 导出在目标浏览器完成验收（至少记录 Chrome 与 Safari；若要支持更多浏览器，再补 Firefox / Edge）
 - [ ] Supabase RLS 安全审查
+- [ ] Supabase Storage 访问策略复核
+- [ ] 发布环境核心链路手动验收（登录/匿名进入 → 提取 → 追问 → 渲染 → 编辑 → 导出）
 - [ ] 基础隐私条款页面
 - [ ] 主题切换与本地持久化验证
 
