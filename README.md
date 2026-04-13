@@ -4,12 +4,12 @@
 
 ## 当前状态
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路基线**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/app` 内 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/app` 内 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
 - 当前 MVP 的实现真相源仍是 `openspec/changes/mvp-core/` 下的 `proposal.md`、`design.md`、`tasks.md` 与 `specs/`。
 - 已实现路由：`/login`、`/privacy`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
 - 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。
 - 10.x 集成验证已完成：`10.1` 端到端主链路、`10.2` RLS 双会话隔离、`10.3` 匿名模式恢复、`10.4` 隐私门控、`10.5` 主题恢复、`10.6` PDF/PNG 导出命名与失败提示、`10.7` 文档同步、`10.8` phase exit criteria 收口、`10.9` README 复核均已完成。
-- 尚未实现：11.4 / 11.5 的正式发布环境执行仍待完成，当前代码仓已具备 GitHub Actions、Cloudflare Pages、独立隐私页与发布检查清单基线。
+- 尚未实现：当前 `mvp-core` 变更中的任务已全部完成；后续若要继续优化发布流程或扩展产品能力，应通过新的 OpenSpec change 继续推进。
 
 ## 开发启动
 

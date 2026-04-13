@@ -30,6 +30,15 @@
 - PDF 导出成功，文件名符合 `firefly-{YYYY-MM-DD}.pdf`
 - 导出失败时能看到用户可读错误提示，而不是静默失败
 
+**当前执行结果（2026-04-13, production）**
+
+- `https://firefly.ghibli1024.com` 与 `https://firefly-isle.pages.dev` 均可访问
+- 匿名进入成功，可进入 `/app`
+- 生产环境提取 → 渲染 → 落库通过
+- inline edit 保存后刷新恢复通过
+- PNG 导出触发下载，文件名为 `firefly-2026-04-13.png`
+- PDF 导出已生成 `application/pdf` blob，文件名为 `firefly-2026-04-13.pdf`
+
 ### 1.2 Safari 验收项
 
 按 Chrome 同一套流程复验以下项目：
@@ -38,6 +47,13 @@
 - PNG 导出成功
 - PDF 导出成功
 - 失败提示可见
+
+**当前执行结果（2026-04-13, production）**
+
+- 匿名进入成功，可进入 `/app`
+- 提取与渲染成功
+- PNG 导出成功
+- PDF 导出成功
 
 ### 1.3 当前已知风险
 
