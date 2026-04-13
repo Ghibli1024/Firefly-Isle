@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-- This repository is in an **early implementation baseline** state. A minimal Vite app scaffold, routing shell, theme system foundation, and product/spec documents exist; the remaining MVP capabilities are still tracked in `openspec/changes/mvp-core/`.
-- The active implementation source of truth is the OpenSpec change `mvp-core` under `openspec/changes/mvp-core/`.
+- This repository has completed its MVP implementation baseline. The full MVP change was archived at `openspec/changes/archive/2026-04-13-mvp-core/`.
+- The active documentation change is `commit-history-log` under `openspec/changes/commit-history-log/`.
 - Product context lives in `README.md` and `docs/products/`.
 
 ## Common commands
@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### OpenSpec workflow
 
 - `openspec list --json` — list active changes and completion state
-- `openspec status --change "mvp-core" --json` — inspect artifact status for the current MVP change
-- `openspec instructions apply --change "mvp-core" --json` — get the current implementation context and task list
+- `openspec status --change "commit-history-log" --json` — inspect artifact status for the current docs/log change
+- `openspec instructions apply --change "commit-history-log" --json` — get the current implementation context and task list
 - `openspec new change "<name>"` — create a new change when work needs a new spec track
 
 ### Current limitation
@@ -31,11 +31,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `spec.md` — implementation plan and architectural decisions
   - `design-system.md` — design-system prompt/reference, not implemented code tokens
   - `stitch-screen-mapping.md` — Stitch naming/source-of-truth rules for design screens
-- `openspec/changes/mvp-core/`
-  - `proposal.md` — MVP scope and capability list
-  - `design.md` — target architecture and design rationale
-  - `specs/**/*.md` — requirement-level behavior for each capability
-  - `tasks.md` — ordered implementation checklist
+- `docs/log/`
+  - `index.md` — commit history 总入口
+  - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
+- `openspec/changes/archive/2026-04-13-mvp-core/`
+  - archived MVP implementation artifacts (proposal/design/specs/tasks)
+- `openspec/changes/commit-history-log/`
+  - proposal.md — docs/log 文档治理 scope
+  - design.md — commit-history 文档结构、证据层级与维护策略
+  - specs/**/*.md — requirement-level behavior for commit log files
+  - tasks.md — docs/log 落地 checklist
 - `.github/`
   - `workflows/*.yml` — GitHub Actions CI/CD workflows for verification and Cloudflare Pages deploy
 - `public/`
