@@ -73,6 +73,7 @@
 - `DEFAULT_GEMINI_MODEL` 已配置
 - 当前部署方式若使用 `--no-verify-jwt`，必须确认函数内部 JWT 校验仍生效
 - 匿名 token 与邮箱用户 token 都可通过函数内部校验
+- 若 Cloudflare Pages Git 集成构建读取 `wrangler.jsonc`，需额外确认构建期依赖的 `VITE_SUPABASE_*` 值也存在于 `wrangler.jsonc > vars`，否则线上 bundle 可能在构建时拿不到 env，即使 Dashboard UI 已填写变量。
 
 ### 2.5 核心链路手动验收
 

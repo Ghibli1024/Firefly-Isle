@@ -2,5 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "firefly-isle",
   "compatibility_date": "2026-04-12",
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "dist",
+  "vars": {
+    "VITE_SUPABASE_URL": "https://irkjblpzmclqekxbexll.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlya2pibHB6bWNscWVreGJleGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4Mzg4NjMsImV4cCI6MjA5MTQxNDg2M30.M0RMr2hWYM6SjlXR6RRs752bg7KFOBY1Pat9Y0-ZchQ",
+    "VITE_SUPABASE_EDGE_FUNCTION_URL": "https://irkjblpzmclqekxbexll.functions.supabase.co"
+  }
 }

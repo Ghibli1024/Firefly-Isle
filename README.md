@@ -97,6 +97,7 @@ Cloudflare Pages 侧使用当前前端默认构建：
 - Build output directory: `dist`
 - Node.js: `22`
 - SPA fallback: `public/_redirects`
+- 若 Pages 在 Git 集成构建中读取了 `wrangler.jsonc`，则当前前端依赖的 3 个 `VITE_SUPABASE_*` 值也需要同步存在于 `wrangler.jsonc > vars`，否则构建日志会显示 `Build environment variables: (none found)`，并导致线上 bundle 缺少 Supabase env。
 
 ## 项目背景 
 本项目源于癌症患者及其家属的真实需求。晚期癌症患者由于频繁复发和疾病进展，往往需要经历多线治疗。在整理病历和治疗信息的过程中，患者及家属常因信息过载而感到无助；而在异地就医或门诊沟通中，由于患者数量众多，医生能够分配给单个患者的沟通时间有限，难以进行充分、系统的交流。因此，本项目旨在帮助患者更好地进行治疗方案与病历信息的管理。
