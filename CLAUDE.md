@@ -5,7 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository state
 
 - This repository has completed its MVP implementation baseline. The full MVP change was archived at `openspec/changes/archive/2026-04-13-mvp-core/`.
-- The active documentation change is `commit-history-log` under `openspec/changes/commit-history-log/`.
+- The commit-history documentation change was archived at `openspec/changes/archive/2026-04-14-commit-history-log/`.
+- The current baseline specs now live under `openspec/specs/`.
+- There is no active OpenSpec change at the repository root right now; create a new change before starting the next scoped spec update.
 - Product context lives in `README.md` and `docs/products/`.
 
 ## Common commands
@@ -13,8 +15,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### OpenSpec workflow
 
 - `openspec list --json` — list active changes and completion state
-- `openspec status --change "commit-history-log" --json` — inspect artifact status for the current docs/log change
-- `openspec instructions apply --change "commit-history-log" --json` — get the current implementation context and task list
+- `openspec status --change "<change-name>" --json` — inspect artifact status for a specific active change
+- `openspec instructions apply --change "<change-name>" --json` — get implementation context and task list for an active change
 - `openspec new change "<name>"` — create a new change when work needs a new spec track
 
 ### Current limitation
@@ -34,13 +36,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/log/`
   - `index.md` — commit history 总入口
   - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
+- `openspec/specs/`
+  - current baseline requirements merged from archived MVP and commit-history changes
 - `openspec/changes/archive/2026-04-13-mvp-core/`
   - archived MVP implementation artifacts (proposal/design/specs/tasks)
-- `openspec/changes/commit-history-log/`
-  - proposal.md — docs/log 文档治理 scope
-  - design.md — commit-history 文档结构、证据层级与维护策略
-  - specs/**/*.md — requirement-level behavior for commit log files
-  - tasks.md — docs/log 落地 checklist
+- `openspec/changes/archive/2026-04-14-commit-history-log/`
+  - archived docs/log governance artifacts (proposal/design/specs/tasks)
 - `.github/`
   - `workflows/*.yml` — GitHub Actions CI/CD workflows for verification and Cloudflare Pages deploy
 - `public/`
@@ -50,13 +51,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.claude/skills/openspec-*` and `.claude/commands/opsx/*`
   - local OpenSpec workflow helpers used by Claude Code
 
-### Planned product architecture (from the OpenSpec artifacts)
+### Current product architecture
 
 - **Frontend:** Vite + React 18 + TypeScript SPA
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
-- **AI boundary:** frontend should call a Supabase Edge Function proxy; provider API keys must stay server-side
+- **AI boundary:** frontend calls a Supabase Edge Function proxy; provider API keys stay server-side
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → PDF/PNG export
+- **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
+- **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
 
 ### Core domain model
 
@@ -84,12 +87,12 @@ Important domain rules from the specs:
 
 When implementation starts, read these in roughly this order:
 
-1. `README.md` — concise project purpose
+1. `README.md` — concise project purpose and current repo baseline
 2. `docs/products/prd.md` — user/problem framing and scope boundaries
-3. `openspec/changes/mvp-core/proposal.md` — current MVP scope
-4. `openspec/changes/mvp-core/specs/**/*.md` — behavior requirements
-5. `openspec/changes/mvp-core/design.md` — architecture and tradeoffs
-6. `openspec/changes/mvp-core/tasks.md` — execution order
+3. `openspec/specs/**/*.md` — current baseline behavior requirements
+4. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
+5. `openspec/changes/<new-change>/proposal.md` + `tasks.md` — active scoped work, once a new change is created
+6. `openspec/changes/archive/**/design.md` — historical rationale only, when current behavior or past decisions need explanation
 
 ## Current architectural direction
 
