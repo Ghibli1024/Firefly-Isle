@@ -25,9 +25,9 @@ function readPrivacyAccepted() {
 
 function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void; onStayBlocked: () => void }) {
   return (
-    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[#050505]/96 p-6 text-[#FAFAFA] backdrop-blur-sm">
-      <div className="w-full max-w-3xl border border-[#262626] bg-[#0A0A0A] p-8 md:p-12">
-        <div className="mb-4 inline-block border border-[#262626] bg-[#1A1A1A] px-3 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#FF3D00]">
+    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[var(--ff-text-ink)]/96 p-6 text-[var(--ff-text-primary)] backdrop-blur-sm">
+      <div className="w-full max-w-3xl border border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8 md:p-12">
+        <div className="mb-4 inline-block border border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] px-3 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
           Privacy Gate
         </div>
         <h2 className="font-['Inter_Tight'] text-[clamp(2rem,5vw,4rem)] font-black leading-[0.92] tracking-tighter">
@@ -35,38 +35,38 @@ function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void;
           <br />
           请先确认数据使用说明
         </h2>
-        <p className="mt-6 max-w-2xl text-base leading-7 text-[#FAFAFA]/70 md:text-lg">
+        <p className="mt-6 max-w-2xl text-base leading-7 text-[var(--ff-text-secondary)] md:text-lg">
           {PRIVACY_POLICY_SUMMARY}
         </p>
 
-        <div className="mt-8 grid gap-px bg-[#262626] md:grid-cols-3">
+        <div className="mt-8 grid gap-px bg-[var(--ff-border-default)] md:grid-cols-3">
           {PRIVACY_POLICY_ITEMS.map((item, index) => (
-            <div className="bg-[#0A0A0A] p-5" key={item.title}>
-              <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.3em] text-[#FF3D00]">
+            <div className="bg-[var(--ff-surface-base)] p-5" key={item.title}>
+              <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.3em] text-[var(--ff-accent-primary)]">
                 0{index + 1}
               </div>
               <div className="mt-3 text-lg font-bold tracking-tight">{item.title}</div>
-              <p className="mt-2 text-sm leading-6 text-[#FAFAFA]/60">{item.body}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--ff-text-secondary)]">{item.body}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-[#262626] pt-6 md:flex-row">
+        <div className="mt-10 flex flex-col gap-4 border-t border-[var(--ff-border-default)] pt-6 md:flex-row">
           <button
-            className="flex-1 bg-[#FF3D00] px-6 py-4 font-['Inter_Tight'] text-sm font-black uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:bg-[#FAFAFA]"
+            className="flex-1 bg-[var(--ff-accent-primary)] px-6 py-4 font-['Inter_Tight'] text-sm font-black uppercase tracking-[0.2em] text-[var(--ff-surface-base)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-text-ink)]"
             onClick={onAccept}
             type="button"
           >
             我已了解并继续
           </button>
           <Link
-            className="flex flex-1 items-center justify-center border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00]"
+            className="flex flex-1 items-center justify-center border border-[var(--ff-border-default)] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
             to={PRIVACY_PAGE_HREF}
           >
             查看完整隐私条款
           </Link>
           <button
-            className="flex-1 border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00]"
+            className="flex-1 border border-[var(--ff-border-default)] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.25em] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
             onClick={onStayBlocked}
             type="button"
           >
@@ -80,9 +80,9 @@ function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void;
 
 function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void; onStayBlocked: () => void }) {
   return (
-    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[#f2f0ea]/96 p-6 text-[#111111] backdrop-blur-sm">
-      <div className="ff-light-ink-shadow w-full max-w-3xl border-2 border-[#111111] bg-[#F9F9F7] p-8 md:p-12">
-        <div className="mb-5 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.35em] text-[#5d5f5b]">
+    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[var(--ff-surface-soft)]/96 p-6 text-[var(--ff-text-primary)] backdrop-blur-sm">
+      <div className="ff-light-ink-shadow w-full max-w-3xl border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8 md:p-12">
+        <div className="mb-5 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.35em] text-[var(--ff-text-muted)]">
           Privacy Notice / 入场须知
         </div>
         <h2 className="font-['Playfair_Display'] text-[clamp(2.25rem,5vw,4.5rem)] font-black leading-[0.92] tracking-tight">
@@ -90,17 +90,17 @@ function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void
           <br />
           请确认隐私与用途边界
         </h2>
-        <p className="mt-6 text-base leading-7 text-[#111111]/75 md:text-lg">{PRIVACY_POLICY_SUMMARY}</p>
+        <p className="mt-6 text-base leading-7 text-[var(--ff-text-secondary)] md:text-lg">{PRIVACY_POLICY_SUMMARY}</p>
 
-        <div className="mt-8 space-y-4 border-y border-[#111111] py-5">
+        <div className="mt-8 space-y-4 border-y border-[var(--ff-border-default)] py-5">
           {PRIVACY_POLICY_ITEMS.map((item) => (
             <div className="flex items-start gap-3" key={item.title}>
-              <span className="mt-1 h-2 w-2 shrink-0 bg-[#111111]" />
+              <span className="mt-1 h-2 w-2 shrink-0 bg-[var(--ff-text-primary)]" />
               <div>
-                <p className="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.14em] text-[#5d5f5b]">
+                <p className="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ff-text-muted)]">
                   {item.title}
                 </p>
-                <p className="mt-1 text-sm leading-6 text-[#111111]/80">{item.body}</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--ff-text-subtle)]">{item.body}</p>
               </div>
             </div>
           ))}
@@ -108,20 +108,20 @@ function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           <button
-            className="border-2 border-[#111111] bg-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#F9F9F7] transition-colors hover:bg-[#F9F9F7] hover:text-[#111111]"
+            className="border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[var(--ff-surface-base)] transition-colors hover:bg-[var(--ff-surface-base)] hover:text-[var(--ff-text-primary)]"
             onClick={onAccept}
             type="button"
           >
             同意并继续
           </button>
           <Link
-            className="flex items-center justify-center border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]"
+            className="flex items-center justify-center border-2 border-[var(--ff-border-default)] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[var(--ff-text-primary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"
             to={PRIVACY_PAGE_HREF}
           >
             查看完整隐私条款
           </Link>
           <button
-            className="border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]"
+            className="border-2 border-[var(--ff-border-default)] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.2em] text-[var(--ff-text-primary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"
             onClick={onStayBlocked}
             type="button"
           >
@@ -176,3 +176,4 @@ export function PrivacyGate({ children }: PropsWithChildren) {
     </>
   )
 }
+

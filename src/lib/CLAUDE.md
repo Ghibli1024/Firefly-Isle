@@ -4,6 +4,7 @@
 成员清单
 CLAUDE.md: 说明前端基础设施模块职责，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+theme/: 设计系统 token 目录，收敛 surface、text、border、accent 与 motion 真相源
 auth.tsx: Supabase session 恢复、认证状态广播与 signOut 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm/: 前端 LLM adapter 目录，收敛 chat 接口、类型与错误映射
 extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

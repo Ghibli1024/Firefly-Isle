@@ -4,12 +4,13 @@
  * [POS]: components 的登录页展示层，承载 Dark/Light 双主题复刻结构、认证表单展示与产品入口隐私页跳转，不负责 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { Link } from 'react-router-dom'
 import { type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import { ArchiveSideNav, DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
 import { PRIVACY_PAGE_HREF, PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
 import type { Theme } from '@/lib/theme'
+import { sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 
 const WECHAT_ICON_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBENcjiU82jtpJo8cffyabcrVxd__Iz5VLI_StMAAMIuXtkQbq_w9NBtPmf3b_b3TtmA0QjwnWGc5un6mv619Cq1k6bo6nDHhij04dVA9asRSiI1gN0YrgOGUa11d1cc9YazDzK6nDXjqXqF4P-1xdrDXwrrDEzzK7B97qVWtxR3z0NhxxkLXJOOLdf_aVKd9tjnB28NflL6wQtnTbdIajZWK12XfTXDwJLvlAf-xaJzHpjpc0s6NidKZHAB34AlQnfSrC5DXc2YQja'
@@ -64,10 +65,10 @@ function DarkAuthFeedback({ feedback }: { feedback: AuthFeedback | null }) {
 
   const toneClass =
     feedback.tone === 'error'
-      ? 'border-[#7A1F00] text-[#FF8A65]'
+      ? 'border-[var(--ff-border-strong)] text-[var(--ff-accent-warning)]'
       : feedback.tone === 'success'
-        ? 'border-[#274B2B] text-[#9CCC65]'
-        : 'border-[#262626] text-[#FAFAFA]/70'
+        ? 'border-[var(--ff-accent-success)] text-[var(--ff-accent-success)]'
+        : 'border-[var(--ff-border-default)] text-[var(--ff-text-secondary)]'
 
   return (
     <div className={`border px-4 py-3 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] ${toneClass}`}>
@@ -83,10 +84,10 @@ function LightAuthFeedback({ feedback }: { feedback: AuthFeedback | null }) {
 
   const toneClass =
     feedback.tone === 'error'
-      ? 'border-[#ba1a1a] text-[#ba1a1a]'
+      ? 'border-[var(--ff-accent-warning)] text-[var(--ff-accent-warning)]'
       : feedback.tone === 'success'
-        ? 'border-[#205d38] text-[#205d38]'
-        : 'border-[#111111] text-[#5d5f5b]'
+        ? 'border-[var(--ff-accent-success)] text-[var(--ff-accent-success)]'
+        : 'border-[var(--ff-border-default)] text-[var(--ff-text-muted)]'
 
   return (
     <div className={`border px-4 py-3 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] ${toneClass}`}>
@@ -113,13 +114,13 @@ function DarkLoginView({
   const dividerLabel = mode === 'login' ? '或使用邮箱凭证 / OR_EMAIL' : '邮箱建档入口 / CREATE_ACCOUNT'
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
+    <div className="min-h-screen overflow-hidden bg-[var(--ff-surface-base)] font-['Inter'] text-[var(--ff-text-primary)]">
       <DarkTopBar />
       <ArchiveSideNav dark />
 
-      <main className="flex min-h-screen flex-col pt-16 md:ml-[15%] md:flex-row">
-        <section className="relative flex w-full flex-col justify-center overflow-hidden border-r border-[#262626] p-12 md:w-[65%] md:p-24">
-          <div className="absolute right-0 top-0 p-8 text-right font-['JetBrains_Mono'] text-[10px] uppercase leading-relaxed tracking-widest opacity-20 select-none">
+      <main className={`flex min-h-screen flex-col ${topBarOffsetClass} ${sidebarOffsetClass} md:flex-row`}>
+        <section className="relative flex w-full flex-col justify-center overflow-hidden border-b border-[var(--ff-border-default)] p-12 md:w-[65%] md:border-b-0 md:border-r md:p-24">
+          <div className="absolute right-0 top-0 p-8 text-right font-['JetBrains_Mono'] text-[10px] uppercase leading-relaxed tracking-widest text-[var(--ff-text-muted)] opacity-30 select-none">
             FORENSIC_ARCHIVE_SYSTEM_V1.0
             <br />
             ENCRYPTION_LEVEL: TRIPLE_AES_256
@@ -128,37 +129,39 @@ function DarkLoginView({
           </div>
 
           <div className="max-w-4xl space-y-8">
-            <div className="mb-4 inline-block border border-[#262626] bg-[#1A1A1A] px-2 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#FF3D00]">
+            <div className="mb-4 inline-block border border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] px-2 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
               Clinical AI Intelligence
             </div>
-            <h1 className="font-['Inter_Tight'] text-[clamp(3rem,8vw,6rem)] font-black leading-[0.9] tracking-tighter text-[#FAFAFA]">
+            <h1 className="font-['Inter_Tight'] text-[clamp(3rem,8vw,6rem)] font-black leading-[0.9] tracking-tighter text-[var(--ff-text-primary)]">
               把复杂治疗史
               <br />
-              整理成<span className="text-[#FF3D00]">一页纸</span>
+              整理成<span className="text-[var(--ff-accent-primary)]">一页纸</span>
             </h1>
-            <p className="max-w-2xl text-xl leading-relaxed text-[#FAFAFA] opacity-60 md:text-2xl">
+            <p className="max-w-2xl text-xl leading-relaxed text-[var(--ff-text-secondary)] md:text-2xl">
               临床精密性的本质在于对复杂信息的降维与提取。
             </p>
-            <div className="flex items-center gap-4 pt-12 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.3em] opacity-40">
-              <div className="h-px w-24 bg-[#262626]" />
+            <div className="flex items-center gap-4 pt-12 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.3em] text-[var(--ff-text-muted)]">
+              <div className="h-px w-24 bg-[var(--ff-border-default)]" />
               <span>System Ready for Analysis</span>
             </div>
           </div>
 
-          <div className="absolute bottom-0 left-0 h-px w-full bg-[#262626]" />
+          <div className="absolute bottom-0 left-0 h-px w-full bg-[var(--ff-border-default)]" />
         </section>
 
-        <section className="relative flex w-full flex-col justify-center bg-[#0A0A0A] p-12 md:w-[35%] md:p-16">
+        <section className="relative flex w-full flex-col justify-center bg-[var(--ff-surface-base)] p-12 md:w-[35%] md:p-16">
           <div className="mx-auto w-full max-w-sm space-y-8">
             <header className="space-y-4">
               <div className="space-y-2">
-                <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#FF3D00]">Authentication</h2>
+                <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">Authentication</h2>
                 <p className="text-lg font-bold tracking-tight">身份访问控制台</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 border border-[#262626] p-1">
+              <div className="grid grid-cols-2 gap-2 border border-[var(--ff-border-default)] p-1">
                 <button
                   className={`px-3 py-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] transition-colors ${
-                    mode === 'login' ? 'bg-[#FF3D00] text-[#0A0A0A]' : 'text-[#FAFAFA]/60 hover:text-[#FAFAFA]'
+                    mode === 'login'
+                      ? 'bg-[var(--ff-accent-primary)] text-[var(--ff-surface-base)]'
+                      : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]'
                   }`}
                   onClick={() => onModeChange('login')}
                   type="button"
@@ -167,7 +170,9 @@ function DarkLoginView({
                 </button>
                 <button
                   className={`px-3 py-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] transition-colors ${
-                    mode === 'sign-up' ? 'bg-[#FF3D00] text-[#0A0A0A]' : 'text-[#FAFAFA]/60 hover:text-[#FAFAFA]'
+                    mode === 'sign-up'
+                      ? 'bg-[var(--ff-accent-primary)] text-[var(--ff-surface-base)]'
+                      : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]'
                   }`}
                   onClick={() => onModeChange('sign-up')}
                   type="button"
@@ -179,7 +184,7 @@ function DarkLoginView({
 
             <div className="mb-8 space-y-4">
               <button
-                className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA]/45"
+                className="flex w-full items-center justify-center gap-3 border border-[var(--ff-border-default)] py-4 font-['JetBrains_Mono'] text-[12px] text-[var(--ff-text-secondary)] opacity-70"
                 disabled
                 type="button"
               >
@@ -187,7 +192,7 @@ function DarkLoginView({
                 <span>微信快捷登录 / WECHAT_AUTH</span>
               </button>
               <button
-                className="flex w-full items-center justify-center gap-3 border border-[#262626] py-4 font-['JetBrains_Mono'] text-[12px] text-[#FAFAFA]/45"
+                className="flex w-full items-center justify-center gap-3 border border-[var(--ff-border-default)] py-4 font-['JetBrains_Mono'] text-[12px] text-[var(--ff-text-secondary)] opacity-70"
                 disabled
                 type="button"
               >
@@ -195,9 +200,11 @@ function DarkLoginView({
                 <span>谷歌账号登录 / GOOGLE_AUTH</span>
               </button>
               <div className="flex items-center gap-4 py-4">
-                <div className="h-px flex-grow bg-[#262626]" />
-                <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest opacity-30">{dividerLabel}</span>
-                <div className="h-px flex-grow bg-[#262626]" />
+                <div className="h-px flex-grow bg-[var(--ff-border-default)]" />
+                <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-text-muted)]">
+                  {dividerLabel}
+                </span>
+                <div className="h-px flex-grow bg-[var(--ff-border-default)]" />
               </div>
             </div>
 
@@ -206,14 +213,14 @@ function DarkLoginView({
 
               <div className="group space-y-1">
                 <label
-                  className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest opacity-40 transition-colors group-focus-within:text-[#FF3D00]"
+                  className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-muted)] transition-colors group-focus-within:text-[var(--ff-accent-primary)]"
                   htmlFor="dark-email"
                 >
                   Registered Email
                 </label>
                 <input
                   autoComplete="email"
-                  className="w-full border-b border-[#262626] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[#FAFAFA] outline-none transition-all placeholder:text-sm placeholder:opacity-20 focus:border-[#FF3D00] focus:border-b-2"
+                  className="w-full border-b border-[var(--ff-border-default)] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[var(--ff-text-primary)] outline-none transition-all placeholder:text-sm placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
                   id="dark-email"
                   onChange={(event) => onEmailChange(event.target.value)}
                   placeholder="输入临床邮箱"
@@ -224,14 +231,14 @@ function DarkLoginView({
               </div>
               <div className="group space-y-1">
                 <label
-                  className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest opacity-40 transition-colors group-focus-within:text-[#FF3D00]"
+                  className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-muted)] transition-colors group-focus-within:text-[var(--ff-accent-primary)]"
                   htmlFor="dark-key"
                 >
                   Encryption Key
                 </label>
                 <input
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="w-full border-b border-[#262626] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[#FAFAFA] outline-none transition-all placeholder:text-sm placeholder:opacity-20 focus:border-[#FF3D00] focus:border-b-2"
+                  className="w-full border-b border-[var(--ff-border-default)] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[var(--ff-text-primary)] outline-none transition-all placeholder:text-sm placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
                   id="dark-key"
                   onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="输入 256 位加密密钥"
@@ -243,7 +250,7 @@ function DarkLoginView({
 
               <div className="space-y-3 pt-3">
                 <button
-                  className="flex w-full items-center justify-between bg-[#FF3D00] px-8 py-5 font-['Inter_Tight'] font-bold text-[#0A0A0A] transition-all hover:bg-[#FAFAFA] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-between bg-[var(--ff-accent-primary)] px-8 py-5 font-['Inter_Tight'] font-bold text-[var(--ff-surface-base)] transition-all hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isSubmitting}
                   type="submit"
                 >
@@ -251,14 +258,14 @@ function DarkLoginView({
                   <span className="material-symbols-outlined">arrow_forward_ios</span>
                 </button>
                 <button
-                  className="w-full border border-[#262626] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.24em] text-[#FAFAFA]/70 transition-colors hover:border-[#FF3D00] hover:text-[#FF3D00] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full border border-[var(--ff-border-default)] px-6 py-4 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.24em] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={isSubmitting}
                   onClick={onAnonymousLogin}
                   type="button"
                 >
                   无需登录，直接使用匿名会话
                 </button>
-                <div className="text-center text-[11px] italic leading-relaxed opacity-60">
+                <div className="text-center text-[11px] italic leading-relaxed text-[var(--ff-text-secondary)]">
                   <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
                     查看完整隐私条款
                   </Link>
@@ -267,35 +274,37 @@ function DarkLoginView({
             </form>
 
             <footer className="flex flex-col space-y-6 pt-8">
-              <div className="relative h-16 w-full">
+              <div className="relative h-16 w-full overflow-hidden">
                 <img alt="Clinical report texture" className="h-full w-full object-cover grayscale opacity-30 contrast-150" src={REPORT_PLACEHOLDER} />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--ff-surface-base)] to-transparent" />
               </div>
             </footer>
           </div>
 
           <div className="absolute bottom-10 right-10 flex flex-col items-center gap-4">
             <button
-              className="group flex items-center justify-center border border-[#262626] p-3 text-[#FAFAFA] transition-none hover:bg-[#1A1A1A]"
+              className="group flex items-center justify-center border border-[var(--ff-border-default)] p-3 text-[var(--ff-text-primary)] transition-none hover:bg-[var(--ff-surface-accent)]"
               onClick={onToggleTheme}
               type="button"
             >
-              <span className="material-symbols-outlined group-hover:text-[#FF3D00]">dark_mode</span>
+              <span className="material-symbols-outlined group-hover:text-[var(--ff-accent-primary)]">dark_mode</span>
             </button>
-            <div className="h-12 w-px bg-[#262626]" />
+            <div className="h-12 w-px bg-[var(--ff-border-default)]" />
           </div>
         </section>
       </main>
 
-      <footer className="fixed bottom-0 z-50 flex h-12 w-full items-center justify-between border-t border-[#262626] bg-[#0A0A0A] px-6 md:ml-[15%] md:w-[85%]">
-        <div className="flex items-center gap-8 font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[#FAFAFA] opacity-30">
+      <footer
+        className={`fixed bottom-0 z-50 flex h-12 items-center justify-between border-t border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] px-6 ${sidebarOffsetClass} left-0 right-0`}
+      >
+        <div className="flex items-center gap-8 font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-text-muted)]">
           <span>© 2024 一页萤岛 ARCHIVE</span>
           <span>Clinical_Control_V1.4.2</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 animate-pulse bg-[#FF3D00]" />
-            <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[#FF3D00]">
+            <span className="h-1.5 w-1.5 animate-pulse bg-[var(--ff-accent-primary)]" />
+            <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
               Secure Link Active
             </span>
           </div>
@@ -322,34 +331,34 @@ function LightLoginView({
   const submitLabel = mode === 'login' ? '验证并进入系统' : '注册并发送验证邮件'
 
   return (
-    <div className="ff-light-login-bg min-h-screen font-['Noto_Serif'] text-[#111111]">
+    <div className="ff-light-login-bg min-h-screen font-['Noto_Serif'] text-[var(--ff-text-primary)]">
       <LightMasthead />
 
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-12 px-6 py-12 md:flex-row md:px-12">
         <section className="flex w-full flex-col gap-8 md:w-7/12">
-          <div className="relative overflow-hidden border-2 border-[#111111] bg-[#F9F9F7] p-8">
-            <div className="absolute right-0 top-0 h-16 w-16 border-b-2 border-l-2 border-[#111111]" />
-            <h2 className="mb-8 font-['Playfair_Display'] text-5xl leading-[0.95] tracking-tight text-[#111111] md:text-7xl">
+          <div className="relative overflow-hidden border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8">
+            <div className="absolute right-0 top-0 h-16 w-16 border-b-2 border-l-2 border-[var(--ff-border-default)]" />
+            <h2 className="mb-8 font-['Playfair_Display'] text-5xl leading-[0.95] tracking-tight text-[var(--ff-text-primary)] md:text-7xl">
               把复杂治疗史
               <br />
               整理成一页纸
             </h2>
-            <div className="mb-8 h-2 w-24 bg-[#111111]" />
-            <p className="ff-light-drop-cap mb-8 text-justify text-xl leading-relaxed text-[#111111] md:text-2xl">
+            <div className="mb-8 h-2 w-24 bg-[var(--ff-border-default)]" />
+            <p className="ff-light-drop-cap mb-8 text-justify text-xl leading-relaxed text-[var(--ff-text-primary)] md:text-2xl">
               在数字化医疗的洪流中，信息的碎片化成为了精准诊疗的阻碍。一页萤岛利用先进的语义提取引擎，将跨度数年的电子病历、检验报告及主观叙述，浓缩为具备高度逻辑性的临床全景。我们不只是在整理数据，更是在重构生命叙事。
             </p>
             <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="border border-[#111111] bg-[#f4f4f2] p-4">
+              <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-subtle)] p-4">
                 <span className="mb-2 block font-['JetBrains_Mono'] text-xs">PRECISION // 01</span>
                 <h4 className="font-['Newsreader'] text-lg font-bold">结构化重塑</h4>
-                <p className="mt-1 text-sm opacity-80">
+                <p className="mt-1 text-sm text-[var(--ff-text-subtle)]">
                   自动识别140余种临床实体，将非结构化文本转化为标准医学图谱。
                 </p>
               </div>
-              <div className="border border-[#111111] bg-[#f4f4f2] p-4">
+              <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-subtle)] p-4">
                 <span className="mb-2 block font-['JetBrains_Mono'] text-xs">INTELLIGENCE // 02</span>
                 <h4 className="font-['Newsreader'] text-lg font-bold">时间轴推理</h4>
-                <p className="mt-1 text-sm opacity-80">
+                <p className="mt-1 text-sm text-[var(--ff-text-subtle)]">
                   跨时空对比关键指标变化，自动勾勒病情进展与治疗反应曲线。
                 </p>
               </div>
@@ -363,7 +372,7 @@ function LightLoginView({
         </section>
 
         <section className="w-full md:w-5/12">
-          <div className="ff-light-ink-shadow border-2 border-[#111111] bg-[#F9F9F7] p-8">
+          <div className="ff-light-ink-shadow border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8">
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-['Playfair_Display'] text-3xl font-bold leading-tight">身份访问控制台</h3>
@@ -372,7 +381,7 @@ function LightLoginView({
                 </p>
               </div>
               <button
-                className="border border-[#111111] p-2 transition-colors hover:bg-[#111111] hover:text-[#F9F9F7]"
+                className="border border-[var(--ff-border-default)] p-2 transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"
                 onClick={onToggleTheme}
                 type="button"
               >
@@ -380,10 +389,12 @@ function LightLoginView({
               </button>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 gap-2 border border-[#111111] p-1">
+            <div className="mb-6 grid grid-cols-2 gap-2 border border-[var(--ff-border-default)] p-1">
               <button
                 className={`px-3 py-2 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
-                  mode === 'login' ? 'bg-[#111111] text-[#F9F9F7]' : 'text-[#111111]/60 hover:text-[#111111]'
+                  mode === 'login'
+                    ? 'bg-[var(--ff-text-primary)] text-[var(--ff-surface-base)]'
+                    : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]'
                 }`}
                 onClick={() => onModeChange('login')}
                 type="button"
@@ -392,7 +403,9 @@ function LightLoginView({
               </button>
               <button
                 className={`px-3 py-2 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
-                  mode === 'sign-up' ? 'bg-[#111111] text-[#F9F9F7]' : 'text-[#111111]/60 hover:text-[#111111]'
+                  mode === 'sign-up'
+                    ? 'bg-[var(--ff-text-primary)] text-[var(--ff-surface-base)]'
+                    : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]'
                 }`}
                 onClick={() => onModeChange('sign-up')}
                 type="button"
@@ -405,12 +418,10 @@ function LightLoginView({
               <LightAuthFeedback feedback={feedback ?? (authError ? { tone: 'error', message: authError } : null)} />
 
               <div className="group">
-                <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
-                  Electronic Mail
-                </label>
+                <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Electronic Mail</label>
                 <input
                   autoComplete="email"
-                  className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[#111111] bg-transparent px-0 py-3 text-[#111111] outline-none placeholder:text-[#111111]/30"
+                  className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[var(--ff-border-default)] bg-transparent px-0 py-3 text-[var(--ff-text-primary)] outline-none placeholder:text-[color:color-mix(in_srgb,var(--ff-text-primary)_30%,transparent)]"
                   onChange={(event) => onEmailChange(event.target.value)}
                   placeholder="输入邮箱地址"
                   required
@@ -424,7 +435,7 @@ function LightLoginView({
                 </label>
                 <input
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[#111111] bg-transparent px-0 py-3 font-['JetBrains_Mono'] text-[#111111] outline-none placeholder:text-[#111111]/30"
+                  className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[var(--ff-border-default)] bg-transparent px-0 py-3 font-['JetBrains_Mono'] text-[var(--ff-text-primary)] outline-none placeholder:text-[color:color-mix(in_srgb,var(--ff-text-primary)_30%,transparent)]"
                   onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="••••••••"
                   required
@@ -434,7 +445,7 @@ function LightLoginView({
               </div>
 
               <button
-                className="mt-6 w-full border-2 border-[#111111] bg-[#111111] py-4 font-['Inter'] text-sm font-bold uppercase tracking-widest text-[#F9F9F7] transition-all hover:bg-[#F9F9F7] hover:text-[#111111] active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 w-full border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] py-4 font-['Inter'] text-sm font-bold uppercase tracking-widest text-[var(--ff-surface-base)] transition-all hover:bg-[var(--ff-surface-base)] hover:text-[var(--ff-text-primary)] active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isSubmitting}
                 type="submit"
               >
@@ -443,16 +454,14 @@ function LightLoginView({
             </form>
 
             <div className="relative my-10 flex items-center">
-              <div className="flex-grow border-t border-[#111111]/20" />
-              <span className="mx-4 flex-shrink font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest">
-                第三方鉴权
-              </span>
-              <div className="flex-grow border-t border-[#111111]/20" />
+              <div className="flex-grow border-t border-[var(--ff-border-muted)]" />
+              <span className="mx-4 flex-shrink font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest">第三方鉴权</span>
+              <div className="flex-grow border-t border-[var(--ff-border-muted)]" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <button
-                className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium text-[#111111]/45"
+                className="group flex items-center justify-center gap-2 border border-[var(--ff-border-default)] py-3 font-['Inter'] font-medium text-[var(--ff-text-secondary)]"
                 disabled
                 type="button"
               >
@@ -460,7 +469,7 @@ function LightLoginView({
                 <span className="text-xs uppercase tracking-tight">WeChat</span>
               </button>
               <button
-                className="group flex items-center justify-center gap-2 border border-[#111111] py-3 font-['Inter'] font-medium text-[#111111]/45"
+                className="group flex items-center justify-center gap-2 border border-[var(--ff-border-default)] py-3 font-['Inter'] font-medium text-[var(--ff-text-secondary)]"
                 disabled
                 type="button"
               >
@@ -470,7 +479,7 @@ function LightLoginView({
             </div>
 
             <button
-              className="mt-4 w-full border-2 border-[#111111] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.18em] text-[#111111] transition-colors hover:bg-[#111111] hover:text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-4 w-full border-2 border-[var(--ff-border-default)] px-6 py-4 font-['Inter'] text-sm font-bold uppercase tracking-[0.18em] text-[var(--ff-text-primary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSubmitting}
               onClick={onAnonymousLogin}
               type="button"
@@ -478,8 +487,10 @@ function LightLoginView({
               无需登录，直接使用匿名会话
             </button>
 
-            <div className="mt-12 border-t border-[#111111]/10 pt-8">
-              <p className="text-center text-[11px] italic leading-relaxed opacity-60">{PRIVACY_POLICY_SUMMARY}</p>
+            <div className="mt-12 border-t border-[var(--ff-border-muted)] pt-8">
+              <p className="text-center text-[11px] italic leading-relaxed text-[var(--ff-text-secondary)]">
+                {PRIVACY_POLICY_SUMMARY}
+              </p>
               <div className="mt-4 text-center text-[11px] uppercase tracking-[0.2em]">
                 <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
                   查看完整隐私条款
@@ -489,11 +500,11 @@ function LightLoginView({
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-4">
-            <div className="flex flex-col justify-between bg-[#111111] p-4 text-[#F9F9F7]">
+            <div className="flex flex-col justify-between bg-[var(--ff-text-primary)] p-4 text-[var(--ff-surface-base)]">
               <span className="font-['JetBrains_Mono'] text-[10px]">UPTIME</span>
               <span className="font-['Playfair_Display'] text-2xl font-bold">99.9%</span>
             </div>
-            <div className="flex flex-col justify-between border border-[#111111] bg-[#eeeeec] p-4">
+            <div className="flex flex-col justify-between border border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)] p-4">
               <span className="font-['JetBrains_Mono'] text-[10px]">USERS ONLINE</span>
               <span className="font-['Playfair_Display'] text-2xl font-bold">1.2K+</span>
             </div>
@@ -502,9 +513,9 @@ function LightLoginView({
       </main>
 
       <footer className="mt-auto w-full px-6 py-8 md:px-12">
-        <div className="mb-1 h-1 w-full bg-[#111111]" />
-        <div className="mb-4 h-px w-full bg-[#111111]" />
-        <div className="flex flex-col items-center justify-between font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest opacity-60 md:flex-row">
+        <div className="mb-1 h-1 w-full bg-[var(--ff-border-default)]" />
+        <div className="mb-4 h-px w-full bg-[var(--ff-border-default)]" />
+        <div className="flex flex-col items-center justify-between font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-secondary)] md:flex-row">
           <span>© 2024 一页萤岛 ARCHIVE SYSTEM</span>
           <div className="mt-4 flex gap-8 md:mt-0">
             <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
@@ -521,7 +532,7 @@ function LightLoginView({
       </footer>
 
       <div className="pointer-events-none fixed right-4 top-1/2 hidden -translate-y-1/2 xl:block">
-        <span className="inline-block origin-center rotate-90 whitespace-nowrap font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.5em] opacity-20">
+        <span className="inline-block origin-center rotate-90 whitespace-nowrap font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.5em] text-[var(--ff-text-muted)] opacity-40">
           CONFIDENTIAL CLINICAL WORKFLOW ENVIRONMENT — AUTHENTICATION REQUIRED
         </span>
       </div>

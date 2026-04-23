@@ -1,11 +1,12 @@
 /**
- * [INPUT]: 依赖 react 的 useState，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
+ * [INPUT]: 依赖 react 的 useState，依赖 @/lib/theme 的 Theme，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
  * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock 与 TreatmentLineBlock。
  * [POS]: components/timeline 的正式时间线表格渲染器，负责三种 archetype 的区块布局、关键缺失字段高亮与行内编辑入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react'
 
+import type { Theme } from '@/lib/theme'
 import {
   getPatientArchetype,
   type BasicInfo,
@@ -15,8 +16,6 @@ import {
   type PatientRecord,
   type TreatmentLine,
 } from '@/types/patient'
-
-type Theme = 'dark' | 'light'
 
 type EditorState = {
   id: string
@@ -122,48 +121,42 @@ function formatPeriod(startDate?: string, endDate?: string) {
 
 function getShellClass(theme: Theme) {
   return theme === 'dark'
-    ? 'border border-[#262626] bg-[#0A0A0A] text-[#FAFAFA]'
-    : 'ff-light-ink-shadow border-2 border-[#111111] bg-white text-[#111111]'
+    ? 'border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
+    : 'ff-light-ink-shadow border-2 border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
 }
 
 function getSectionClass(theme: Theme) {
   return theme === 'dark'
-    ? 'border border-[#262626] bg-[#131313] p-6 sm:p-8'
-    : 'border-2 border-[#111111] bg-white p-6 sm:p-8'
+    ? 'border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
+    : 'border-2 border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
 }
 
-function getLabelClass(theme: Theme) {
-  return theme === 'dark'
-    ? "font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.24em] text-[#666666]"
-    : "font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.24em] text-[#5d5f5b]"
+function getLabelClass() {
+  return "font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.24em] text-[var(--ff-timeline-label)]"
 }
 
 function getValueClass(theme: Theme, filled: boolean, prominent: boolean) {
   if (theme === 'dark') {
     return prominent
-      ? `font-['Inter_Tight'] text-2xl font-black tracking-tight ${filled ? 'text-[#FAFAFA]' : 'text-[rgba(250,250,250,0.7)]'}`
-      : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[rgba(250,250,250,0.88)]' : 'text-[rgba(250,250,250,0.7)]'}`
+      ? `font-['Inter_Tight'] text-2xl font-black tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
+      : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[var(--ff-timeline-text-body)]' : 'text-[var(--ff-timeline-text-muted)]'}`
   }
 
   return prominent
-    ? `font-['Newsreader'] text-[28px] font-bold tracking-tight ${filled ? 'text-[#111111]' : 'text-[rgba(17,17,17,0.7)]'}`
-    : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[rgba(17,17,17,0.82)]' : 'text-[rgba(17,17,17,0.7)]'}`
+    ? `font-['Newsreader'] text-[28px] font-bold tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
+    : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[var(--ff-timeline-text-body)]' : 'text-[var(--ff-timeline-text-muted)]'}`
 }
 
 function getCellClass(theme: Theme, critical: boolean, filled: boolean) {
-  if (theme === 'dark') {
-    if (critical && !filled) {
-      return 'border border-dashed border-[#FF3D00] bg-[#1A1A1A]'
-    }
-
-    return 'border border-[#262626] bg-[#0F0F0F]'
-  }
-
   if (critical && !filled) {
-    return 'border-2 border-dashed border-[#ba1a1a] bg-[#fff1ec]'
+    return theme === 'dark'
+      ? 'border border-dashed border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
+      : 'border-2 border-dashed border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
   }
 
-  return 'border-2 border-[#111111] bg-[#F9F9F7]'
+  return theme === 'dark'
+    ? 'border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
+    : 'border-2 border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
 }
 
 function padOrder(order: number) {
@@ -179,17 +172,17 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
     return (
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-baseline gap-4">
-          <span className="font-['JetBrains_Mono'] text-4xl font-black text-[#FF3D00]">{padOrder(order)}</span>
+          <span className="font-['JetBrains_Mono'] text-4xl font-black text-[var(--ff-timeline-order)]">{padOrder(order)}</span>
           <div>
-            <h3 className="font-['Inter_Tight'] text-3xl font-black tracking-tight text-[#FAFAFA] sm:text-4xl">
+            <h3 className="font-['Inter_Tight'] text-3xl font-black tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
               {title}
             </h3>
-            <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[#666666]">
+            <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
               {subtitle}
             </p>
           </div>
         </div>
-        <span className="min-w-[160px] self-start border border-[#262626] bg-[#0A0A0A] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[rgba(250,250,250,0.7)] sm:self-auto">
+        <span className="min-w-[160px] self-start border border-[var(--ff-timeline-badge-border)] bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
           {badge ?? '\u00A0'}
         </span>
       </div>
@@ -199,19 +192,19 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-baseline gap-4">
-        <span className="font-['Playfair_Display'] text-5xl font-black text-[rgba(17,17,17,0.12)] sm:text-6xl">
+        <span className="font-['Playfair_Display'] text-5xl font-black text-[var(--ff-timeline-order)] sm:text-6xl">
           {padOrder(order)}
         </span>
         <div>
-          <h3 className="border-b-2 border-[#111111] pb-2 font-['Newsreader'] text-3xl font-bold tracking-tight sm:text-4xl">
+          <h3 className="border-b-2 border-[var(--ff-timeline-section-border)] pb-2 font-['Newsreader'] text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
           </h3>
-          <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[#5d5f5b]">
+          <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
             {subtitle}
           </p>
         </div>
       </div>
-      <span className="min-w-[160px] self-start bg-[#111111] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-white sm:self-auto">
+      <span className="min-w-[160px] self-start bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
         {badge ?? '\u00A0'}
       </span>
     </div>
@@ -242,7 +235,7 @@ function DataCell({
   return (
     <div
       className={`${getCellClass(theme, critical, filled)} flex min-h-[108px] flex-col justify-between gap-4 p-4 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[rgba(255,61,0,0.6)] hover:bg-inherit' : ''
+        isInteractive ? 'cursor-text transition-colors hover:border-[var(--ff-timeline-hover-border)] hover:bg-inherit' : ''
       }`}
       onClick={() => {
         if (!isInteractive || isEditing) {
@@ -264,7 +257,7 @@ function DataCell({
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
     >
-      <span className={getLabelClass(theme)}>{label}</span>
+      <span className={getLabelClass()}>{label}</span>
       {isEditing ? (
         <input
           autoFocus
@@ -317,7 +310,7 @@ function NarrativeCell({
   return (
     <div
       className={`${getCellClass(theme, critical, filled)} flex min-h-[176px] flex-col gap-4 p-5 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[rgba(255,61,0,0.6)] hover:bg-inherit' : ''
+        isInteractive ? 'cursor-text transition-colors hover:border-[var(--ff-timeline-hover-border)] hover:bg-inherit' : ''
       }`}
       onClick={() => {
         if (!isInteractive || isEditing) {
@@ -339,7 +332,7 @@ function NarrativeCell({
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
     >
-      <span className={getLabelClass(theme)}>{label}</span>
+      <span className={getLabelClass()}>{label}</span>
       {isEditing ? (
         <textarea
           autoFocus
@@ -434,19 +427,17 @@ export function BasicInfoBlock({
           <h2
             className={
               theme === 'dark'
-                ? "font-['Inter_Tight'] text-3xl font-black tracking-tight text-[#FAFAFA]"
-                : "font-['Newsreader'] text-4xl font-bold tracking-tight text-[#111111]"
+                ? "font-['Inter_Tight'] text-3xl font-black tracking-tight text-[var(--ff-timeline-text-strong)]"
+                : "font-['Newsreader'] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)]"
             }
           >
             基本信息
           </h2>
-          <p className={`mt-2 ${getLabelClass(theme)}`}>BASIC_INFO / TOP_BLOCK</p>
+          <p className={`mt-2 ${getLabelClass()}`}>BASIC_INFO / TOP_BLOCK</p>
         </div>
         <span
           className={
-            theme === 'dark'
-              ? "font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FF3D00]"
-              : "font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#ba1a1a]"
+            "font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-accent)]"
           }
         >
           CRITICAL_FIELDS: TUMOR_TYPE / STAGE / REGIMEN
@@ -680,8 +671,8 @@ export function TreatmentLineBlock({
 
 function EmptyState({ theme }: { theme: Theme }) {
   return (
-    <div className={`${getSectionClass(theme)} ${theme === 'dark' ? 'text-[rgba(250,250,250,0.7)]' : 'text-[rgba(17,17,17,0.7)]'}`}>
-      <div className={getLabelClass(theme)}>TIMELINE_STATE</div>
+    <div className={`${getSectionClass(theme)} text-[var(--ff-timeline-text-muted)]`}>
+      <div className={getLabelClass()}>TIMELINE_STATE</div>
       <p
         className={
           theme === 'dark'
@@ -742,18 +733,18 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
       <header
         className={
           theme === 'dark'
-            ? 'border-b border-[#262626] px-6 py-6 sm:px-8'
-            : 'border-b-2 border-[#111111] px-6 py-6 sm:px-8'
+            ? 'border-b border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8'
+            : 'border-b-2 border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8'
         }
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className={getLabelClass(theme)}>TIMELINE_TABLE</div>
+            <div className={getLabelClass()}>TIMELINE_TABLE</div>
             <h1
               className={
                 theme === 'dark'
-                  ? "mt-3 font-['Inter_Tight'] text-4xl font-black tracking-tight text-[#FAFAFA] sm:text-5xl"
-                  : "mt-3 font-['Playfair_Display'] text-5xl font-black tracking-tighter text-[#111111] sm:text-6xl"
+                  ? "mt-3 font-['Inter_Tight'] text-4xl font-black tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
+                  : "mt-3 font-['Playfair_Display'] text-5xl font-black tracking-tighter text-[var(--ff-timeline-text-strong)] sm:text-6xl"
               }
             >
               治疗时间线表格
@@ -762,16 +753,14 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
           <div
             className={
               theme === 'dark'
-                ? 'border border-[#262626] bg-[#131313] px-4 py-3 text-right'
-                : 'border-2 border-[#111111] bg-[#F9F9F7] px-4 py-3 text-right'
+                ? 'border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right'
+                : 'border-2 border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right'
             }
           >
-            <div className={getLabelClass(theme)}>ARCHETYPE</div>
+            <div className={getLabelClass()}>ARCHETYPE</div>
             <div
               className={
-                theme === 'dark'
-                  ? "mt-2 font-['JetBrains_Mono'] text-[12px] font-bold tracking-[0.18em] text-[#FF3D00]"
-                  : "mt-2 font-['JetBrains_Mono'] text-[12px] font-bold tracking-[0.18em] text-[#ba1a1a]"
+                "mt-2 font-['JetBrains_Mono'] text-[12px] font-bold tracking-[0.18em] text-[var(--ff-timeline-accent)]"
               }
             >
               {ARCHETYPE_LABELS[archetype]}

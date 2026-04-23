@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/system/surfaces 的壳层 surface 基元，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览、inline edit 持久化与 PDF/PNG 导出，并保留 Dark/Light 复刻骨架。
+ * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览、inline edit 持久化与 PDF/PNG 导出，并消费统一 system shell contract。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState } from 'react'
@@ -14,6 +14,7 @@ import {
   DarkTopBar,
   QR_PLACEHOLDER,
 } from '@/components/app-shell'
+import { ActionSurface, MainShell, PanelSurface, SectionSurface } from '@/components/system/surfaces'
 import { TimelineTable } from '@/components/timeline/TimelineTable'
 import { useAuth } from '@/lib/auth'
 import {
@@ -26,6 +27,7 @@ import {
 import { ChatError } from '@/lib/llm'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
+import { shellContentWidthClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 import type { PatientFieldTarget, PatientRecord, TreatmentLine } from '@/types/patient'
 
 type WorkspacePageProps = {
@@ -88,7 +90,7 @@ function downloadBlob(blob: Blob, fileName: string) {
 
 async function renderReportCanvas(element: HTMLElement) {
   return html2canvas(element, {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--ff-surface-paper)',
     scale: 2,
     useCORS: true,
   })
@@ -671,32 +673,42 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
   const displayRecord = record ?? EMPTY_RECORD
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] font-['Inter'] text-[#FAFAFA]">
+    <div className="min-h-screen bg-[var(--ff-surface-base)] font-['Inter'] text-[var(--ff-text-primary)]">
       <DarkTopBar />
       <ArchiveSideNav dark isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
-      <main className="ml-0 min-h-screen bg-[#131313] pt-16 md:ml-[15%]">
-        <section className="border-b border-[#262626] bg-[#0A0A0A] p-8">
-          <div className="mx-auto max-w-6xl space-y-6">
+      <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="dark">
+        <SectionSurface className="border-b border-[var(--ff-border-default)] p-8" theme="dark" tone="base">
+          <div className={`${shellContentWidthClass} space-y-6`}>
             <div className="flex flex-col gap-2">
-              <label className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[#FF3D00]">
+              <label className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
                 PATIENT_HISTORY_INPUT
               </label>
               <textarea
-                className="h-48 w-full resize-none border-0 border-b border-[#262626] bg-[#1A1A1A] p-4 text-[#FAFAFA] outline-none placeholder:text-[#353534] focus:border-[#FF3D00] focus:border-b-2"
+                className="h-48 w-full resize-none border-0 border-b border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] p-4 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
                 onChange={(event) => setExtractionInput(event.target.value)}
                 placeholder="请描述患者的病情及治疗历程..."
                 value={extractionInput}
               />
             </div>
 
-            {error ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{error}</div> : null}
-            {exportError ? <div className="border border-[#7A1F00] px-4 py-3 text-sm text-[#FF8A65]">{exportError}</div> : null}
-            {isSaving ? <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[#FF3D00]">保存中…</div> : null}
+            {error ? (
+              <ActionSurface className="px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme="dark" tone="warning">
+                {error}
+              </ActionSurface>
+            ) : null}
+            {exportError ? (
+              <ActionSurface className="px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme="dark" tone="warning">
+                {exportError}
+              </ActionSurface>
+            ) : null}
+            {isSaving ? (
+              <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">保存中…</div>
+            ) : null}
 
             {retryMode ? (
               <button
-                className="border border-[#262626] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA]/70"
+                className="border border-[var(--ff-border-default)] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-secondary)] hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
                 onClick={() => void retryLastAction()}
                 type="button"
               >
@@ -706,19 +718,19 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
               <button
-                className="group flex flex-col items-center justify-center border-2 border-dashed border-[#262626] bg-[#131313] py-10 transition-colors hover:border-[#FF3D00] md:col-span-2"
+                className="group flex flex-col items-center justify-center border-2 border-dashed border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] py-10 transition-colors hover:border-[var(--ff-accent-primary)] md:col-span-2"
                 onClick={() => void runInitialExtraction()}
                 type="button"
               >
-                <span className="material-symbols-outlined mb-2 text-4xl text-[#353534] group-hover:text-[#FF3D00]">
+                <span className="material-symbols-outlined mb-2 text-4xl text-[var(--ff-text-muted)] group-hover:text-[var(--ff-accent-primary)]">
                   auto_awesome
                 </span>
-                <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[#353534] group-hover:text-[#FAFAFA]">
+                <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-muted)] group-hover:text-[var(--ff-text-primary)]">
                   {isExtracting ? '提取中…' : '开始结构化提取'}
                 </span>
               </button>
               <button
-                className="border border-[#262626] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA] disabled:cursor-not-allowed disabled:text-[#FAFAFA]/40"
+                className="border border-[var(--ff-border-default)] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-primary)] disabled:cursor-not-allowed disabled:text-[var(--ff-text-muted)]"
                 disabled={isExtracting || isSaving || isExporting}
                 onClick={() => void handleExport('pdf')}
                 type="button"
@@ -726,7 +738,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
                 {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
               </button>
               <button
-                className="border border-[#262626] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FAFAFA] disabled:cursor-not-allowed disabled:text-[#FAFAFA]/40"
+                className="border border-[var(--ff-border-default)] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-primary)] disabled:cursor-not-allowed disabled:text-[var(--ff-text-muted)]"
                 disabled={isExtracting || isSaving || isExporting}
                 onClick={() => void handleExport('png')}
                 type="button"
@@ -736,17 +748,17 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
             </div>
 
             {currentQuestion ? (
-              <div className="border border-[#262626] bg-[#131313] p-6">
-                <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[#FF3D00]">FOLLOW UP</div>
-                <p className="mt-3 text-sm leading-7 text-[#FAFAFA]/80">{currentQuestion}</p>
+              <PanelSurface className="p-6" theme="dark" tone="panel">
+                <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">FOLLOW UP</div>
+                <p className="mt-3 text-sm leading-7 text-[var(--ff-text-subtle)]">{currentQuestion}</p>
                 <textarea
-                  className="mt-4 h-28 w-full resize-none border border-[#262626] bg-[#0A0A0A] p-4 outline-none focus:border-[#FF3D00]"
+                  className="mt-4 h-28 w-full resize-none border border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-4 outline-none focus:border-[var(--ff-accent-primary)]"
                   onChange={(event) => setFollowUpInput(event.target.value)}
                   placeholder="一次性补充缺失信息..."
                   value={followUpInput}
                 />
                 <button
-                  className="mt-4 border border-[#FF3D00] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[#FF3D00]"
+                  className="mt-4 border border-[var(--ff-accent-primary)] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]"
                   onClick={() => {
                     void runFollowUpExtraction(followUpInput)
                     setFollowUpInput('')
@@ -755,47 +767,43 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
                 >
                   提交补充
                 </button>
-              </div>
+              </PanelSurface>
             ) : null}
           </div>
-        </section>
+        </SectionSurface>
 
-        <section className="flex-1 bg-[#131313] p-8">
-          <div ref={setReportRef} className="relative mx-auto max-w-6xl overflow-hidden bg-white p-10 text-[#0A0A0A] shadow-2xl">
-            <div className="pointer-events-none absolute right-0 top-0 select-none text-8xl font-black opacity-5 -rotate-12">
-              FORENSIC
-            </div>
-            <div className="mb-8 flex items-end justify-between border-b-4 border-[#0A0A0A] pb-4">
+        <SectionSurface className="p-8" theme="dark" tone="panel">
+          <div
+            ref={setReportRef}
+            className={`${shellContentWidthClass} relative overflow-hidden border border-[var(--ff-border-muted)] bg-[var(--ff-surface-panel)] p-10 text-[var(--ff-text-primary)] shadow-lg`}
+          >
+            <div className="mb-8 flex items-end justify-between border-b-4 border-[var(--ff-border-default)] pb-4">
               <div>
-                <h1 className="font-['Inter_Tight'] text-5xl font-black leading-none tracking-tighter">
-                  临床结构化报告
-                </h1>
-                <p className="mt-2 font-['JetBrains_Mono'] text-[10px] tracking-widest">
-                  GENERATED BY ONE-PAGE FIREFLY AI ARCHIVE
-                </p>
+                <h1 className="font-['Inter_Tight'] text-5xl font-black leading-none tracking-tighter">临床结构化报告</h1>
+                <p className="mt-2 font-['JetBrains_Mono'] text-[10px] tracking-widest text-[var(--ff-text-secondary)]">GENERATED BY ONE-PAGE FIREFLY AI ARCHIVE</p>
               </div>
-              <div className="text-right">
-                <p className="font-['JetBrains_Mono'] text-xs font-bold">REPORT_ID: LIVE-DRAFT</p>
+              <div className="text-right text-[var(--ff-text-secondary)]">
+                <p className="font-['JetBrains_Mono'] text-xs font-bold text-[var(--ff-text-primary)]">REPORT_ID: LIVE-DRAFT</p>
                 <p className="font-['JetBrains_Mono'] text-xs">MISSING: {remainingMissing.length}</p>
               </div>
             </div>
 
             <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="dark" />
 
-            <div className="mt-12 flex items-center justify-between border-t-2 border-[#0A0A0A] pt-4">
-              <div className="max-w-[400px] font-['JetBrains_Mono'] text-[9px]">
+            <div className="mt-12 flex items-center justify-between border-t-2 border-[var(--ff-border-default)] pt-4">
+              <div className="max-w-[400px] font-['JetBrains_Mono'] text-[9px] text-[var(--ff-text-secondary)]">
                 声明：本报告由人工智能辅助系统自动提取，仅供医疗专业人士参考。最终诊断需结合原始影像及病理报告。
               </div>
-              <div className="flex flex-col items-center border border-[#0A0A0A] p-2">
-                <div className="flex h-16 w-16 items-center justify-center bg-[#F0F0F0]">
+              <div className="flex flex-col items-center border border-[var(--ff-border-default)] p-2">
+                <div className="flex h-16 w-16 items-center justify-center bg-[var(--ff-surface-soft)]">
                   <img alt="验证码" src={QR_PLACEHOLDER} />
                 </div>
-                <span className="mt-1 text-[8px]">扫码验证报告</span>
+                <span className="mt-1 text-[8px] text-[var(--ff-text-secondary)]">扫码验证报告</span>
               </div>
             </div>
           </div>
-        </section>
-      </main>
+        </SectionSurface>
+      </MainShell>
     </div>
   )
 }
@@ -826,22 +834,22 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
   const displayRecord = record ?? EMPTY_RECORD
 
   return (
-    <div className="ff-light-workspace-bg min-h-screen text-[#111111]">
+    <div className="ff-light-workspace-bg min-h-screen text-[var(--ff-text-primary)]">
       <div className="flex min-h-screen">
         <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
-        <main className="flex-1 overflow-y-auto bg-[#F9F9F7] p-12">
-          <header className="mx-auto mb-12 w-full max-w-6xl">
+        <MainShell className="flex-1 overflow-y-auto p-12" theme="light">
+          <header className={`${shellContentWidthClass} mb-12`}>
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <h1 className="font-['Playfair_Display'] text-7xl font-black uppercase -tracking-widest text-[#111111]">
+                <h1 className="font-['Playfair_Display'] text-7xl font-black uppercase -tracking-widest text-[var(--ff-text-primary)]">
                   EXTRACTOR
                 </h1>
-                <p className="mt-2 font-['JetBrains_Mono'] text-xs uppercase tracking-widest opacity-60">
+                <p className="mt-2 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[var(--ff-text-secondary)]">
                   Session ID: AI-2949-01 // Clinical Intelligence Engine
                 </p>
               </div>
-              <div className="text-right font-['JetBrains_Mono'] text-xs opacity-40">
+              <div className="text-right font-['JetBrains_Mono'] text-xs text-[var(--ff-text-muted)]">
                 <span className="block">DATE: 2024.05.20</span>
                 <span className="block">LOCATION: SHANGHAI CLINIC</span>
               </div>
@@ -849,37 +857,39 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
             <div className="ff-light-double-rule" />
           </header>
 
-          <section className="mx-auto grid w-full max-w-6xl grid-cols-12 gap-8">
+          <section className={`${shellContentWidthClass} grid grid-cols-12 gap-8`}>
             <div className="col-span-8 flex flex-col gap-6">
-              <div className="border-2 border-[#111111] bg-white p-6">
+              <PanelSurface className="p-6" theme="light" tone="panel">
                 <div className="mb-4 flex items-center justify-between">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#111111]">
+                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-text-primary)]">
                     文字输入 / TEXT INPUT
                   </label>
-                  <span className="font-['JetBrains_Mono'] text-[10px] font-bold text-[#CC0000]">
+                  <span className="font-['JetBrains_Mono'] text-[10px] font-bold text-[var(--ff-accent-warning)]">
                     {isExtracting ? 'ANALYZING' : 'READY TO ANALYZE'}
                   </span>
                 </div>
                 <textarea
-                  className="h-48 w-full resize-none border-0 bg-transparent text-xl leading-relaxed outline-none placeholder:opacity-20"
+                  className="h-48 w-full resize-none border-0 bg-transparent text-xl leading-relaxed outline-none placeholder:text-[var(--ff-text-muted)]"
                   onChange={(event) => setExtractionInput(event.target.value)}
                   placeholder="在此输入患者病史或临床表现描述..."
                   value={extractionInput}
                 />
-                <div className="mt-6 flex items-center gap-4">
+                <div className="mt-6 flex flex-wrap items-center gap-4">
                   <button
-                    className="border-2 border-[#111111] bg-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#F9F9F7]"
+                    className="border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-surface-base)]"
                     onClick={() => void runInitialExtraction()}
                     type="button"
                   >
                     {isExtracting ? '提取中…' : '开始提取'}
                   </button>
-                  {error ? <span className="text-sm text-[#ba1a1a]">{error}</span> : null}
-                  {exportError ? <span className="text-sm text-[#ba1a1a]">{exportError}</span> : null}
-                  {isSaving ? <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[#CC0000]">保存中…</span> : null}
+                  {error ? <span className="text-sm text-[var(--ff-accent-warning)]">{error}</span> : null}
+                  {exportError ? <span className="text-sm text-[var(--ff-accent-warning)]">{exportError}</span> : null}
+                  {isSaving ? (
+                    <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-warning)]">保存中…</span>
+                  ) : null}
                   {retryMode ? (
                     <button
-                      className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
+                      className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
                       onClick={() => void retryLastAction()}
                       type="button"
                     >
@@ -887,20 +897,20 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                     </button>
                   ) : null}
                 </div>
-              </div>
+              </PanelSurface>
 
               {currentQuestion ? (
-                <div className="ff-light-ink-shadow border-2 border-[#111111] bg-white p-6">
+                <PanelSurface className="ff-light-ink-shadow p-6" theme="light" tone="panel">
                   <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">FOLLOW UP</h3>
                   <p className="mt-3 text-sm leading-7">{currentQuestion}</p>
                   <textarea
-                    className="mt-4 h-32 w-full resize-none border-2 border-[#111111] bg-transparent p-4 outline-none"
+                    className="mt-4 h-32 w-full resize-none border-2 border-[var(--ff-border-default)] bg-transparent p-4 outline-none"
                     onChange={(event) => setFollowUpInput(event.target.value)}
                     placeholder="一次性补充缺失信息..."
                     value={followUpInput}
                   />
                   <button
-                    className="mt-4 border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
+                    className="mt-4 border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
                     onClick={() => {
                       void runFollowUpExtraction(followUpInput)
                       setFollowUpInput('')
@@ -909,12 +919,12 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   >
                     提交补充
                   </button>
-                </div>
+                </PanelSurface>
               ) : null}
 
               <div className="grid grid-cols-4 gap-6">
                 <button
-                  className="border-2 border-[#111111] bg-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[#F9F9F7] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-surface-base)] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={isExtracting || isSaving || isExporting}
                   onClick={() => void runInitialExtraction()}
                   type="button"
@@ -922,7 +932,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   {isExtracting ? '提取中…' : '开始提取'}
                 </button>
                 <button
-                  className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={isExtracting || isSaving || isExporting}
                   onClick={() => void handleExport('pdf')}
                   type="button"
@@ -930,91 +940,89 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
                   {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
                 </button>
                 <button
-                  className="border-2 border-[#111111] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={isExtracting || isSaving || isExporting}
                   onClick={() => void handleExport('png')}
                   type="button"
                 >
                   {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
                 </button>
-                <div className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center bg-[#CC0000] p-6 text-white transition-all hover:-translate-y-1">
+                <ActionSurface className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center p-6 text-white transition-all hover:-translate-y-1" theme="light" tone="warning">
                   <span className="material-symbols-outlined mb-2 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                     mic
                   </span>
                   <span className="font-['Inter'] text-xs font-bold uppercase tracking-widest">语音录入</span>
                   <span className="mt-1 font-['JetBrains_Mono'] text-[10px] opacity-80">HOLD TO RECORD</span>
-                </div>
+                </ActionSurface>
               </div>
             </div>
 
-            <div className="col-span-4 flex flex-col gap-8 border-l-2 border-[#111111] pl-8">
+            <div className="col-span-4 flex flex-col gap-8 border-l-2 border-[var(--ff-border-default)] pl-8">
               <div>
-                <h3 className="mb-4 border-b border-[#111111] pb-2 font-['Playfair_Display'] text-2xl font-bold">
+                <h3 className="mb-4 border-b border-[var(--ff-border-default)] pb-2 font-['Playfair_Display'] text-2xl font-bold">
                   Instructional
                 </h3>
                 <p className="ff-light-drop-cap text-sm italic leading-relaxed">
                   先输入完整病史，再根据追问一次性补充缺失的临床关键字段。当前仅对肿瘤类型、分期与治疗方案触发追问。
                 </p>
               </div>
-              <div className="bg-[#111111] p-6 text-[#F9F9F7]">
-                <h4 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
-                  Current Parameters
-                </h4>
+              <ActionSurface className="p-6 text-[var(--ff-surface-base)]" theme="light" tone="base">
+                <h4 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Current Parameters</h4>
                 <ul className="space-y-2 font-['JetBrains_Mono'] text-[11px] opacity-80">
                   <li className="flex justify-between"><span>MODEL</span><span>GEMINI</span></li>
                   <li className="flex justify-between"><span>FOLLOW UPS</span><span>MAX 3</span></li>
                   <li className="flex justify-between"><span>MISSING</span><span>{remainingMissing.length}</span></li>
                 </ul>
-              </div>
+              </ActionSurface>
             </div>
           </section>
 
-          <section className="mx-auto mt-8 w-full max-w-6xl">
+          <section className={`${shellContentWidthClass} mt-8`}>
             <div className="mb-6 flex items-baseline gap-4">
               <h2 className="font-['Newsreader'] text-4xl font-bold tracking-tighter">临床结构化报告</h2>
-              <div className="h-[2px] flex-1 bg-[#111111]" />
+              <div className="h-[2px] flex-1 bg-[var(--ff-border-default)]" />
             </div>
-            <div ref={setReportRef} className="border-2 border-[#111111] bg-white p-8">
-              <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="light" />
+            <PanelSurface className="p-8" theme="light" tone="panel">
+              <div ref={setReportRef}>
+                <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="light" />
 
-              <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[#111111]/10 pt-8">
-                <div>
-                  <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
-                  <p className="text-xs italic opacity-60">
-                    {remainingMissing.length > 0
-                      ? `仍待补充：${remainingMissing.join('、')}`
-                      : '关键临床字段已补齐，可进入下一阶段渲染。'}
-                  </p>
-                </div>
-                <div className="flex flex-col justify-end">
-                  <div className="flex items-center justify-between bg-[#eeeeec] p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center bg-[#111111] font-['Playfair_Display'] text-xl font-black text-[#F9F9F7]">
-                        AI
+                <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[var(--ff-border-muted)] pt-8">
+                  <div>
+                    <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
+                    <p className="text-xs italic text-[var(--ff-text-secondary)]">
+                      {remainingMissing.length > 0
+                        ? `仍待补充：${remainingMissing.join('、')}`
+                        : '关键临床字段已补齐，可进入下一阶段渲染。'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <ActionSurface className="flex items-center justify-between p-4" theme="light" tone="soft">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center bg-[var(--ff-text-primary)] font-['Playfair_Display'] text-xl font-black text-[var(--ff-surface-base)]">
+                          AI
+                        </div>
+                        <div>
+                          <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">Verified by AI Agent</p>
+                          <p className="font-['JetBrains_Mono'] text-[9px] text-[var(--ff-text-secondary)]">
+                            FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">
-                          Verified by AI Agent
-                        </p>
-                        <p className="font-['JetBrains_Mono'] text-[9px] opacity-60">FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}</p>
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-[#CC0000]">verified</span>
+                      <span className="material-symbols-outlined text-[var(--ff-accent-warning)]">verified</span>
+                    </ActionSurface>
                   </div>
                 </div>
               </div>
-            </div>
+            </PanelSurface>
           </section>
 
-          <footer className="mx-auto mt-12 w-full max-w-6xl border-t border-[#111111]/10 py-12 text-center opacity-30">
-            <span className="font-['Playfair_Display'] text-4xl font-black uppercase italic tracking-tighter">
-              Ink &amp; Archive
-            </span>
+          <footer className={`${shellContentWidthClass} mt-12 border-t border-[var(--ff-border-muted)] py-12 text-center text-[var(--ff-text-secondary)]`}>
+            <span className="font-['Playfair_Display'] text-4xl font-black uppercase italic tracking-tighter">Ink &amp; Archive</span>
             <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em]">
               Protocol: CLINICAL-ALPHA-01 // NO UNMATCHED DATA
             </p>
           </footer>
-        </main>
+        </MainShell>
       </div>
     </div>
   )

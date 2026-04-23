@@ -20,18 +20,18 @@ function AppBootScreen() {
   const { theme } = useTheme()
 
   return theme === 'dark' ? (
-    <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] px-6 text-[#FAFAFA]">
-      <div className="border border-[#262626] bg-[#131313] px-8 py-6 text-center">
-        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em] text-[#FF3D00]">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--ff-surface-base)] px-6 text-[var(--ff-text-primary)]">
+      <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-8 py-6 text-center">
+        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em] text-[var(--ff-accent-primary)]">
           Session Restore
         </div>
         <div className="mt-3 font-['Inter_Tight'] text-2xl font-black tracking-tight">正在恢复访问状态</div>
       </div>
     </div>
   ) : (
-    <div className="flex min-h-screen items-center justify-center bg-[#F9F9F7] px-6 text-[#111111]">
-      <div className="ff-light-ink-shadow border-2 border-[#111111] bg-white px-8 py-6 text-center">
-        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em] text-[#5d5f5b]">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--ff-surface-base)] px-6 text-[var(--ff-text-primary)]">
+      <div className="ff-light-ink-shadow border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-paper)] px-8 py-6 text-center">
+        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em] text-[var(--ff-text-muted)]">
           Session Restore
         </div>
         <div className="mt-3 font-['Playfair_Display'] text-3xl font-black tracking-tight">正在恢复访问状态</div>
