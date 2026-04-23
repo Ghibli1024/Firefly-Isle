@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firefly-Isle Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background:
+        radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 28%),
+        radial-gradient(circle at 85% 10%, rgba(167, 139, 250, 0.1), transparent 24%),
+        #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+
+    .header {
+      position: relative;
+      margin-bottom: 2rem;
+      padding: 1.4rem 1.5rem 1.15rem;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 1.25rem;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.58));
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(34, 211, 238, 0.08), transparent 38%, rgba(167, 139, 250, 0.06));
+      pointer-events: none;
+    }
+
+    .header-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .title-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.32rem 0.6rem;
+      border: 1px solid rgba(34, 211, 238, 0.22);
+      border-radius: 999px;
+      background: rgba(8, 51, 68, 0.28);
+      color: #67e8f9;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 0.38rem;
+      height: 0.38rem;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
+      flex: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 2vw, 2.1rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      text-shadow: 0 4px 20px rgba(34, 211, 238, 0.08);
+    }
+
+    .subtitle {
+      position: relative;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-left: 1.75rem;
+      line-height: 1.75;
+      max-width: 1000px;
+    }
+
+    .lang-switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.82);
+      padding: 0.25rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 24px rgba(2, 6, 23, 0.28);
+      backdrop-filter: blur(12px);
+      flex: none;
+    }
+
+    .lang-button {
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0.5rem 0.8rem;
+      transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .lang-button:hover {
+      color: #e2e8f0;
+      transform: translateY(-1px);
+    }
+
+    .lang-button.active {
+      background: linear-gradient(135deg, #67e8f9, #22d3ee);
+      color: #020617;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(34, 211, 238, 0.28);
+    }
+
+    .diagram-container {
+      position: relative;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.52));
+      border-radius: 1.25rem;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      padding: 1.5rem;
+      overflow-x: auto;
+      box-shadow: 0 28px 72px rgba(2, 6, 23, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .diagram-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 30%);
+      pointer-events: none;
+    }
+
+    .diagram-container > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .diagram-container::-webkit-scrollbar {
+      height: 10px;
+    }
+
+    .diagram-container::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.65);
+      border-radius: 999px;
+    }
+
+    .diagram-container::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, rgba(34, 211, 238, 0.6), rgba(167, 139, 250, 0.5));
+      border-radius: 999px;
+    }
+
+    .diagram-container::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(90deg, rgba(34, 211, 238, 0.8), rgba(167, 139, 250, 0.7));
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1200px;
+      display: block;
+      filter: drop-shadow(0 24px 30px rgba(2, 6, 23, 0.22));
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.58));
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      padding: 1.25rem;
+      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.3);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 38%);
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(103, 232, 249, 0.22);
+      box-shadow: 0 24px 50px rgba(2, 6, 23, 0.36);
+    }
+
+    .card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .card h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.76rem;
+      line-height: 1.78;
+    }
+
+    .card li {
+      margin-bottom: 0.38rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 1.7rem;
+      color: #64748b;
+      font-size: 0.75rem;
+      line-height: 1.7;
+      letter-spacing: 0.01em;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 1rem;
+      }
+
+      .header {
+        padding: 1rem;
+      }
+
+      .header-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .subtitle {
+        margin-left: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    .diagram-container svg text {
+      paint-order: stroke;
+      stroke: rgba(2, 6, 23, 0.28);
+      stroke-width: 0.9px;
+      stroke-linejoin: round;
+    }
+
+    .diagram-container svg text[fill='white'] {
+      stroke: rgba(2, 6, 23, 0.45);
+      stroke-width: 1.2px;
+    }
+
+    .diagram-container svg rect[stroke='#22d3ee'],
+    .diagram-container svg rect[stroke='#34d399'],
+    .diagram-container svg rect[stroke='#a78bfa'],
+    .diagram-container svg rect[stroke='#fbbf24'],
+    .diagram-container svg rect[stroke='#fb7185'] {
+      filter: drop-shadow(0 8px 18px rgba(2, 6, 23, 0.2));
+    }
+
+    .diagram-container svg line,
+    .diagram-container svg path {
+      opacity: 0.92;
+    }
+
+    .diagram-container svg text[data-i18n^='boundary.'] {
+      letter-spacing: 0.04em;
+    }
+
+    .diagram-container svg text[data-i18n^='legend.'],
+    .diagram-container svg text[data-i18n^='arrow.'] {
+      font-weight: 500;
+    }
+
+    .diagram-container svg text[data-i18n^='box.'][fill='white'] {
+      letter-spacing: -0.01em;
+    }
+
+    .diagram-container svg text[data-i18n^='box.'][fill='#94a3b8'] {
+      opacity: 0.96;
+    }
+
+    .diagram-container svg text[data-i18n='connector.extractPersistRender'] {
+      letter-spacing: 0.02em;
+    }
+
+    .diagram-container svg text[data-i18n='legend.title'] {
+      font-size: 11px;
+    }
+
+    .diagram-container svg rect[fill='transparent'][stroke='#fb7185'] {
+      opacity: 0.95;
+    }
+
+    .diagram-container svg {
+      isolation: isolate;
+    }
+
+    .diagram-container::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.32), transparent);
+      pointer-events: none;
+    }
+
+    .subtitle::before {
+      content: '';
+      position: absolute;
+      left: -1.2rem;
+      top: 0.35rem;
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 999px;
+      background: rgba(103, 232, 249, 0.85);
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.42);
+    }
+
+    @media (max-width: 720px) {
+      .subtitle::before {
+        display: none;
+      }
+    }
+
+    .header-title h1 {
+      background: linear-gradient(90deg, #f8fafc, #cbd5e1 42%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .card:nth-child(1) {
+      border-top: 1px solid rgba(34, 211, 238, 0.22);
+    }
+
+    .card:nth-child(2) {
+      border-top: 1px solid rgba(251, 113, 133, 0.22);
+    }
+
+    .card:nth-child(3) {
+      border-top: 1px solid rgba(251, 191, 36, 0.22);
+    }
+
+    .lang-button:focus-visible {
+      outline: 2px solid rgba(103, 232, 249, 0.8);
+      outline-offset: 2px;
+    }
+
+    .card-dot.cyan { color: #22d3ee; }
+    .card-dot.emerald { color: #34d399; }
+    .card-dot.violet { color: #a78bfa; }
+    .card-dot.amber { color: #fbbf24; }
+    .card-dot.rose { color: #fb7185; }
+    .card-dot.orange { color: #fb923c; }
+
+    .header,
+    .diagram-container,
+    .card {
+      backdrop-filter: blur(14px);
+    }
+
+    .header *,
+    .card *,
+    .diagram-container * {
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+
+    .header-row,
+    .subtitle {
+      z-index: 1;
+    }
+
+    .subtitle,
+    .header-row,
+    .cards,
+    .footer {
+      position: relative;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -5%;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(167, 139, 250, 0.14), transparent 70%);
+      pointer-events: none;
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1200px;
+      display: block;
+      filter: drop-shadow(0 24px 30px rgba(2, 6, 23, 0.22));
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.orange { background: #fb923c; }
+
+    svg {
+      width: 100%;
+      min-width: 1200px;
+      display: block;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.orange { background: #fb923c; }
+
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="header-title">
+          <div class="pulse-dot"></div>
+          <div class="title-stack">
+            <div class="eyebrow">System Map</div>
+            <h1 data-i18n="title">Firefly-Isle Architecture</h1>
+          </div>
+        </div>
+        <div class="lang-switch" role="group" aria-label="Language switcher">
+          <button class="lang-button active" type="button" data-lang="en">EN</button>
+          <button class="lang-button" type="button" data-lang="zh">中文</button>
+        </div>
+      </div>
+      <p class="subtitle" data-i18n="subtitle">One-page oncology treatment timeline builder. React SPA on Cloudflare Pages, Supabase Auth + Postgres + RLS for session-bound records, and a Supabase Edge Function proxy that isolates Gemini access from the browser.</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1240 840" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- arrows behind boxes -->
+        <line x1="120" y1="278" x2="218" y2="278" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="170" y="270" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.https">HTTPS</text>
+
+        <line x1="120" y1="108" x2="218" y2="108" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+        <text x="170" y="100" fill="#fb7185" font-size="8" text-anchor="middle" data-i18n="arrow.authMode">email / anon auth</text>
+
+        <line x1="430" y1="200" x2="508" y2="200" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="469" y="192" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.routeComposition">route composition</text>
+
+        <line x1="430" y1="278" x2="508" y2="278" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="469" y="270" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.extractionInput">extraction input</text>
+
+        <line x1="430" y1="368" x2="508" y2="368" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="469" y="360" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.tableEditState">table / edit state</text>
+
+        <line x1="430" y1="470" x2="508" y2="470" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+        <text x="469" y="462" fill="#fb7185" font-size="8" text-anchor="middle" data-i18n="arrow.sharedPrivacy">shared privacy copy</text>
+
+        <line x1="706" y1="150" x2="822" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="764" y="142" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.sessionJwt">session / JWT</text>
+
+        <line x1="706" y1="275" x2="822" y2="275" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="764" y="267" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.bearerToken">Bearer token</text>
+
+        <line x1="706" y1="395" x2="822" y2="395" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="764" y="387" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.patientTables">patients / treatment_lines</text>
+
+        <path d="M 936 275 L 1000 275 Q 1020 275 1020 245 L 1020 175 Q 1020 150 1040 150 L 1098 150" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+        <text x="1028" y="214" fill="#fb7185" font-size="8" data-i18n="arrow.verifyJwt">verify JWT</text>
+
+        <line x1="936" y1="275" x2="1098" y2="275" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="1018" y="267" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.messagesModel">messages[] / model</text>
+
+        <line x1="936" y1="395" x2="1098" y2="395" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="1018" y="387" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.rlsQueries">RLS-scoped queries</text>
+
+        <path d="M 1186 275 L 1210 275 Q 1224 275 1224 250 L 1224 120 Q 1224 95 1200 95 L 1190 95" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="1210" y="186" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.generateContent">generateContent</text>
+
+        <path d="M 1186 95 L 1212 95 Q 1230 95 1230 125 L 1230 640 Q 1230 675 1200 675 L 500 675 Q 470 675 470 640 L 470 598" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="890" y="666" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="arrow.deployFlow">main push → CI → build dist → Pages deploy</text>
+
+        <!-- left external actors -->
+        <rect x="20" y="82" width="100" height="52" rx="6" fill="#0f172a"/>
+        <rect x="20" y="82" width="100" height="52" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="70" y="103" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.userSession.title">User Session</text>
+        <text x="70" y="119" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.userSession.sub">email / anonymous</text>
+
+        <rect x="20" y="250" width="100" height="56" rx="6" fill="#0f172a"/>
+        <rect x="20" y="250" width="100" height="56" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="70" y="272" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.patientFamily.title">Patient / Family</text>
+        <text x="70" y="288" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.patientFamily.sub">browser SPA</text>
+
+        <!-- frontend boundary -->
+        <rect x="220" y="40" width="232" height="560" rx="12" fill="rgba(34, 211, 238, 0.04)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="234" y="58" fill="#22d3ee" font-size="10" font-weight="600" data-i18n="boundary.frontend">Cloudflare Pages / Vite React SPA</text>
+
+        <rect x="240" y="78" width="190" height="60" rx="6" fill="#0f172a"/>
+        <rect x="240" y="78" width="190" height="60" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="335" y="100" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.appRouter.title">App Router Shell</text>
+        <text x="335" y="116" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.appRouter.sub">/login /privacy /app /record/:id</text>
+
+        <rect x="240" y="170" width="190" height="60" rx="6" fill="#0f172a"/>
+        <rect x="240" y="170" width="190" height="60" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="335" y="192" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.workspace.title">Workspace Orchestrator</text>
+        <text x="335" y="208" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.workspace.sub">input / follow-up / retry / export</text>
+
+        <rect x="240" y="250" width="190" height="56" rx="6" fill="#0f172a"/>
+        <rect x="240" y="250" width="190" height="56" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="335" y="272" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.llmAdapter.title">LLM Adapter</text>
+        <text x="335" y="288" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.llmAdapter.sub">chat(messages, options)</text>
+
+        <rect x="240" y="340" width="190" height="76" rx="6" fill="#0f172a"/>
+        <rect x="240" y="340" width="190" height="76" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="335" y="362" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.timelineEditing.title">Timeline + Editing</text>
+        <text x="335" y="378" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.timelineEditing.sub1">TimelineTable / inline edit</text>
+        <text x="335" y="392" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.timelineEditing.sub2">PDF / PNG export</text>
+
+        <rect x="240" y="442" width="190" height="58" rx="6" fill="#0f172a"/>
+        <rect x="240" y="442" width="190" height="58" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="335" y="464" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.privacyGate.title">Privacy Gate</text>
+        <text x="335" y="480" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.privacyGate.sub">shared text from src/lib/privacy.ts</text>
+
+        <rect x="240" y="522" width="190" height="60" rx="6" fill="#0f172a"/>
+        <rect x="240" y="522" width="190" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="335" y="544" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.staticAssets.title">Static Runtime Assets</text>
+        <text x="335" y="560" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.staticAssets.sub">_redirects / _headers / favicon</text>
+
+        <!-- domain boundary -->
+        <rect x="510" y="40" width="198" height="560" rx="12" fill="rgba(34, 211, 238, 0.04)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="524" y="58" fill="#22d3ee" font-size="10" font-weight="600" data-i18n="boundary.domain">Frontend domain + session logic</text>
+
+        <rect x="530" y="110" width="176" height="80" rx="6" fill="#0f172a"/>
+        <rect x="530" y="110" width="176" height="80" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="618" y="132" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.authContext.title">Auth Context</text>
+        <text x="618" y="148" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.authContext.sub1">session restore / onAuthStateChange</text>
+        <text x="618" y="162" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.authContext.sub2">signOut / isAuthenticated</text>
+
+        <rect x="530" y="235" width="176" height="82" rx="6" fill="#0f172a"/>
+        <rect x="530" y="235" width="176" height="82" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="618" y="257" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.extractionFlow.title">Extraction Flow</text>
+        <text x="618" y="273" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.extractionFlow.sub1">prompt → JSON parse → normalize</text>
+        <text x="618" y="287" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.extractionFlow.sub2">missing-field detection ≤ 3 rounds</text>
+
+        <rect x="530" y="355" width="176" height="82" rx="6" fill="#0f172a"/>
+        <rect x="530" y="355" width="176" height="82" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="618" y="377" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.patientRecord.title">PatientRecord Model</text>
+        <text x="618" y="393" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.patientRecord.sub1">basicInfo / initialOnset</text>
+        <text x="618" y="407" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.patientRecord.sub2">ordered treatmentLines[]</text>
+
+        <rect x="530" y="450" width="176" height="82" rx="6" fill="#0f172a"/>
+        <rect x="530" y="450" width="176" height="82" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="618" y="472" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.persistence.title">Persistence Bridge</text>
+        <text x="618" y="488" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.persistence.sub1">restore latest record</text>
+        <text x="618" y="502" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.persistence.sub2">upsert patients + treatment_lines</text>
+
+        <!-- supabase boundary -->
+        <rect x="824" y="40" width="252" height="560" rx="12" fill="rgba(52, 211, 153, 0.04)" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="838" y="58" fill="#34d399" font-size="10" font-weight="600" data-i18n="boundary.supabase">Supabase runtime boundary</text>
+
+        <rect x="844" y="110" width="92" height="78" rx="6" fill="#0f172a"/>
+        <rect x="844" y="110" width="92" height="78" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="890" y="132" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.supabaseAuth.title">Auth</text>
+        <text x="890" y="148" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.supabaseAuth.sub1">email / anon</text>
+        <text x="890" y="162" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.supabaseAuth.sub2">session JWT</text>
+
+        <rect x="844" y="235" width="92" height="82" rx="6" fill="#0f172a"/>
+        <rect x="844" y="235" width="92" height="82" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="890" y="257" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.edgeFunction.title">Edge Function</text>
+        <text x="890" y="273" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.edgeFunction.sub1">llm-proxy</text>
+        <text x="890" y="287" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.edgeFunction.sub2">30s timeout</text>
+
+        <rect x="844" y="355" width="92" height="82" rx="6" fill="#0f172a"/>
+        <rect x="844" y="355" width="92" height="82" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="890" y="377" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.postgres.title">Postgres</text>
+        <text x="890" y="393" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.postgres.sub1">patients</text>
+        <text x="890" y="407" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.postgres.sub2">treatment_lines</text>
+
+        <rect x="952" y="340" width="104" height="112" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="960" y="356" fill="#fb7185" font-size="8" data-i18n="box.rls.title">RLS policies</text>
+        <text x="960" y="370" fill="#fb7185" font-size="7" data-i18n="box.rls.sub1">auth.uid() = owner</text>
+        <text x="960" y="384" fill="#fb7185" font-size="7" data-i18n="box.rls.sub2">select / insert / update / delete</text>
+
+        <!-- external backend/cloud -->
+        <rect x="1100" y="70" width="86" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1100" y="70" width="86" height="52" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1143" y="92" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.gemini.title">Gemini</text>
+        <text x="1143" y="108" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.gemini.sub">provider API</text>
+
+        <rect x="1100" y="250" width="86" height="52" rx="6" fill="#0f172a"/>
+        <rect x="1100" y="250" width="86" height="52" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1143" y="272" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.geminiRest.title">Gemini REST</text>
+        <text x="1143" y="288" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.geminiRest.sub">model execution</text>
+
+        <rect x="1100" y="368" width="86" height="54" rx="6" fill="#0f172a"/>
+        <rect x="1100" y="368" width="86" height="54" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1143" y="390" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.githubActions.title">GitHub Actions</text>
+        <text x="1143" y="406" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.githubActions.sub">CI / deploy</text>
+
+        <rect x="1100" y="520" width="86" height="54" rx="6" fill="#0f172a"/>
+        <rect x="1100" y="520" width="86" height="54" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1143" y="542" fill="white" font-size="11" font-weight="600" text-anchor="middle" data-i18n="box.cloudflare.title">Cloudflare</text>
+        <text x="1143" y="558" fill="#94a3b8" font-size="8" text-anchor="middle" data-i18n="box.cloudflare.sub">Pages dist/</text>
+
+        <!-- explanatory connectors -->
+        <rect x="558" y="535" width="120" height="20" rx="4" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="618" y="549" fill="#fb923c" font-size="7" text-anchor="middle" data-i18n="connector.extractPersistRender">extract → persist → render</text>
+
+        <!-- legend below all boundaries -->
+        <text x="60" y="645" fill="white" font-size="10" font-weight="600" data-i18n="legend.title">Legend</text>
+
+        <rect x="60" y="658" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="82" y="666" fill="#94a3b8" font-size="8" data-i18n="legend.frontend">Frontend runtime</text>
+
+        <rect x="60" y="676" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="82" y="684" fill="#94a3b8" font-size="8" data-i18n="legend.backend">Backend / service boundary</text>
+
+        <rect x="60" y="694" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="82" y="702" fill="#94a3b8" font-size="8" data-i18n="legend.database">Database</text>
+
+        <rect x="220" y="658" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="242" y="666" fill="#94a3b8" font-size="8" data-i18n="legend.deployment">Deployment / cloud</text>
+
+        <rect x="220" y="676" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="242" y="684" fill="#94a3b8" font-size="8" data-i18n="legend.security">Privacy / auth / security</text>
+
+        <line x1="220" y1="699" x2="236" y2="699" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="242" y="702" fill="#94a3b8" font-size="8" data-i18n="legend.policy">Auth or policy boundary</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3 data-i18n="card.runtime.title">Runtime Flow</h3>
+        </div>
+        <ul>
+          <li data-i18n="card.runtime.li1">• Browser enters React SPA through /login, /privacy, /app, or /record/:id.</li>
+          <li data-i18n="card.runtime.li2">• AppBoot + AuthProvider restore Supabase session before protected routes render.</li>
+          <li data-i18n="card.runtime.li3">• /app orchestrates extraction input, follow-up rounds, preview, inline edit, and export.</li>
+          <li data-i18n="card.runtime.li4">• Extraction flow is prompt-driven: free text → JSON parse → normalize → missing-field question.</li>
+          <li data-i18n="card.runtime.li5">• Timeline rendering consumes a single PatientRecord truth model with ordered treatment lines.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3 data-i18n="card.security.title">Data / Security</h3>
+        </div>
+        <ul>
+          <li data-i18n="card.security.li1">• Privacy gate and /privacy page share the same source text from src/lib/privacy.ts.</li>
+          <li data-i18n="card.security.li2">• Frontend never calls Gemini directly; it only hits chat(messages, options) → /llm-proxy.</li>
+          <li data-i18n="card.security.li3">• llm-proxy verifies Supabase bearer JWT before forwarding to Gemini.</li>
+          <li data-i18n="card.security.li4">• Records persist into public.patients and public.treatment_lines.</li>
+          <li data-i18n="card.security.li5">• RLS policies scope read/write/delete to auth.uid()-owned rows, including joined treatment lines.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3 data-i18n="card.delivery.title">Delivery</h3>
+        </div>
+        <ul>
+          <li data-i18n="card.delivery.li1">• GitHub Actions runs npm ci, lint, type-check, test, and build on main pushes.</li>
+          <li data-i18n="card.delivery.li2">• Successful CI deploys dist/ to Cloudflare Pages via wrangler-action.</li>
+          <li data-i18n="card.delivery.li3">• public/_redirects provides SPA fallback routing for deep links.</li>
+          <li data-i18n="card.delivery.li4">• Runtime env boundary includes VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_SUPABASE_EDGE_FUNCTION_URL.</li>
+          <li data-i18n="card.delivery.li5">• Gemini API key stays in Supabase secrets, not in the browser bundle.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer" data-i18n="footer">
+      Firefly-Isle • derived from README.md, CLAUDE.md, src/, supabase/, public/, openspec/specs/, and .github/workflows/ci-cd.yml
+    </p>
+  </div>
+
+  <script>
+    const translations = {
+      en: {
+        title: 'Firefly-Isle Architecture',
+        subtitle: 'One-page oncology treatment timeline builder. React SPA on Cloudflare Pages, Supabase Auth + Postgres + RLS for session-bound records, and a Supabase Edge Function proxy that isolates Gemini access from the browser.',
+        'arrow.https': 'HTTPS',
+        'arrow.authMode': 'email / anon auth',
+        'arrow.routeComposition': 'route composition',
+        'arrow.extractionInput': 'extraction input',
+        'arrow.tableEditState': 'table / edit state',
+        'arrow.sharedPrivacy': 'shared privacy copy',
+        'arrow.sessionJwt': 'session / JWT',
+        'arrow.bearerToken': 'Bearer token',
+        'arrow.patientTables': 'patients / treatment_lines',
+        'arrow.verifyJwt': 'verify JWT',
+        'arrow.messagesModel': 'messages[] / model',
+        'arrow.rlsQueries': 'RLS-scoped queries',
+        'arrow.generateContent': 'generateContent',
+        'arrow.deployFlow': 'main push → CI → build dist → Pages deploy',
+        'box.userSession.title': 'User Session',
+        'box.userSession.sub': 'email / anonymous',
+        'box.patientFamily.title': 'Patient / Family',
+        'box.patientFamily.sub': 'browser SPA',
+        'boundary.frontend': 'Cloudflare Pages / Vite React SPA',
+        'box.appRouter.title': 'App Router Shell',
+        'box.appRouter.sub': '/login /privacy /app /record/:id',
+        'box.workspace.title': 'Workspace Orchestrator',
+        'box.workspace.sub': 'input / follow-up / retry / export',
+        'box.llmAdapter.title': 'LLM Adapter',
+        'box.llmAdapter.sub': 'chat(messages, options)',
+        'box.timelineEditing.title': 'Timeline + Editing',
+        'box.timelineEditing.sub1': 'TimelineTable / inline edit',
+        'box.timelineEditing.sub2': 'PDF / PNG export',
+        'box.privacyGate.title': 'Privacy Gate',
+        'box.privacyGate.sub': 'shared text from src/lib/privacy.ts',
+        'box.staticAssets.title': 'Static Runtime Assets',
+        'box.staticAssets.sub': '_redirects / _headers / favicon',
+        'boundary.domain': 'Frontend domain + session logic',
+        'box.authContext.title': 'Auth Context',
+        'box.authContext.sub1': 'session restore / onAuthStateChange',
+        'box.authContext.sub2': 'signOut / isAuthenticated',
+        'box.extractionFlow.title': 'Extraction Flow',
+        'box.extractionFlow.sub1': 'prompt → JSON parse → normalize',
+        'box.extractionFlow.sub2': 'missing-field detection ≤ 3 rounds',
+        'box.patientRecord.title': 'PatientRecord Model',
+        'box.patientRecord.sub1': 'basicInfo / initialOnset',
+        'box.patientRecord.sub2': 'ordered treatmentLines[]',
+        'box.persistence.title': 'Persistence Bridge',
+        'box.persistence.sub1': 'restore latest record',
+        'box.persistence.sub2': 'upsert patients + treatment_lines',
+        'boundary.supabase': 'Supabase runtime boundary',
+        'box.supabaseAuth.title': 'Auth',
+        'box.supabaseAuth.sub1': 'email / anon',
+        'box.supabaseAuth.sub2': 'session JWT',
+        'box.edgeFunction.title': 'Edge Function',
+        'box.edgeFunction.sub1': 'llm-proxy',
+        'box.edgeFunction.sub2': '30s timeout',
+        'box.postgres.title': 'Postgres',
+        'box.postgres.sub1': 'patients',
+        'box.postgres.sub2': 'treatment_lines',
+        'box.rls.title': 'RLS policies',
+        'box.rls.sub1': 'auth.uid() = owner',
+        'box.rls.sub2': 'select / insert / update / delete',
+        'box.gemini.title': 'Gemini',
+        'box.gemini.sub': 'provider API',
+        'box.geminiRest.title': 'Gemini REST',
+        'box.geminiRest.sub': 'model execution',
+        'box.githubActions.title': 'GitHub Actions',
+        'box.githubActions.sub': 'CI / deploy',
+        'box.cloudflare.title': 'Cloudflare',
+        'box.cloudflare.sub': 'Pages dist/',
+        'connector.extractPersistRender': 'extract → persist → render',
+        'legend.title': 'Legend',
+        'legend.frontend': 'Frontend runtime',
+        'legend.backend': 'Backend / service boundary',
+        'legend.database': 'Database',
+        'legend.deployment': 'Deployment / cloud',
+        'legend.security': 'Privacy / auth / security',
+        'legend.policy': 'Auth or policy boundary',
+        'card.runtime.title': 'Runtime Flow',
+        'card.runtime.li1': '• Browser enters React SPA through /login, /privacy, /app, or /record/:id.',
+        'card.runtime.li2': '• AppBoot + AuthProvider restore Supabase session before protected routes render.',
+        'card.runtime.li3': '• /app orchestrates extraction input, follow-up rounds, preview, inline edit, and export.',
+        'card.runtime.li4': '• Extraction flow is prompt-driven: free text → JSON parse → normalize → missing-field question.',
+        'card.runtime.li5': '• Timeline rendering consumes a single PatientRecord truth model with ordered treatment lines.',
+        'card.security.title': 'Data / Security',
+        'card.security.li1': '• Privacy gate and /privacy page share the same source text from src/lib/privacy.ts.',
+        'card.security.li2': '• Frontend never calls Gemini directly; it only hits chat(messages, options) → /llm-proxy.',
+        'card.security.li3': '• llm-proxy verifies Supabase bearer JWT before forwarding to Gemini.',
+        'card.security.li4': '• Records persist into public.patients and public.treatment_lines.',
+        'card.security.li5': '• RLS policies scope read/write/delete to auth.uid()-owned rows, including joined treatment lines.',
+        'card.delivery.title': 'Delivery',
+        'card.delivery.li1': '• GitHub Actions runs npm ci, lint, type-check, test, and build on main pushes.',
+        'card.delivery.li2': '• Successful CI deploys dist/ to Cloudflare Pages via wrangler-action.',
+        'card.delivery.li3': '• public/_redirects provides SPA fallback routing for deep links.',
+        'card.delivery.li4': '• Runtime env boundary includes VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_SUPABASE_EDGE_FUNCTION_URL.',
+        'card.delivery.li5': '• Gemini API key stays in Supabase secrets, not in the browser bundle.',
+        footer: 'Firefly-Isle • derived from README.md, CLAUDE.md, src/, supabase/, public/, openspec/specs/, and .github/workflows/ci-cd.yml',
+      },
+      zh: {
+        title: 'Firefly-Isle 架构图',
+        subtitle: '一个肿瘤治疗时间线单页工具。前端是部署在 Cloudflare Pages 上的 React SPA；会话绑定数据由 Supabase Auth + Postgres + RLS 承载；Gemini 调用通过 Supabase Edge Function 代理，与浏览器隔离。',
+        'arrow.https': 'HTTPS',
+        'arrow.authMode': '邮箱 / 匿名认证',
+        'arrow.routeComposition': '路由装配',
+        'arrow.extractionInput': '提取输入',
+        'arrow.tableEditState': '表格 / 编辑状态',
+        'arrow.sharedPrivacy': '共享隐私文案',
+        'arrow.sessionJwt': '会话 / JWT',
+        'arrow.bearerToken': 'Bearer 令牌',
+        'arrow.patientTables': 'patients / treatment_lines',
+        'arrow.verifyJwt': '校验 JWT',
+        'arrow.messagesModel': 'messages[] / model',
+        'arrow.rlsQueries': 'RLS 作用域查询',
+        'arrow.generateContent': 'generateContent',
+        'arrow.deployFlow': 'main push → CI → 构建 dist → Pages 发布',
+        'box.userSession.title': '用户会话',
+        'box.userSession.sub': '邮箱 / 匿名',
+        'box.patientFamily.title': '患者 / 家属',
+        'box.patientFamily.sub': '浏览器 SPA',
+        'boundary.frontend': 'Cloudflare Pages / Vite React SPA',
+        'box.appRouter.title': '应用路由壳层',
+        'box.appRouter.sub': '/login /privacy /app /record/:id',
+        'box.workspace.title': '工作区编排层',
+        'box.workspace.sub': '输入 / 追问 / 重试 / 导出',
+        'box.llmAdapter.title': 'LLM 适配层',
+        'box.llmAdapter.sub': 'chat(messages, options)',
+        'box.timelineEditing.title': '时间线 + 编辑',
+        'box.timelineEditing.sub1': 'TimelineTable / 行内编辑',
+        'box.timelineEditing.sub2': 'PDF / PNG 导出',
+        'box.privacyGate.title': '隐私门控',
+        'box.privacyGate.sub': '复用 src/lib/privacy.ts 文案',
+        'box.staticAssets.title': '静态运行时资源',
+        'box.staticAssets.sub': '_redirects / _headers / favicon',
+        'boundary.domain': '前端领域层 + 会话逻辑',
+        'box.authContext.title': '认证上下文',
+        'box.authContext.sub1': '会话恢复 / onAuthStateChange',
+        'box.authContext.sub2': 'signOut / isAuthenticated',
+        'box.extractionFlow.title': '信息提取流',
+        'box.extractionFlow.sub1': 'prompt → JSON 解析 → 归一化',
+        'box.extractionFlow.sub2': '关键缺失字段检测 ≤ 3 轮',
+        'box.patientRecord.title': 'PatientRecord 模型',
+        'box.patientRecord.sub1': 'basicInfo / initialOnset',
+        'box.patientRecord.sub2': '有序 treatmentLines[]',
+        'box.persistence.title': '持久化桥接层',
+        'box.persistence.sub1': '恢复最近记录',
+        'box.persistence.sub2': 'upsert patients + treatment_lines',
+        'boundary.supabase': 'Supabase 运行时边界',
+        'box.supabaseAuth.title': '认证',
+        'box.supabaseAuth.sub1': '邮箱 / 匿名',
+        'box.supabaseAuth.sub2': '会话 JWT',
+        'box.edgeFunction.title': 'Edge Function',
+        'box.edgeFunction.sub1': 'llm-proxy',
+        'box.edgeFunction.sub2': '30 秒超时',
+        'box.postgres.title': 'Postgres',
+        'box.postgres.sub1': 'patients',
+        'box.postgres.sub2': 'treatment_lines',
+        'box.rls.title': 'RLS 策略',
+        'box.rls.sub1': 'auth.uid() = owner',
+        'box.rls.sub2': 'select / insert / update / delete',
+        'box.gemini.title': 'Gemini',
+        'box.gemini.sub': '模型提供商 API',
+        'box.geminiRest.title': 'Gemini REST',
+        'box.geminiRest.sub': '模型执行',
+        'box.githubActions.title': 'GitHub Actions',
+        'box.githubActions.sub': 'CI / 发布',
+        'box.cloudflare.title': 'Cloudflare',
+        'box.cloudflare.sub': 'Pages dist/',
+        'connector.extractPersistRender': '提取 → 落库 → 渲染',
+        'legend.title': '图例',
+        'legend.frontend': '前端运行时',
+        'legend.backend': '后端 / 服务边界',
+        'legend.database': '数据库',
+        'legend.deployment': '部署 / 云服务',
+        'legend.security': '隐私 / 认证 / 安全',
+        'legend.policy': '认证或策略边界',
+        'card.runtime.title': '运行流',
+        'card.runtime.li1': '• 浏览器通过 /login、/privacy、/app 或 /record/:id 进入 React SPA。',
+        'card.runtime.li2': '• AppBoot 与 AuthProvider 会在受保护路由渲染前恢复 Supabase 会话。',
+        'card.runtime.li3': '• /app 统一编排提取输入、追问轮次、预览、行内编辑与导出。',
+        'card.runtime.li4': '• 提取链路由 prompt 驱动：自由文本 → JSON 解析 → 归一化 → 缺失字段追问。',
+        'card.runtime.li5': '• 时间线渲染消费单一 PatientRecord 真相模型，并保持治疗线有序。',
+        'card.security.title': '数据 / 安全',
+        'card.security.li1': '• 隐私门控与 /privacy 页面共享 src/lib/privacy.ts 这一份文案真相源。',
+        'card.security.li2': '• 前端不会直接调用 Gemini，只通过 chat(messages, options) → /llm-proxy。',
+        'card.security.li3': '• llm-proxy 在转发到 Gemini 之前会先校验 Supabase bearer JWT。',
+        'card.security.li4': '• 记录持久化到 public.patients 与 public.treatment_lines。',
+        'card.security.li5': '• RLS 将读写删限制在 auth.uid() 拥有的行上，并覆盖关联治疗线。',
+        'card.delivery.title': '交付 / 部署',
+        'card.delivery.li1': '• GitHub Actions 在 main push 时执行 npm ci、lint、type-check、test 与 build。',
+        'card.delivery.li2': '• CI 成功后通过 wrangler-action 将 dist/ 发布到 Cloudflare Pages。',
+        'card.delivery.li3': '• public/_redirects 为深链接提供 SPA fallback 路由。',
+        'card.delivery.li4': '• 运行时环境边界包含 VITE_SUPABASE_URL、VITE_SUPABASE_ANON_KEY 与 VITE_SUPABASE_EDGE_FUNCTION_URL。',
+        'card.delivery.li5': '• Gemini API key 保存在 Supabase secrets 中，不会进入浏览器 bundle。',
+        footer: 'Firefly-Isle • 基于 README.md、CLAUDE.md、src/、supabase/、public/、openspec/specs/ 与 .github/workflows/ci-cd.yml 提取',
+      },
+    }
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.en
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'
+
+      document.querySelectorAll('[data-i18n]').forEach((node) => {
+        const key = node.getAttribute('data-i18n')
+        const value = dict[key]
+        if (typeof value === 'string') {
+          node.textContent = value
+        }
+      })
+
+      document.querySelectorAll('.lang-button').forEach((button) => {
+        button.classList.toggle('active', button.dataset.lang === lang)
+      })
+    }
+
+    document.querySelectorAll('.lang-button').forEach((button) => {
+      button.addEventListener('click', () => applyLanguage(button.dataset.lang))
+    })
+
+    applyLanguage('zh')
+  </script>
+</body>
+</html>
