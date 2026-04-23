@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Export build env from wrangler.jsonc
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const config = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8'))
+          const vars = config.vars ?? {}
+          const lines = Object.entries(vars)
+            .filter(([key]) => key.startsWith('VITE_'))
+            .map(([key, value]) => `${key}=${String(value)}`)
+            .join('\n')
+          fs.appendFileSync(process.env.GITHUB_ENV, `${lines}\n`)
+          NODE
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build app
+        run: npm run build

@@ -1,8 +1,4 @@
-## Purpose
-
-定义 Firefly-Isle 的发布链路：GitHub Actions 负责 CI 与显式 CD，Cloudflare Pages 只作为托管目标，不再作为 Git 分支自动部署真源。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: GitHub Actions 负责持续集成
 系统 SHALL 使用 GitHub Actions 在主线 push 和主线 PR 上执行前端检查链路，不依赖 Cloudflare Pages 的 Git 自动构建来判断代码健康度。
@@ -43,17 +39,3 @@
 #### Scenario: 非生产分支不再自动预览部署
 - **WHEN** 有提交进入非 `main` 分支
 - **THEN** Cloudflare Pages SHALL NOT 因 Git integration 自动生成新的预览部署
-
-### Requirement: 隐私条款页面可访问
-系统 SHALL 提供独立的隐私条款页面，并保证该页面与应用内隐私门控使用一致的内容来源或受同一真相源约束。
-
-#### Scenario: 产品入口可访问隐私条款
-- **WHEN** 用户在部署后的应用中寻找隐私条款
-- **THEN** 系统 SHALL 提供可访问的隐私条款页面或链接，而不只是在首次启动弹窗中展示
-
-### Requirement: 部署前发布检查
-系统 SHALL 在上线前完成与当前 MVP 能力直接相关的发布检查。
-
-#### Scenario: 上线前复核
-- **WHEN** 准备发布 MVP
-- **THEN** 系统 SHALL 完成导出跨浏览器验证、核心链路手动验收，以及与当前发布环境一致的安全与可用性复核
