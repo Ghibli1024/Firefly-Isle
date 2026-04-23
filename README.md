@@ -75,29 +75,38 @@ npm run type-check
 npm run test
 ```
 
-### 6. GitHub Actions + Cloudflare Pages（11.1 / 11.2）
+### 6. GitHub Actions CI + CD -> Cloudflare Pages
 
-仓库已提供 `.github/workflows/ci-cd.yml`，在 `main` push 或手动触发时执行：
+仓库现已按职责拆分为两条 GitHub Actions workflow：
 
-- `npm run lint`
-- `npm run type-check`
-- `npm run test`
-- `npm run build`
-- 成功后发布 `dist/` 到 Cloudflare Pages
+- `.github/workflows/ci.yml`
+  - 在 `main` push 与目标为 `main` 的 PR（`opened` / `synchronize` / `reopened`）时执行
+  - 依次运行：
+    - `npm run lint`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+- `.github/workflows/cd.yml`
+  - 仅在 `v*` tag push 或手动 `workflow_dispatch` 时执行
+  - 重新构建 `dist/`，并通过 `wrangler pages deploy` 发布到 Cloudflare Pages 生产环境
+  - 会额外校验：待部署 commit 必须属于 `main`
 
-发布前需要在 GitHub 仓库配置：
+GitHub 侧发布前只需要配置：
 
-- secret: `CLOUDFLARE_API_TOKEN`
-- secret: `CLOUDFLARE_ACCOUNT_ID`
-- variable: `CLOUDFLARE_PAGES_PROJECT_NAME`
+- repo secret: `CLOUDFLARE_API_TOKEN`
 
-Cloudflare Pages 侧使用当前前端默认构建：
+Cloudflare Pages 继续作为托管目标，保留：
 
+- Project: `firefly-isle`
+- Production branch: `main`
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Node.js: `22`
 - SPA fallback: `public/_redirects`
-- 若 Pages 在 Git 集成构建中读取了 `wrangler.jsonc`，则当前前端依赖的 3 个 `VITE_SUPABASE_*` 值也需要同步存在于 `wrangler.jsonc > vars`，否则构建日志会显示 `Build environment variables: (none found)`，并导致线上 bundle 缺少 Supabase env。
+
+GitHub Actions 的构建期 `VITE_SUPABASE_*` 值统一从已提交的 `wrangler.jsonc > vars` 读取，不再要求在 GitHub 仓库重复配置一份 secrets / variables。
+
+Cloudflare Pages 的 Git 分支自动生产 / 自动预览部署应关闭，避免与 GitHub Actions 发布链路形成双真相。
 
 ## 项目背景 
 本项目源于癌症患者及其家属的真实需求。晚期癌症患者由于频繁复发和疾病进展，往往需要经历多线治疗。在整理病历和治疗信息的过程中，患者及家属常因信息过载而感到无助；而在异地就医或门诊沟通中，由于患者数量众多，医生能够分配给单个患者的沟通时间有限，难以进行充分、系统的交流。因此，本项目旨在帮助患者更好地进行治疗方案与病历信息的管理。
