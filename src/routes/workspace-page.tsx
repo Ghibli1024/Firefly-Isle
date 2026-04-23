@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层与占位图，依赖 @/components/system/surfaces 的壳层 surface 基元，依赖 @/components/timeline/TimelineTable 的正式表格渲染器，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区实现，承载文本输入、信息提取、追问、解析错误恢复、结构化时间线预览、inline edit 持久化与 PDF/PNG 导出，并消费统一 system shell contract。
+ * [POS]: routes 的临床工作区 orchestration 层，保留文本提取、追问、解析错误恢复、inline edit 持久化与 PDF/PNG 导出状态机，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState } from 'react'
@@ -9,13 +9,11 @@ import { useEffect, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
-import {
-  ArchiveSideNav,
-  DarkTopBar,
-  QR_PLACEHOLDER,
-} from '@/components/app-shell'
-import { ActionSurface, MainShell, PanelSurface, SectionSurface } from '@/components/system/surfaces'
-import { TimelineTable } from '@/components/timeline/TimelineTable'
+import { ArchiveSideNav, DarkTopBar } from '@/components/app-shell'
+import { ExtractionComposer } from '@/components/workspace/extraction-composer'
+import { FollowUpPanel } from '@/components/workspace/follow-up-panel'
+import { ReportPreviewFrame } from '@/components/workspace/report-preview-frame'
+import { MainShell, SectionSurface } from '@/components/system/surfaces'
 import { useAuth } from '@/lib/auth'
 import {
   buildFollowUpQuestion,
@@ -669,7 +667,6 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
     setExtractionInput,
     setReportRef,
   } = useExtractionState()
-  const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
 
   return (
@@ -680,127 +677,40 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="dark">
         <SectionSurface className="border-b border-[var(--ff-border-default)] p-8" theme="dark" tone="base">
           <div className={`${shellContentWidthClass} space-y-6`}>
-            <div className="flex flex-col gap-2">
-              <label className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
-                PATIENT_HISTORY_INPUT
-              </label>
-              <textarea
-                className="h-48 w-full resize-none border-0 border-b border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] p-4 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
-                onChange={(event) => setExtractionInput(event.target.value)}
-                placeholder="请描述患者的病情及治疗历程..."
-                value={extractionInput}
-              />
-            </div>
-
-            {error ? (
-              <ActionSurface className="px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme="dark" tone="warning">
-                {error}
-              </ActionSurface>
-            ) : null}
-            {exportError ? (
-              <ActionSurface className="px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme="dark" tone="warning">
-                {exportError}
-              </ActionSurface>
-            ) : null}
-            {isSaving ? (
-              <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">保存中…</div>
-            ) : null}
-
-            {retryMode ? (
-              <button
-                className="border border-[var(--ff-border-default)] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-secondary)] hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
-                onClick={() => void retryLastAction()}
-                type="button"
-              >
-                {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
-              </button>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-              <button
-                className="group flex flex-col items-center justify-center border-2 border-dashed border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] py-10 transition-colors hover:border-[var(--ff-accent-primary)] md:col-span-2"
-                onClick={() => void runInitialExtraction()}
-                type="button"
-              >
-                <span className="material-symbols-outlined mb-2 text-4xl text-[var(--ff-text-muted)] group-hover:text-[var(--ff-accent-primary)]">
-                  auto_awesome
-                </span>
-                <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-muted)] group-hover:text-[var(--ff-text-primary)]">
-                  {isExtracting ? '提取中…' : '开始结构化提取'}
-                </span>
-              </button>
-              <button
-                className="border border-[var(--ff-border-default)] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-primary)] disabled:cursor-not-allowed disabled:text-[var(--ff-text-muted)]"
-                disabled={isExtracting || isSaving || isExporting}
-                onClick={() => void handleExport('pdf')}
-                type="button"
-              >
-                {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
-              </button>
-              <button
-                className="border border-[var(--ff-border-default)] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-primary)] disabled:cursor-not-allowed disabled:text-[var(--ff-text-muted)]"
-                disabled={isExtracting || isSaving || isExporting}
-                onClick={() => void handleExport('png')}
-                type="button"
-              >
-                {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
-              </button>
-            </div>
+            <ExtractionComposer
+              error={error}
+              exportError={exportError}
+              exportFormat={exportFormat}
+              extractionInput={extractionInput}
+              isExporting={isExporting}
+              isExtracting={isExtracting}
+              isSaving={isSaving}
+              onExport={(format) => void handleExport(format)}
+              onExtract={() => void runInitialExtraction()}
+              onInputChange={setExtractionInput}
+              onRetry={() => void retryLastAction()}
+              remainingMissingCount={remainingMissing.length}
+              retryMode={retryMode}
+              theme="dark"
+            />
 
             {currentQuestion ? (
-              <PanelSurface className="p-6" theme="dark" tone="panel">
-                <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">FOLLOW UP</div>
-                <p className="mt-3 text-sm leading-7 text-[var(--ff-text-subtle)]">{currentQuestion}</p>
-                <textarea
-                  className="mt-4 h-28 w-full resize-none border border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-4 outline-none focus:border-[var(--ff-accent-primary)]"
-                  onChange={(event) => setFollowUpInput(event.target.value)}
-                  placeholder="一次性补充缺失信息..."
-                  value={followUpInput}
-                />
-                <button
-                  className="mt-4 border border-[var(--ff-accent-primary)] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]"
-                  onClick={() => {
-                    void runFollowUpExtraction(followUpInput)
-                    setFollowUpInput('')
-                  }}
-                  type="button"
-                >
-                  提交补充
-                </button>
-              </PanelSurface>
+              <FollowUpPanel currentQuestion={currentQuestion} onSubmit={(value) => void runFollowUpExtraction(value)} theme="dark" />
             ) : null}
           </div>
         </SectionSurface>
 
         <SectionSurface className="p-8" theme="dark" tone="panel">
-          <div
-            ref={setReportRef}
-            className={`${shellContentWidthClass} relative overflow-hidden border border-[var(--ff-border-muted)] bg-[var(--ff-surface-panel)] p-10 text-[var(--ff-text-primary)] shadow-lg`}
-          >
-            <div className="mb-8 flex items-end justify-between border-b-4 border-[var(--ff-border-default)] pb-4">
-              <div>
-                <h1 className="font-['Inter_Tight'] text-5xl font-black leading-none tracking-tighter">临床结构化报告</h1>
-                <p className="mt-2 font-['JetBrains_Mono'] text-[10px] tracking-widest text-[var(--ff-text-secondary)]">GENERATED BY ONE-PAGE FIREFLY AI ARCHIVE</p>
-              </div>
-              <div className="text-right text-[var(--ff-text-secondary)]">
-                <p className="font-['JetBrains_Mono'] text-xs font-bold text-[var(--ff-text-primary)]">REPORT_ID: LIVE-DRAFT</p>
-                <p className="font-['JetBrains_Mono'] text-xs">MISSING: {remainingMissing.length}</p>
-              </div>
-            </div>
-
-            <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="dark" />
-
-            <div className="mt-12 flex items-center justify-between border-t-2 border-[var(--ff-border-default)] pt-4">
-              <div className="max-w-[400px] font-['JetBrains_Mono'] text-[9px] text-[var(--ff-text-secondary)]">
-                声明：本报告由人工智能辅助系统自动提取，仅供医疗专业人士参考。最终诊断需结合原始影像及病理报告。
-              </div>
-              <div className="flex flex-col items-center border border-[var(--ff-border-default)] p-2">
-                <div className="flex h-16 w-16 items-center justify-center bg-[var(--ff-surface-soft)]">
-                  <img alt="验证码" src={QR_PLACEHOLDER} />
-                </div>
-                <span className="mt-1 text-[8px] text-[var(--ff-text-secondary)]">扫码验证报告</span>
-              </div>
-            </div>
+          <div className={shellContentWidthClass}>
+            <ReportPreviewFrame
+              isExtracting={isExtracting}
+              isSaving={isSaving}
+              onCommitField={handleFieldCommit}
+              record={displayRecord}
+              remainingMissing={remainingMissing}
+              setReportRef={setReportRef}
+              theme="dark"
+            />
           </div>
         </SectionSurface>
       </MainShell>
@@ -830,7 +740,6 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
     setExtractionInput,
     setReportRef,
   } = useExtractionState()
-  const [followUpInput, setFollowUpInput] = useState('')
   const displayRecord = record ?? EMPTY_RECORD
 
   return (
@@ -857,163 +766,46 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
             <div className="ff-light-double-rule" />
           </header>
 
-          <section className={`${shellContentWidthClass} grid grid-cols-12 gap-8`}>
-            <div className="col-span-8 flex flex-col gap-6">
-              <PanelSurface className="p-6" theme="light" tone="panel">
-                <div className="mb-4 flex items-center justify-between">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-text-primary)]">
-                    文字输入 / TEXT INPUT
-                  </label>
-                  <span className="font-['JetBrains_Mono'] text-[10px] font-bold text-[var(--ff-accent-warning)]">
-                    {isExtracting ? 'ANALYZING' : 'READY TO ANALYZE'}
-                  </span>
-                </div>
-                <textarea
-                  className="h-48 w-full resize-none border-0 bg-transparent text-xl leading-relaxed outline-none placeholder:text-[var(--ff-text-muted)]"
-                  onChange={(event) => setExtractionInput(event.target.value)}
-                  placeholder="在此输入患者病史或临床表现描述..."
-                  value={extractionInput}
-                />
-                <div className="mt-6 flex flex-wrap items-center gap-4">
-                  <button
-                    className="border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-surface-base)]"
-                    onClick={() => void runInitialExtraction()}
-                    type="button"
-                  >
-                    {isExtracting ? '提取中…' : '开始提取'}
-                  </button>
-                  {error ? <span className="text-sm text-[var(--ff-accent-warning)]">{error}</span> : null}
-                  {exportError ? <span className="text-sm text-[var(--ff-accent-warning)]">{exportError}</span> : null}
-                  {isSaving ? (
-                    <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-warning)]">保存中…</span>
-                  ) : null}
-                  {retryMode ? (
-                    <button
-                      className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
-                      onClick={() => void retryLastAction()}
-                      type="button"
-                    >
-                      {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
-                    </button>
-                  ) : null}
-                </div>
-              </PanelSurface>
+          <div className={shellContentWidthClass}>
+            <ExtractionComposer
+              error={error}
+              exportError={exportError}
+              exportFormat={exportFormat}
+              extractionInput={extractionInput}
+              isExporting={isExporting}
+              isExtracting={isExtracting}
+              isSaving={isSaving}
+              onExport={(format) => void handleExport(format)}
+              onExtract={() => void runInitialExtraction()}
+              onInputChange={setExtractionInput}
+              onRetry={() => void retryLastAction()}
+              remainingMissingCount={remainingMissing.length}
+              retryMode={retryMode}
+              theme="light"
+            />
+          </div>
 
-              {currentQuestion ? (
-                <PanelSurface className="ff-light-ink-shadow p-6" theme="light" tone="panel">
-                  <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">FOLLOW UP</h3>
-                  <p className="mt-3 text-sm leading-7">{currentQuestion}</p>
-                  <textarea
-                    className="mt-4 h-32 w-full resize-none border-2 border-[var(--ff-border-default)] bg-transparent p-4 outline-none"
-                    onChange={(event) => setFollowUpInput(event.target.value)}
-                    placeholder="一次性补充缺失信息..."
-                    value={followUpInput}
-                  />
-                  <button
-                    className="mt-4 border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
-                    onClick={() => {
-                      void runFollowUpExtraction(followUpInput)
-                      setFollowUpInput('')
-                    }}
-                    type="button"
-                  >
-                    提交补充
-                  </button>
-                </PanelSurface>
-              ) : null}
-
-              <div className="grid grid-cols-4 gap-6">
-                <button
-                  className="border-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-surface-base)] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={isExtracting || isSaving || isExporting}
-                  onClick={() => void runInitialExtraction()}
-                  type="button"
-                >
-                  {isExtracting ? '提取中…' : '开始提取'}
-                </button>
-                <button
-                  className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={isExtracting || isSaving || isExporting}
-                  onClick={() => void handleExport('pdf')}
-                  type="button"
-                >
-                  {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
-                </button>
-                <button
-                  className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={isExtracting || isSaving || isExporting}
-                  onClick={() => void handleExport('png')}
-                  type="button"
-                >
-                  {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
-                </button>
-                <ActionSurface className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center p-6 text-white transition-all hover:-translate-y-1" theme="light" tone="warning">
-                  <span className="material-symbols-outlined mb-2 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    mic
-                  </span>
-                  <span className="font-['Inter'] text-xs font-bold uppercase tracking-widest">语音录入</span>
-                  <span className="mt-1 font-['JetBrains_Mono'] text-[10px] opacity-80">HOLD TO RECORD</span>
-                </ActionSurface>
-              </div>
-            </div>
-
-            <div className="col-span-4 flex flex-col gap-8 border-l-2 border-[var(--ff-border-default)] pl-8">
-              <div>
-                <h3 className="mb-4 border-b border-[var(--ff-border-default)] pb-2 font-['Playfair_Display'] text-2xl font-bold">
-                  Instructional
-                </h3>
-                <p className="ff-light-drop-cap text-sm italic leading-relaxed">
-                  先输入完整病史，再根据追问一次性补充缺失的临床关键字段。当前仅对肿瘤类型、分期与治疗方案触发追问。
-                </p>
-              </div>
-              <ActionSurface className="p-6 text-[var(--ff-surface-base)]" theme="light" tone="base">
-                <h4 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Current Parameters</h4>
-                <ul className="space-y-2 font-['JetBrains_Mono'] text-[11px] opacity-80">
-                  <li className="flex justify-between"><span>MODEL</span><span>GEMINI</span></li>
-                  <li className="flex justify-between"><span>FOLLOW UPS</span><span>MAX 3</span></li>
-                  <li className="flex justify-between"><span>MISSING</span><span>{remainingMissing.length}</span></li>
-                </ul>
-              </ActionSurface>
-            </div>
-          </section>
+          {currentQuestion ? (
+            <section className={`${shellContentWidthClass} mt-8`}>
+              <FollowUpPanel currentQuestion={currentQuestion} onSubmit={(value) => void runFollowUpExtraction(value)} theme="light" />
+            </section>
+          ) : null}
 
           <section className={`${shellContentWidthClass} mt-8`}>
             <div className="mb-6 flex items-baseline gap-4">
               <h2 className="font-['Newsreader'] text-4xl font-bold tracking-tighter">临床结构化报告</h2>
               <div className="h-[2px] flex-1 bg-[var(--ff-border-default)]" />
             </div>
-            <PanelSurface className="p-8" theme="light" tone="panel">
-              <div ref={setReportRef}>
-                <TimelineTable disabled={isExtracting || isSaving} onCommitField={handleFieldCommit} record={displayRecord} theme="light" />
-
-                <div className="mt-12 grid grid-cols-2 gap-12 border-t border-[var(--ff-border-muted)] pt-8">
-                  <div>
-                    <h5 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Clinical Notes</h5>
-                    <p className="text-xs italic text-[var(--ff-text-secondary)]">
-                      {remainingMissing.length > 0
-                        ? `仍待补充：${remainingMissing.join('、')}`
-                        : '关键临床字段已补齐，可进入下一阶段渲染。'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col justify-end">
-                    <ActionSurface className="flex items-center justify-between p-4" theme="light" tone="soft">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center bg-[var(--ff-text-primary)] font-['Playfair_Display'] text-xl font-black text-[var(--ff-surface-base)]">
-                          AI
-                        </div>
-                        <div>
-                          <p className="font-['Inter'] text-[10px] font-bold uppercase leading-none">Verified by AI Agent</p>
-                          <p className="font-['JetBrains_Mono'] text-[9px] text-[var(--ff-text-secondary)]">
-                            FOLLOW-UPS USED: {Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-[var(--ff-accent-warning)]">verified</span>
-                    </ActionSurface>
-                  </div>
-                </div>
-              </div>
-            </PanelSurface>
+            <ReportPreviewFrame
+              followUpCount={Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
+              isExtracting={isExtracting}
+              isSaving={isSaving}
+              onCommitField={handleFieldCommit}
+              record={displayRecord}
+              remainingMissing={remainingMissing}
+              setReportRef={setReportRef}
+              theme="light"
+            />
           </section>
 
           <footer className={`${shellContentWidthClass} mt-12 border-t border-[var(--ff-border-muted)] py-12 text-center text-[var(--ff-text-secondary)]`}>
