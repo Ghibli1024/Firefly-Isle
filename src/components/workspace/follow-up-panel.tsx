@@ -6,6 +6,9 @@
  */
 import { useState } from 'react'
 
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
+
 import { PanelSurface } from '@/components/system/surfaces'
 
 type FollowUpPanelProps = {
@@ -15,6 +18,7 @@ type FollowUpPanelProps = {
 }
 
 export function FollowUpPanel({ currentQuestion, onSubmit, theme }: FollowUpPanelProps) {
+  const { locale } = useLocale()
   const [value, setValue] = useState('')
 
   const textareaClassName =
@@ -30,15 +34,17 @@ export function FollowUpPanel({ currentQuestion, onSubmit, theme }: FollowUpPane
   return (
     <PanelSurface className={theme === 'dark' ? 'p-6' : 'ff-light-ink-shadow p-6'} theme={theme} tone="panel">
       {theme === 'dark' ? (
-        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">FOLLOW UP</div>
+        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
+          {getCopy(copy.workspace.followUp.title, locale)}
+        </div>
       ) : (
-        <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">FOLLOW UP</h3>
+        <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">{getCopy(copy.workspace.followUp.title, locale)}</h3>
       )}
       <p className="mt-3 text-sm leading-7 text-[var(--ff-text-subtle)]">{currentQuestion}</p>
       <textarea
         className={textareaClassName}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="一次性补充缺失信息..."
+        placeholder={getCopy(copy.workspace.followUp.placeholder, locale)}
         value={value}
       />
       <button
@@ -49,7 +55,7 @@ export function FollowUpPanel({ currentQuestion, onSubmit, theme }: FollowUpPane
         }}
         type="button"
       >
-        提交补充
+        {getCopy(copy.workspace.followUp.submit, locale)}
       </button>
     </PanelSurface>
   )

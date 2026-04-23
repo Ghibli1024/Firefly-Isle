@@ -6,7 +6,10 @@
  */
 import { Link, useLocation } from 'react-router-dom'
 
+import { LocaleToggle } from '@/components/locale-toggle'
 import { SidebarShell } from '@/components/system/surfaces'
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
 import { useTheme } from '@/lib/theme'
 import { sidebarWidthClass, themeTransitionClass } from '@/lib/theme/tokens'
 import { cn } from '@/lib/utils'
@@ -15,16 +18,16 @@ export const AVATAR_PLACEHOLDER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBkHYctOEhI9aqSSxbv-d8PP9dV4BClO1EwGd1OO2l69w9lThnnTLBoPBO8-Sp8GPx2ofiKOO9Rz4nJnWoYww9EvtQG4C_rkiLkEWq7mNrJA_kORudcZdPtTopsy8pz_pftXyqmsyYtOis4v5ZX7Kr6gaaWBVJvDrIoF6lQjiiiZTh8-p0cqSHkt-xkOoxKbgYH3PdgjKekdaoxQ0aBX7vgNmykPGaT4I8qqoehbA7cEzWKbIAt8uypCq6CEkAWaxaePc4BZA0Se3Ej'
 
 const darkNavItems = [
-  { label: '提取', icon: 'content_paste_search', href: '/app' },
-  { label: '病历', icon: 'folder_managed', href: '/record/demo' },
-  { label: '统计', icon: 'analytics', href: '/login' },
-]
+  { icon: 'content_paste_search', href: '/app', labelKey: 'extract' },
+  { icon: 'folder_managed', href: '/record/demo', labelKey: 'record' },
+  { icon: 'analytics', href: '/login', labelKey: 'analytics' },
+] as const
 
 const lightNavItems = [
-  { label: '提取', icon: 'clinical_notes', href: '/app' },
-  { label: '病历', icon: 'description', href: '/record/demo' },
-  { label: '统计', icon: 'analytics', href: '/login' },
-]
+  { icon: 'clinical_notes', href: '/app', labelKey: 'extract' },
+  { icon: 'description', href: '/record/demo', labelKey: 'record' },
+  { icon: 'analytics', href: '/login', labelKey: 'analytics' },
+] as const
 
 export type ArchiveSideNavProps = {
   dark: boolean
@@ -43,9 +46,10 @@ function isActive(pathname: string, href: string) {
 
 export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
+  const { locale } = useLocale()
   const { toggleTheme } = useTheme()
   const navItems = dark ? darkNavItems : lightNavItems
-  const resolvedUserLabel = userLabel ?? (dark ? 'ACCESS_PENDING' : 'Visitor Session')
+  const resolvedUserLabel = userLabel ?? getCopy(copy.shell.nav.pendingAccess, locale)
 
   return (
     <SidebarShell
@@ -61,20 +65,20 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabe
               ? "font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-secondary)]"
               : "text-2xl font-['Newsreader'] font-bold uppercase tracking-tighter text-[var(--ff-text-primary)]"}
           >
-            {dark ? 'FORENSIC_ARCHIVE_V1' : '一页萤岛'}
+            {dark ? getCopy(copy.shell.brand.darkHeader, locale) : getCopy(copy.shell.brand.lightTitle, locale)}
           </div>
           <div
             className={dark
               ? "font-['JetBrains_Mono'] text-[14px] font-bold text-[var(--ff-accent-primary)]"
               : "text-[10px] font-['Inter'] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]"}
           >
-            {dark ? '临床 AI 控制台' : 'Clinical AI Workspace'}
+            {dark ? getCopy(copy.shell.brand.darkSubtitle, locale) : getCopy(copy.shell.brand.lightSubtitle, locale)}
           </div>
         </div>
 
         {!dark ? (
           <button className="w-full bg-[var(--ff-text-primary)] py-3 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--ff-surface-base)] transition-opacity hover:opacity-90">
-            New Extraction
+            {getCopy(copy.shell.nav.newExtraction, locale)}
           </button>
         ) : null}
 
@@ -103,7 +107,7 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabe
                 to={item.href}
               >
                 <span className="material-symbols-outlined text-lg">{item.icon}</span>
-                <span>{item.label}</span>
+                <span>{getCopy(copy.shell.nav[item.labelKey], locale)}</span>
               </Link>
             )
           })}
@@ -111,22 +115,26 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabe
       </div>
 
       <div className={dark ? 'mt-auto flex flex-col gap-4' : 'space-y-4'}>
-        <button
-          className={dark
-            ? "flex items-center gap-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-secondary)] transition-colors hover:text-[var(--ff-accent-primary)]"
-            : "flex items-center gap-3 p-2 font-['Newsreader'] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"}
-          onClick={toggleTheme}
-          type="button"
-        >
-          <span className="material-symbols-outlined text-lg">{dark ? 'dark_mode' : 'contrast'}</span>
-          <span>{dark ? '切换主题' : 'Theme Toggle'}</span>
-        </button>
+        <div className={dark ? 'flex flex-col gap-3' : 'flex flex-col gap-2'}>
+          <button
+            className={dark
+              ? "flex items-center gap-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-secondary)] transition-colors hover:text-[var(--ff-accent-primary)]"
+              : "flex items-center gap-3 p-2 font-['Newsreader'] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"}
+            onClick={toggleTheme}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-lg">{dark ? 'dark_mode' : 'contrast'}</span>
+            <span>{getCopy(copy.shell.nav.themeToggle, locale)}</span>
+          </button>
+          <LocaleToggle />
+        </div>
+
 
         {dark ? (
           <>
             <div className="flex items-center gap-3 border-t border-[var(--ff-border-default)] pt-4 transition-[border-color] duration-200 ease-out">
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden border border-[var(--ff-border-muted)] bg-[var(--ff-surface-soft)]">
-                <img alt="用户头像" src={AVATAR_PLACEHOLDER} />
+                <img alt={getCopy(copy.shell.nav.avatarAlt, locale)} src={AVATAR_PLACEHOLDER} />
               </div>
               <div className="overflow-hidden font-['JetBrains_Mono'] text-[10px] uppercase">
                 <div className="truncate text-[var(--ff-text-primary)]">{resolvedUserLabel}</div>
@@ -139,7 +147,7 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabe
                 onClick={onSignOut}
                 type="button"
               >
-                <span>{isSigningOut ? '会话结束中' : '退出登录'}</span>
+                <span>{isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale)}</span>
                 <span className="material-symbols-outlined text-base">logout</span>
               </button>
             ) : null}
@@ -159,12 +167,12 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userLabe
                 type="button"
               >
                 <span className="material-symbols-outlined text-lg">logout</span>
-                <span>{isSigningOut ? 'Ending Session' : 'Sign Out'}</span>
+                <span>{isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale)}</span>
               </button>
             ) : (
               <button className="flex items-center gap-3 p-2 font-['Newsreader'] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]" type="button">
                 <span className="material-symbols-outlined text-lg">account_circle</span>
-                <span>User Profile</span>
+                <span>{getCopy(copy.shell.nav.userProfile, locale)}</span>
               </button>
             )}
           </>

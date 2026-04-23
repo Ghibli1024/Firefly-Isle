@@ -10,6 +10,8 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
 import { ArchiveSideNav, DarkTopBar } from '@/components/app-shell'
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
 import { ExtractionComposer } from '@/components/workspace/extraction-composer'
 import { FollowUpPanel } from '@/components/workspace/follow-up-panel'
 import { ReportPreviewFrame } from '@/components/workspace/report-preview-frame'
@@ -130,8 +132,10 @@ async function exportReportAsPdf(element: HTMLElement) {
   pdf.save(`${getExportFileBase()}.pdf`)
 }
 
-function getExportErrorMessage(format: 'pdf' | 'png') {
-  return format === 'pdf' ? 'PDF 导出失败，请稍后重试。' : 'PNG 导出失败，请稍后重试。'
+function getExportErrorMessage(format: 'pdf' | 'png', locale: 'zh' | 'en') {
+  return format === 'pdf'
+    ? getCopy(copy.workspace.errors.exportPdf, locale)
+    : getCopy(copy.workspace.errors.exportPng, locale)
 }
 
 function parseNumericField(value: string) {
@@ -224,8 +228,10 @@ function getTreatmentLinePayload(line: TreatmentLine, patientId: string) {
   }
 }
 
-function getSaveErrorMessage(target: PatientFieldTarget) {
-  return target.section === 'treatmentLine' ? '治疗线保存失败，请稍后重试。' : '患者信息保存失败，请稍后重试。'
+function getSaveErrorMessage(target: PatientFieldTarget, locale: 'zh' | 'en') {
+  return target.section === 'treatmentLine'
+    ? getCopy(copy.workspace.errors.saveTreatmentLine, locale)
+    : getCopy(copy.workspace.errors.savePatient, locale)
 }
 
 function mapTreatmentLineRow(row: TreatmentLineRow): TreatmentLine {
@@ -313,6 +319,7 @@ function getNextQuestion(missingFields: string[], followUpCount: number) {
 
 function useExtractionState() {
   const { user } = useAuth()
+  const { locale } = useLocale()
   const reportRef = useRef<HTMLDivElement | null>(null)
   const [state, setState] = useState<ExtractionState>({
     currentQuestion: null,
@@ -376,20 +383,20 @@ function useExtractionState() {
 
         setState((current) => ({
           ...current,
-          error: current.record ? current.error : '无法恢复最近一次患者记录，请刷新后重试。',
+          error: current.record ? current.error : getCopy(copy.workspace.errors.loadLatest, locale),
         }))
       })
 
     return () => {
       active = false
     }
-  }, [user])
+  }, [locale, user])
 
   async function runInitialExtraction() {
     if (!state.extractionInput.trim()) {
       setState((current) => ({
         ...current,
-        error: '请先输入病情描述，再开始提取。',
+        error: getCopy(copy.workspace.errors.missingInput, locale),
         retryMode: null,
       }))
       return
@@ -416,7 +423,7 @@ function useExtractionState() {
       try {
         persistedRecord = await persistField(record)
       } catch {
-        persistenceError = '患者记录保存失败，请稍后重试。'
+        persistenceError = getCopy(copy.workspace.errors.savePatient, locale)
       }
 
       setState((current) => ({
@@ -494,7 +501,7 @@ function useExtractionState() {
       } catch {
         setState((current) => ({
           ...current,
-          error: '患者记录保存失败，请稍后重试。',
+          error: getCopy(copy.workspace.errors.savePatient, locale),
         }))
       }
     } catch (error) {
@@ -583,7 +590,7 @@ function useExtractionState() {
       setState((current) => ({
         ...current,
         currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
-        error: getSaveErrorMessage(target),
+        error: getSaveErrorMessage(target, locale),
         isSaving: false,
         record: previousRecord,
         remainingMissing: getMissingCriticalFields(previousRecord),
@@ -619,7 +626,7 @@ function useExtractionState() {
       console.error(error)
       setState((current) => ({
         ...current,
-        exportError: getExportErrorMessage(format),
+        exportError: getExportErrorMessage(format, locale),
         exportFormat: null,
         isExporting: false,
       }))
@@ -719,6 +726,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
 }
 
 function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
+  const { locale } = useLocale()
   const {
     currentQuestion,
     error,
@@ -749,18 +757,18 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
 
         <MainShell className="flex-1 overflow-y-auto p-12" theme="light">
           <header className={`${shellContentWidthClass} mb-12`}>
-            <div className="mb-4 flex items-end justify-between">
+            <div className="mb-4 flex items-start justify-between gap-6">
               <div>
                 <h1 className="font-['Playfair_Display'] text-7xl font-black uppercase -tracking-widest text-[var(--ff-text-primary)]">
-                  EXTRACTOR
+                  {getCopy(copy.workspace.composer.extractor, locale)}
                 </h1>
                 <p className="mt-2 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[var(--ff-text-secondary)]">
-                  Session ID: AI-2949-01 // Clinical Intelligence Engine
+                  {getCopy(copy.workspace.composer.sessionId, locale)} // {getCopy(copy.workspace.report.engineLabel, locale)}
                 </p>
               </div>
               <div className="text-right font-['JetBrains_Mono'] text-xs text-[var(--ff-text-muted)]">
-                <span className="block">DATE: 2024.05.20</span>
-                <span className="block">LOCATION: SHANGHAI CLINIC</span>
+                <span className="block">{getCopy(copy.workspace.composer.date, locale)}</span>
+                <span className="block">{getCopy(copy.workspace.composer.location, locale)}</span>
               </div>
             </div>
             <div className="ff-light-double-rule" />
@@ -792,10 +800,6 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
           ) : null}
 
           <section className={`${shellContentWidthClass} mt-8`}>
-            <div className="mb-6 flex items-baseline gap-4">
-              <h2 className="font-['Newsreader'] text-4xl font-bold tracking-tighter">临床结构化报告</h2>
-              <div className="h-[2px] flex-1 bg-[var(--ff-border-default)]" />
-            </div>
             <ReportPreviewFrame
               followUpCount={Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
               isExtracting={isExtracting}
@@ -809,9 +813,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
           </section>
 
           <footer className={`${shellContentWidthClass} mt-12 border-t border-[var(--ff-border-muted)] py-12 text-center text-[var(--ff-text-secondary)]`}>
-            <span className="font-['Playfair_Display'] text-4xl font-black uppercase italic tracking-tighter">Ink &amp; Archive</span>
+            <span className="font-['Playfair_Display'] text-4xl font-black uppercase italic tracking-tighter">{getCopy(copy.workspace.report.footerBrand, locale)}</span>
             <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em]">
-              Protocol: CLINICAL-ALPHA-01 // NO UNMATCHED DATA
+              {getCopy(copy.workspaceShell.footerProtocol, locale)}
             </p>
           </footer>
         </MainShell>

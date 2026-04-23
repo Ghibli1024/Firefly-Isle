@@ -8,6 +8,9 @@ import { type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
+import { LocaleToggle } from '@/components/locale-toggle'
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
 import { PRIVACY_PAGE_HREF, PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
 import type { Theme } from '@/lib/theme'
 import { topBarOffsetClass } from '@/lib/theme/tokens'
@@ -110,8 +113,12 @@ function DarkLoginView({
   onToggleTheme,
   password,
 }: Omit<LoginPageViewProps, 'theme'>) {
-  const submitLabel = mode === 'login' ? '验证并进入控制台' : '创建账户并发送验证邮件'
-  const dividerLabel = mode === 'login' ? '或使用邮箱凭证 / OR_EMAIL' : '邮箱建档入口 / CREATE_ACCOUNT'
+  const { locale } = useLocale()
+  const submitLabel =
+    mode === 'login' ? getCopy(copy.login.auth.submitLogin, locale) : getCopy(copy.login.auth.submitSignup, locale)
+  const dividerLabel =
+    mode === 'login' ? getCopy(copy.login.auth.dividerLogin, locale) : getCopy(copy.login.auth.dividerSignup, locale)
+  const privacySummary = locale === 'zh' ? PRIVACY_POLICY_SUMMARY : 'We respect your medical privacy and use your data only to provide secure clinical extraction services.'
 
   return (
     <div className="min-h-screen overflow-hidden bg-[var(--ff-surface-base)] font-['Inter'] text-[var(--ff-text-primary)]">
@@ -129,19 +136,20 @@ function DarkLoginView({
 
           <div className="max-w-4xl space-y-8">
             <div className="mb-4 inline-block border border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] px-2 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
-              Clinical AI Intelligence
+              {getCopy(copy.login.hero.badge, locale)}
             </div>
             <h1 className="font-['Inter_Tight'] text-[clamp(3rem,8vw,6rem)] font-black leading-[0.9] tracking-tighter text-[var(--ff-text-primary)]">
-              把复杂治疗史
+              {getCopy(copy.login.hero.titleLine1, locale)}
               <br />
-              整理成<span className="text-[var(--ff-accent-primary)]">一页纸</span>
+              {getCopy(copy.login.hero.titleLine2, locale)}
+              <span className="text-[var(--ff-accent-primary)]">{getCopy(copy.login.hero.titleAccent, locale)}</span>
             </h1>
             <p className="max-w-2xl text-xl leading-relaxed text-[var(--ff-text-secondary)] md:text-2xl">
-              临床精密性的本质在于对复杂信息的降维与提取。
+              {getCopy(copy.login.hero.subtitle, locale)}
             </p>
             <div className="flex items-center gap-4 pt-12 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.3em] text-[var(--ff-text-muted)]">
               <div className="h-px w-24 bg-[var(--ff-border-default)]" />
-              <span>System Ready for Analysis</span>
+              <span>{getCopy(copy.login.hero.ready, locale)}</span>
             </div>
           </div>
 
@@ -152,8 +160,8 @@ function DarkLoginView({
           <div className="mx-auto w-full max-w-sm space-y-8">
             <header className="space-y-4">
               <div className="space-y-2">
-                <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">Authentication</h2>
-                <p className="text-lg font-bold tracking-tight">身份访问控制台</p>
+                <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">{getCopy(copy.login.auth.authentication, locale)}</h2>
+                <p className="text-lg font-bold tracking-tight">{getCopy(copy.login.auth.heading, locale)}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 border border-[var(--ff-border-default)] p-1">
                 <button
@@ -165,7 +173,7 @@ function DarkLoginView({
                   onClick={() => onModeChange('login')}
                   type="button"
                 >
-                  登录
+                  {getCopy(copy.login.auth.login, locale)}
                 </button>
                 <button
                   className={`px-3 py-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] transition-colors ${
@@ -176,7 +184,7 @@ function DarkLoginView({
                   onClick={() => onModeChange('sign-up')}
                   type="button"
                 >
-                  注册
+                  {getCopy(copy.login.auth.signup, locale)}
                 </button>
               </div>
             </header>
@@ -188,7 +196,7 @@ function DarkLoginView({
                 type="button"
               >
                 <WechatGlyph />
-                <span>微信快捷登录 / WECHAT_AUTH</span>
+                <span>{getCopy(copy.login.auth.wechat, locale)}</span>
               </button>
               <button
                 className="flex w-full items-center justify-center gap-3 border border-[var(--ff-border-default)] py-4 font-['JetBrains_Mono'] text-[12px] text-[var(--ff-text-secondary)] opacity-70"
@@ -196,7 +204,7 @@ function DarkLoginView({
                 type="button"
               >
                 <GoogleGlyph />
-                <span>谷歌账号登录 / GOOGLE_AUTH</span>
+                <span>{getCopy(copy.login.auth.google, locale)}</span>
               </button>
               <div className="flex items-center gap-4 py-4">
                 <div className="h-px flex-grow bg-[var(--ff-border-default)]" />
@@ -215,14 +223,14 @@ function DarkLoginView({
                   className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-muted)] transition-colors group-focus-within:text-[var(--ff-accent-primary)]"
                   htmlFor="dark-email"
                 >
-                  Registered Email
+                  {getCopy(copy.login.auth.emailLabel, locale)}
                 </label>
                 <input
                   autoComplete="email"
                   className="w-full border-b border-[var(--ff-border-default)] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[var(--ff-text-primary)] outline-none transition-all placeholder:text-sm placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
                   id="dark-email"
                   onChange={(event) => onEmailChange(event.target.value)}
-                  placeholder="输入临床邮箱"
+                  placeholder={getCopy(copy.login.auth.emailPlaceholder, locale)}
                   required
                   type="email"
                   value={email}
@@ -233,14 +241,14 @@ function DarkLoginView({
                   className="block font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-muted)] transition-colors group-focus-within:text-[var(--ff-accent-primary)]"
                   htmlFor="dark-key"
                 >
-                  Encryption Key
+                  {getCopy(copy.login.auth.passwordLabel, locale)}
                 </label>
                 <input
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   className="w-full border-b border-[var(--ff-border-default)] border-l-0 border-r-0 border-t-0 bg-transparent py-3 text-[var(--ff-text-primary)] outline-none transition-all placeholder:text-sm placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
                   id="dark-key"
                   onChange={(event) => onPasswordChange(event.target.value)}
-                  placeholder="输入 256 位加密密钥"
+                  placeholder={getCopy(copy.login.auth.passwordPlaceholder, locale)}
                   required
                   type="password"
                   value={password}
@@ -253,7 +261,7 @@ function DarkLoginView({
                   disabled={isSubmitting}
                   type="submit"
                 >
-                  <span className="tracking-widest">{isSubmitting ? '处理中…' : submitLabel}</span>
+                  <span className="tracking-widest">{isSubmitting ? getCopy(copy.workspace.composer.processing, locale) : submitLabel}</span>
                   <span className="material-symbols-outlined">arrow_forward_ios</span>
                 </button>
                 <button
@@ -262,12 +270,13 @@ function DarkLoginView({
                   onClick={onAnonymousLogin}
                   type="button"
                 >
-                  无需登录，直接使用匿名会话
+                  {getCopy(copy.login.auth.anonymous, locale)}
                 </button>
                 <div className="text-center text-[11px] italic leading-relaxed text-[var(--ff-text-secondary)]">
                   <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
-                    查看完整隐私条款
+                    {getCopy(copy.login.footer.fullPrivacy, locale)}
                   </Link>
+                  <div className="mt-2">{privacySummary}</div>
                 </div>
               </div>
             </form>
@@ -281,15 +290,19 @@ function DarkLoginView({
           </div>
 
           <div className="absolute bottom-10 right-10 flex flex-col items-center gap-4">
-            <button
-              className="group flex items-center justify-center border border-[var(--ff-border-default)] p-3 text-[var(--ff-text-primary)] transition-none hover:bg-[var(--ff-surface-accent)]"
-              onClick={onToggleTheme}
-              type="button"
-            >
-              <span className="material-symbols-outlined group-hover:text-[var(--ff-accent-primary)]">dark_mode</span>
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                className="group flex items-center justify-center border border-[var(--ff-border-default)] p-3 text-[var(--ff-text-primary)] transition-none hover:bg-[var(--ff-surface-accent)]"
+                onClick={onToggleTheme}
+                type="button"
+              >
+                <span className="material-symbols-outlined group-hover:text-[var(--ff-accent-primary)]">dark_mode</span>
+              </button>
+              <LocaleToggle />
+            </div>
             <div className="h-12 w-px bg-[var(--ff-border-default)]" />
           </div>
+
         </section>
       </main>
 
@@ -297,14 +310,14 @@ function DarkLoginView({
         className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] px-6"
       >
         <div className="flex items-center gap-8 font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-text-muted)]">
-          <span>© 2024 一页萤岛 ARCHIVE</span>
+          <span>{getCopy(copy.login.footer.copyrightDark, locale)}</span>
           <span>Clinical_Control_V1.4.2</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 animate-pulse bg-[var(--ff-accent-primary)]" />
             <span className="font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
-              Secure Link Active
+              {getCopy(copy.login.footer.secureLink, locale)}
             </span>
           </div>
         </div>
@@ -327,7 +340,13 @@ function LightLoginView({
   onToggleTheme,
   password,
 }: Omit<LoginPageViewProps, 'theme'>) {
-  const submitLabel = mode === 'login' ? '验证并进入系统' : '注册并发送验证邮件'
+  const { locale } = useLocale()
+  const submitLabel =
+    mode === 'login' ? getCopy(copy.login.auth.submitLoginLight, locale) : getCopy(copy.login.auth.submitSignup, locale)
+  const privacySummary =
+    locale === 'zh'
+      ? PRIVACY_POLICY_SUMMARY
+      : 'We respect your medical privacy and use your data only to provide secure clinical extraction services.'
 
   return (
     <div className="min-h-screen bg-[var(--ff-surface-base)] font-['Noto_Serif'] text-[var(--ff-text-primary)]">
@@ -338,27 +357,27 @@ function LightLoginView({
           <div className="relative overflow-hidden border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8">
             <div className="absolute right-0 top-0 h-16 w-16 border-b-2 border-l-2 border-[var(--ff-border-default)]" />
             <h2 className="mb-8 font-['Playfair_Display'] text-5xl leading-[0.95] tracking-tight text-[var(--ff-text-primary)] md:text-7xl">
-              把复杂治疗史
+              {getCopy(copy.login.lightHero.titleLine1, locale)}
               <br />
-              整理成一页纸
+              {getCopy(copy.login.lightHero.titleLine2, locale)}
             </h2>
             <div className="mb-8 h-2 w-24 bg-[var(--ff-border-default)]" />
             <p className="ff-light-drop-cap mb-8 text-justify text-xl leading-relaxed text-[var(--ff-text-primary)] md:text-2xl">
-              在数字化医疗的洪流中，信息的碎片化成为了精准诊疗的阻碍。一页萤岛利用先进的语义提取引擎，将跨度数年的电子病历、检验报告及主观叙述，浓缩为具备高度逻辑性的临床全景。我们不只是在整理数据，更是在重构生命叙事。
+              {getCopy(copy.login.lightHero.body, locale)}
             </p>
             <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-subtle)] p-4">
-                <span className="mb-2 block font-['JetBrains_Mono'] text-xs">PRECISION // 01</span>
-                <h4 className="font-['Newsreader'] text-lg font-bold">结构化重塑</h4>
+                <span className="mb-2 block font-['JetBrains_Mono'] text-xs">{getCopy(copy.login.lightHero.precisionTag, locale)}</span>
+                <h4 className="font-['Newsreader'] text-lg font-bold">{getCopy(copy.login.lightHero.precisionTitle, locale)}</h4>
                 <p className="mt-1 text-sm text-[var(--ff-text-subtle)]">
-                  自动识别140余种临床实体，将非结构化文本转化为标准医学图谱。
+                  {getCopy(copy.login.lightHero.precisionBody, locale)}
                 </p>
               </div>
               <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-subtle)] p-4">
-                <span className="mb-2 block font-['JetBrains_Mono'] text-xs">INTELLIGENCE // 02</span>
-                <h4 className="font-['Newsreader'] text-lg font-bold">时间轴推理</h4>
+                <span className="mb-2 block font-['JetBrains_Mono'] text-xs">{getCopy(copy.login.lightHero.intelligenceTag, locale)}</span>
+                <h4 className="font-['Newsreader'] text-lg font-bold">{getCopy(copy.login.lightHero.intelligenceTitle, locale)}</h4>
                 <p className="mt-1 text-sm text-[var(--ff-text-subtle)]">
-                  跨时空对比关键指标变化，自动勾勒病情进展与治疗反应曲线。
+                  {getCopy(copy.login.lightHero.intelligenceBody, locale)}
                 </p>
               </div>
             </div>
@@ -366,7 +385,7 @@ function LightLoginView({
 
           <div className="flex items-center gap-4 font-['JetBrains_Mono'] text-xs uppercase">
             <span className="material-symbols-outlined text-base">verified</span>
-            <span>Clinical Data Encryption Standard ISO-27001 Certified</span>
+            <span>{getCopy(copy.login.lightHero.certification, locale)}</span>
           </div>
         </section>
 
@@ -374,9 +393,9 @@ function LightLoginView({
           <div className="ff-light-ink-shadow border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8">
             <div className="mb-8">
               <div>
-                <h3 className="font-['Playfair_Display'] text-3xl font-bold leading-tight">身份访问控制台</h3>
+                <h3 className="font-['Playfair_Display'] text-3xl font-bold leading-tight">{getCopy(copy.login.auth.heading, locale)}</h3>
                 <p className="mt-1 font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight">
-                  Identity Access Management / Secure Gateway
+                  {getCopy(copy.login.auth.secureGateway, locale)}
                 </p>
               </div>
             </div>
@@ -391,7 +410,7 @@ function LightLoginView({
                 onClick={() => onModeChange('login')}
                 type="button"
               >
-                登录
+                {getCopy(copy.login.auth.login, locale)}
               </button>
               <button
                 className={`px-3 py-2 font-['Inter'] text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
@@ -402,7 +421,7 @@ function LightLoginView({
                 onClick={() => onModeChange('sign-up')}
                 type="button"
               >
-                注册
+                {getCopy(copy.login.auth.signup, locale)}
               </button>
             </div>
 
@@ -410,12 +429,14 @@ function LightLoginView({
               <LightAuthFeedback feedback={feedback ?? (authError ? { tone: 'error', message: authError } : null)} />
 
               <div className="group">
-                <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Electronic Mail</label>
+                <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
+                  {getCopy(copy.login.auth.emailLabelLight, locale)}
+                </label>
                 <input
                   autoComplete="email"
                   className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[var(--ff-border-default)] bg-transparent px-0 py-3 text-[var(--ff-text-primary)] outline-none placeholder:text-[color:color-mix(in_srgb,var(--ff-text-primary)_30%,transparent)]"
                   onChange={(event) => onEmailChange(event.target.value)}
-                  placeholder="输入邮箱地址"
+                  placeholder={getCopy(copy.login.auth.emailPlaceholderLight, locale)}
                   required
                   type="email"
                   value={email}
@@ -423,13 +444,13 @@ function LightLoginView({
               </div>
               <div className="group">
                 <label className="mb-1 block font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
-                  Encryption Key / Password
+                  {getCopy(copy.login.auth.passwordLabelLight, locale)}
                 </label>
                 <input
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   className="w-full border-b-2 border-l-0 border-r-0 border-t-0 border-[var(--ff-border-default)] bg-transparent px-0 py-3 font-['JetBrains_Mono'] text-[var(--ff-text-primary)] outline-none placeholder:text-[color:color-mix(in_srgb,var(--ff-text-primary)_30%,transparent)]"
                   onChange={(event) => onPasswordChange(event.target.value)}
-                  placeholder="••••••••"
+                  placeholder={getCopy(copy.login.auth.passwordPlaceholderLight, locale)}
                   required
                   type="password"
                   value={password}
@@ -441,13 +462,15 @@ function LightLoginView({
                 disabled={isSubmitting}
                 type="submit"
               >
-                {isSubmitting ? '处理中…' : submitLabel}
+                {isSubmitting ? getCopy(copy.workspace.composer.processing, locale) : submitLabel}
               </button>
             </form>
 
             <div className="relative my-10 flex items-center">
               <div className="flex-grow border-t border-[var(--ff-border-muted)]" />
-              <span className="mx-4 flex-shrink font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest">第三方鉴权</span>
+              <span className="mx-4 flex-shrink font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest">
+                {getCopy(copy.login.auth.thirdPartyAuth, locale)}
+              </span>
               <div className="flex-grow border-t border-[var(--ff-border-muted)]" />
             </div>
 
@@ -458,7 +481,7 @@ function LightLoginView({
                 type="button"
               >
                 <img alt="WeChat" className="h-4 w-4 grayscale" src={WECHAT_ICON_URL} />
-                <span className="text-xs uppercase tracking-tight">WeChat</span>
+                <span className="text-xs uppercase tracking-tight">{getCopy(copy.login.auth.wechat, locale)}</span>
               </button>
               <button
                 className="group flex items-center justify-center gap-2 border border-[var(--ff-border-default)] py-3 font-['Inter'] font-medium text-[var(--ff-text-secondary)]"
@@ -466,7 +489,7 @@ function LightLoginView({
                 type="button"
               >
                 <img alt="Google" className="h-4 w-4 grayscale" src={GOOGLE_ICON_URL} />
-                <span className="text-xs uppercase tracking-tight">Google</span>
+                <span className="text-xs uppercase tracking-tight">{getCopy(copy.login.auth.google, locale)}</span>
               </button>
             </div>
 
@@ -476,16 +499,16 @@ function LightLoginView({
               onClick={onAnonymousLogin}
               type="button"
             >
-              无需登录，直接使用匿名会话
+              {getCopy(copy.login.auth.anonymous, locale)}
             </button>
 
             <div className="mt-12 border-t border-[var(--ff-border-muted)] pt-8">
               <p className="text-center text-[11px] italic leading-relaxed text-[var(--ff-text-secondary)]">
-                {PRIVACY_POLICY_SUMMARY}
+                {privacySummary}
               </p>
               <div className="mt-4 text-center text-[11px] uppercase tracking-[0.2em]">
                 <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
-                  查看完整隐私条款
+                  {getCopy(copy.login.footer.fullPrivacy, locale)}
                 </Link>
               </div>
             </div>
@@ -493,11 +516,11 @@ function LightLoginView({
 
           <div className="mt-8 grid grid-cols-2 gap-4">
             <div className="flex flex-col justify-between bg-[var(--ff-text-primary)] p-4 text-[var(--ff-surface-base)]">
-              <span className="font-['JetBrains_Mono'] text-[10px]">UPTIME</span>
+              <span className="font-['JetBrains_Mono'] text-[10px]">{getCopy(copy.login.stats.uptime, locale)}</span>
               <span className="font-['Playfair_Display'] text-2xl font-bold">99.9%</span>
             </div>
             <div className="flex flex-col justify-between border border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)] p-4">
-              <span className="font-['JetBrains_Mono'] text-[10px]">USERS ONLINE</span>
+              <span className="font-['JetBrains_Mono'] text-[10px]">{getCopy(copy.login.stats.usersOnline, locale)}</span>
               <span className="font-['Playfair_Display'] text-2xl font-bold">1.2K+</span>
             </div>
           </div>
@@ -508,29 +531,32 @@ function LightLoginView({
         <div className="mb-1 h-1 w-full bg-[var(--ff-border-default)]" />
         <div className="mb-4 h-px w-full bg-[var(--ff-border-default)]" />
         <div className="flex flex-col items-center justify-between font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-text-secondary)] md:flex-row">
-          <span>© 2024 一页萤岛 ARCHIVE SYSTEM</span>
+          <span>{getCopy(copy.login.footer.copyrightLight, locale)}</span>
           <div className="mt-4 flex gap-8 md:mt-0">
             <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
-              Privacy Policy
+              {getCopy(copy.login.footer.privacyPolicy, locale)}
             </Link>
             <a className="underline underline-offset-4" href="#">
-              System Status
+              {getCopy(copy.login.footer.systemStatus, locale)}
             </a>
             <a className="underline underline-offset-4" href="#">
-              Support Cluster
+              {getCopy(copy.login.footer.supportCluster, locale)}
             </a>
           </div>
         </div>
       </footer>
 
       <div className="fixed bottom-10 right-10 z-50 flex flex-col items-center gap-4">
-        <button
-          className="group flex items-center justify-center border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-3 text-[var(--ff-text-primary)] shadow-[6px_6px_0_var(--ff-border-default)] transition-colors hover:bg-[var(--ff-surface-soft)] hover:text-[var(--ff-accent-primary)]"
-          onClick={onToggleTheme}
-          type="button"
-        >
-          <span className="material-symbols-outlined text-lg">contrast</span>
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            className="group flex items-center justify-center border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-3 text-[var(--ff-text-primary)] shadow-[6px_6px_0_var(--ff-border-default)] transition-colors hover:bg-[var(--ff-surface-soft)] hover:text-[var(--ff-accent-primary)]"
+            onClick={onToggleTheme}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-lg">contrast</span>
+          </button>
+          <LocaleToggle />
+        </div>
         <div className="h-12 w-px bg-[var(--ff-border-default)]" />
       </div>
     </div>

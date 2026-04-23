@@ -1,15 +1,18 @@
 /**
- * [INPUT]: 依赖 lucide-react 图标、@/components/ui/button 与 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 lucide-react 图标、@/components/ui/button、@/lib/theme 的 useTheme 与 @/lib/copy 的主题切换文案。
  * [OUTPUT]: 对外提供 ThemeToggle 组件。
- * [POS]: components 的全局主题开关，被应用壳层头部复用。
+ * [POS]: components 的全局主题开关，与语言开关并列复用，但只负责 theme 状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { MoonStar, SunMedium } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
 import { useTheme } from '@/lib/theme'
 
 export function ThemeToggle() {
+  const { locale } = useLocale()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -22,7 +25,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
     >
       {isDark ? <SunMedium className="size-3.5" /> : <MoonStar className="size-3.5" />}
-      {isDark ? 'Light' : 'Dark'}
+      {isDark ? getCopy(copy.themeToggle.light, locale) : getCopy(copy.themeToggle.dark, locale)}
     </Button>
   )
 }

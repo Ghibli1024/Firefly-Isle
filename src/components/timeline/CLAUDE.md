@@ -9,6 +9,6 @@
 
 成员清单
 CLAUDE.md: 说明时间线表格组件目录的职责边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-TimelineTable.tsx: 按 archetype 组合基本信息、初发区块与治疗线区块的主表格组件，消费统一 surface token 并负责关键缺失字段高亮与行内编辑入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+TimelineTable.tsx: 按 archetype 组合基本信息、初发区块与治疗线区块的主表格组件，消费统一 surface token、locale 文案真相源，并负责关键缺失字段高亮与行内编辑入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
 法则: 渲染规则跟着 PatientRecord 走，不在 UI 层发明第四种患者类型。

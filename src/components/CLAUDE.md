@@ -10,7 +10,8 @@ privacy-gate.tsx: 首次使用隐私门控层，负责 localStorage 确认状态
 record/: 档案详情 feature 组件目录，统一总览头部、章节骨架与侧栏信息卡，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 system/: 设计系统壳层与 surface 基元目录，统一 sidebar、top bar、panel 与 section 结构语义
 timeline/: 时间线表格组件目录，收敛 TimelineTable、基本信息区块、初发区块与治疗线区块渲染，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-theme-toggle.tsx: 全局主题切换入口，供壳层头部复用，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+theme-toggle.tsx: 全局主题切换入口，供壳层头部复用且只负责 theme 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+locale-toggle.tsx: 全局语言切换入口，与 ThemeToggle 并列复用但只负责 locale 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 ui/: shadcn/ui 基础组件与轻量封装
 workspace/: 临床工作区 feature 组件目录，统一输入区、追问补充区与报告预览骨架，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 

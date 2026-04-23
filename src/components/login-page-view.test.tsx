@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
+import { LocaleProvider } from '@/lib/locale'
 import { ThemeProvider } from '@/lib/theme'
 
 import { LoginPageView, type LoginPageViewProps } from './login-page-view'
@@ -30,9 +31,11 @@ function renderLogin(theme: LoginPageViewProps['theme']) {
 
   return renderToStaticMarkup(
     <ThemeProvider>
-      <MemoryRouter>
-        <LoginPageView {...props} />
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter>
+          <LoginPageView {...props} />
+        </MemoryRouter>
+      </LocaleProvider>
     </ThemeProvider>,
   )
 }
