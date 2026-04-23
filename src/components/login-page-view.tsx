@@ -1,16 +1,16 @@
 /**
- * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 @/components/app-shell 的设计复刻壳层，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖登录页表单状态 props。
+ * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 @/components/app-shell 的 DarkTopBar、LightMasthead 与报告占位素材，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 @/lib/theme/tokens 的顶部偏移合同，依赖登录页表单状态 props。
  * [OUTPUT]: 对外提供 LoginPageView 组件，以及 AuthMode / AuthFeedback / LoginPageViewProps 类型。
- * [POS]: components 的登录页展示层，承载 Dark/Light 双主题复刻结构、认证表单展示与产品入口隐私页跳转，不负责 Supabase 认证状态机。
+ * [POS]: components 的登录页展示层，承载无工作区导航的 Dark/Light 入口画布、认证表单、页面级主题切换与产品入口隐私页跳转，不负责 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-import { ArchiveSideNav, DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
+import { DarkTopBar, LightMasthead, REPORT_PLACEHOLDER } from '@/components/app-shell'
 import { PRIVACY_PAGE_HREF, PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
 import type { Theme } from '@/lib/theme'
-import { sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
+import { topBarOffsetClass } from '@/lib/theme/tokens'
 
 const WECHAT_ICON_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBENcjiU82jtpJo8cffyabcrVxd__Iz5VLI_StMAAMIuXtkQbq_w9NBtPmf3b_b3TtmA0QjwnWGc5un6mv619Cq1k6bo6nDHhij04dVA9asRSiI1gN0YrgOGUa11d1cc9YazDzK6nDXjqXqF4P-1xdrDXwrrDEzzK7B97qVWtxR3z0NhxxkLXJOOLdf_aVKd9tjnB28NflL6wQtnTbdIajZWK12XfTXDwJLvlAf-xaJzHpjpc0s6NidKZHAB34AlQnfSrC5DXc2YQja'
@@ -116,9 +116,8 @@ function DarkLoginView({
   return (
     <div className="min-h-screen overflow-hidden bg-[var(--ff-surface-base)] font-['Inter'] text-[var(--ff-text-primary)]">
       <DarkTopBar />
-      <ArchiveSideNav dark />
 
-      <main className={`flex min-h-screen flex-col ${topBarOffsetClass} ${sidebarOffsetClass} md:flex-row`}>
+      <main className={`flex min-h-screen flex-col ${topBarOffsetClass} md:flex-row`}>
         <section className="relative flex w-full flex-col justify-center overflow-hidden border-b border-[var(--ff-border-default)] p-12 md:w-[65%] md:border-b-0 md:border-r md:p-24">
           <div className="absolute right-0 top-0 p-8 text-right font-['JetBrains_Mono'] text-[10px] uppercase leading-relaxed tracking-widest text-[var(--ff-text-muted)] opacity-30 select-none">
             FORENSIC_ARCHIVE_SYSTEM_V1.0
@@ -295,7 +294,7 @@ function DarkLoginView({
       </main>
 
       <footer
-        className={`fixed bottom-0 z-50 flex h-12 items-center justify-between border-t border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] px-6 ${sidebarOffsetClass} left-0 right-0`}
+        className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] px-6"
       >
         <div className="flex items-center gap-8 font-['JetBrains_Mono'] text-[9px] uppercase tracking-widest text-[var(--ff-text-muted)]">
           <span>© 2024 一页萤岛 ARCHIVE</span>
@@ -331,7 +330,7 @@ function LightLoginView({
   const submitLabel = mode === 'login' ? '验证并进入系统' : '注册并发送验证邮件'
 
   return (
-    <div className="ff-light-login-bg min-h-screen font-['Noto_Serif'] text-[var(--ff-text-primary)]">
+    <div className="min-h-screen bg-[var(--ff-surface-base)] font-['Noto_Serif'] text-[var(--ff-text-primary)]">
       <LightMasthead />
 
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-12 px-6 py-12 md:flex-row md:px-12">
@@ -373,20 +372,13 @@ function LightLoginView({
 
         <section className="w-full md:w-5/12">
           <div className="ff-light-ink-shadow border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8">
-            <div className="mb-8 flex items-start justify-between gap-4">
+            <div className="mb-8">
               <div>
                 <h3 className="font-['Playfair_Display'] text-3xl font-bold leading-tight">身份访问控制台</h3>
                 <p className="mt-1 font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight">
                   Identity Access Management / Secure Gateway
                 </p>
               </div>
-              <button
-                className="border border-[var(--ff-border-default)] p-2 transition-colors hover:bg-[var(--ff-text-primary)] hover:text-[var(--ff-surface-base)]"
-                onClick={onToggleTheme}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-lg">contrast</span>
-              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-2 border border-[var(--ff-border-default)] p-1">
@@ -531,10 +523,15 @@ function LightLoginView({
         </div>
       </footer>
 
-      <div className="pointer-events-none fixed right-4 top-1/2 hidden -translate-y-1/2 xl:block">
-        <span className="inline-block origin-center rotate-90 whitespace-nowrap font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.5em] text-[var(--ff-text-muted)] opacity-40">
-          CONFIDENTIAL CLINICAL WORKFLOW ENVIRONMENT — AUTHENTICATION REQUIRED
-        </span>
+      <div className="fixed bottom-10 right-10 z-50 flex flex-col items-center gap-4">
+        <button
+          className="group flex items-center justify-center border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-3 text-[var(--ff-text-primary)] shadow-[6px_6px_0_var(--ff-border-default)] transition-colors hover:bg-[var(--ff-surface-soft)] hover:text-[var(--ff-accent-primary)]"
+          onClick={onToggleTheme}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-lg">contrast</span>
+        </button>
+        <div className="h-12 w-px bg-[var(--ff-border-default)]" />
       </div>
     </div>
   )

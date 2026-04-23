@@ -42,6 +42,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived MVP implementation artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-14-commit-history-log/`
   - archived docs/log governance artifacts (proposal/design/specs/tasks)
+- `openspec/changes/archive/2026-04-23-unify-theme-system/`
+  - archived theme-system unification artifacts (proposal/design/specs/tasks)
+- `openspec/changes/archive/2026-04-23-refine-login-theme-entry/`
+  - archived login theme-entry refinement artifacts (proposal/design/specs/tasks)
 - `.github/`
   - `workflows/*.yml` — GitHub Actions CI/CD workflows for verification and Cloudflare Pages deploy
 - `public/`
