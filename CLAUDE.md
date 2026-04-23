@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - This repository has completed its MVP implementation baseline. The full MVP change was archived at `openspec/changes/archive/2026-04-13-mvp-core/`.
 - The commit-history documentation change was archived at `openspec/changes/archive/2026-04-14-commit-history-log/`.
 - The current baseline specs now live under `openspec/specs/`.
-- There is no active OpenSpec change at the repository root right now; create a new change before starting the next scoped spec update.
+- Active OpenSpec changes currently include `add-language-toggle`, `flatten-workspace-report-shell`, and `split-ci-cd-deploy-control`; keep new scoped work on its own change instead of mutating unrelated active tracks.
 - Product context lives in `README.md` and `docs/products/`.
 
 ## Common commands
@@ -47,7 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `openspec/changes/archive/2026-04-23-refine-login-theme-entry/`
   - archived login theme-entry refinement artifacts (proposal/design/specs/tasks)
 - `.github/`
-  - `workflows/*.yml` — GitHub Actions CI/CD workflows for verification and Cloudflare Pages deploy
+  - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`
   - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
 - `supabase/`

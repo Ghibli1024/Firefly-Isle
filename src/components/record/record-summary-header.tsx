@@ -6,6 +6,8 @@
  */
 import { AVATAR_PLACEHOLDER } from '@/components/app-shell'
 import { SectionSurface } from '@/components/system/surfaces'
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale, type Locale } from '@/lib/locale'
 
 type Metric = {
   accent?: boolean
@@ -26,17 +28,33 @@ type RecordSummaryHeaderProps = {
   theme: 'dark' | 'light'
 }
 
+const summaryCopy: Record<Locale, { archiveNode: string; archiveTitle: string; patientName: string; patientSummary: string }> = {
+  en: {
+    archiveNode: 'Archive Node:',
+    archiveTitle: 'Clinical Record Archive',
+    patientName: 'Mr. Chen',
+    patientSummary: 'MALE / 64 YEARS',
+  },
+  zh: {
+    archiveNode: '档案节点：',
+    archiveTitle: '临床病史档案',
+    patientName: '陈先生',
+    patientSummary: '男性 / 64 岁',
+  },
+}
+
 export function RecordSummaryHeader({ meta, metrics, recordId, theme }: RecordSummaryHeaderProps) {
+  const { locale } = useLocale()
+  const content = summaryCopy[locale]
+
   if (theme === 'dark') {
     return (
       <header className="ff-dark-marker-line mb-12">
         <div className="mb-4 font-['JetBrains_Mono'] text-[12px] uppercase tracking-[0.3em] text-[var(--ff-accent-primary)]">
-          Archive Node: {recordId.toUpperCase()}
+          {content.archiveNode} {recordId.toUpperCase()}
         </div>
         <h1 className="mb-8 font-['Inter_Tight'] text-8xl font-black uppercase leading-[0.85] tracking-tighter text-[var(--ff-text-primary)]">
-          临床
-          <br />
-          病史档案
+          {content.archiveTitle}
         </h1>
         <div className="mb-12 grid grid-cols-4 border-b border-t border-[var(--ff-border-default)]">
           {metrics.map((metric, index) => (
@@ -64,10 +82,10 @@ export function RecordSummaryHeader({ meta, metrics, recordId, theme }: RecordSu
     <SectionSurface className="ff-light-ink-shadow mb-12 grid grid-cols-12 gap-0" theme="light" tone="panel">
       <div className="col-span-3 flex flex-col items-center justify-center border-r-2 border-[var(--ff-border-default)] bg-[var(--ff-text-primary)] p-6 text-[var(--ff-surface-base)]">
         <div className="mb-4 h-24 w-24 overflow-hidden border-2 border-[var(--ff-surface-base)]">
-          <img alt="Patient portrait" className="h-full w-full object-cover grayscale contrast-125" src={AVATAR_PLACEHOLDER} />
+          <img alt={getCopy(copy.shell.nav.avatarAlt, locale)} className="h-full w-full object-cover grayscale contrast-125" src={AVATAR_PLACEHOLDER} />
         </div>
-        <h1 className="text-center font-['Newsreader'] text-3xl font-bold tracking-tight">陈先生</h1>
-        <p className="font-['JetBrains_Mono'] text-xs uppercase opacity-80">MALE / 64 YEARS</p>
+        <h1 className="text-center font-['Newsreader'] text-3xl font-bold tracking-tight">{content.patientName}</h1>
+        <p className="font-['JetBrains_Mono'] text-xs uppercase opacity-80">{content.patientSummary}</p>
       </div>
       <div className="col-span-9 grid grid-cols-4 divide-x-2 divide-[var(--ff-border-default)]">
         {metrics.map((metric) => (

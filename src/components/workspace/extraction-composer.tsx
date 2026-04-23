@@ -1,9 +1,12 @@
 /**
- * [INPUT]: 依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 theme token 样式分发与外部传入的工作区提取状态。
+ * [INPUT]: 依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取状态。
  * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染文本输入、错误提示、重试入口、导出动作与轻主题说明侧栏。
  * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，用于让 route 保留状态机而不再拼装大段输入 JSX。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
+
 import { ActionSurface, PanelSurface } from '@/components/system/surfaces'
 
 type ExtractionComposerProps = {
@@ -39,17 +42,19 @@ export function ExtractionComposer({
   retryMode,
   theme,
 }: ExtractionComposerProps) {
+  const { locale } = useLocale()
+
   if (theme === 'dark') {
     return (
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
           <label className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
-            PATIENT_HISTORY_INPUT
+            {getCopy(copy.workspace.composer.inputLabel, locale)}
           </label>
           <textarea
             className="h-48 w-full resize-none border-0 border-b border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] p-4 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:border-b-2"
             onChange={(event) => onInputChange(event.target.value)}
-            placeholder="请描述患者的病情及治疗历程..."
+            placeholder={getCopy(copy.workspace.composer.inputPlaceholder, locale)}
             value={extractionInput}
           />
         </div>
@@ -65,7 +70,9 @@ export function ExtractionComposer({
           </ActionSurface>
         ) : null}
         {isSaving ? (
-          <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">保存中…</div>
+          <div className="text-xs font-['JetBrains_Mono'] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">
+            {getCopy(copy.workspace.composer.saving, locale)}
+          </div>
         ) : null}
 
         {retryMode ? (
@@ -74,7 +81,9 @@ export function ExtractionComposer({
             onClick={onRetry}
             type="button"
           >
-            {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
+            {retryMode === 'follow-up'
+              ? getCopy(copy.workspace.composer.retryFollowUp, locale)
+              : getCopy(copy.workspace.composer.retryInitial, locale)}
           </button>
         ) : null}
 
@@ -88,7 +97,9 @@ export function ExtractionComposer({
               auto_awesome
             </span>
             <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-text-muted)] group-hover:text-[var(--ff-text-primary)]">
-              {isExtracting ? '提取中…' : '开始结构化提取'}
+              {isExtracting
+                ? getCopy(copy.workspace.composer.extracting, locale)
+                : getCopy(copy.workspace.composer.extract, locale)}
             </span>
           </button>
           <button
@@ -97,7 +108,9 @@ export function ExtractionComposer({
             onClick={() => onExport('pdf')}
             type="button"
           >
-            {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
+            {isExporting && exportFormat === 'pdf'
+              ? getCopy(copy.workspace.composer.exportPdfLoading, locale)
+              : getCopy(copy.workspace.composer.exportPdf, locale)}
           </button>
           <button
             className="border border-[var(--ff-border-default)] px-4 py-6 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-text-primary)] disabled:cursor-not-allowed disabled:text-[var(--ff-text-muted)]"
@@ -105,7 +118,9 @@ export function ExtractionComposer({
             onClick={() => onExport('png')}
             type="button"
           >
-            {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
+            {isExporting && exportFormat === 'png'
+              ? getCopy(copy.workspace.composer.exportPngLoading, locale)
+              : getCopy(copy.workspace.composer.exportPng, locale)}
           </button>
         </div>
       </div>
@@ -118,16 +133,18 @@ export function ExtractionComposer({
         <PanelSurface className="p-6" theme="light" tone="panel">
           <div className="mb-4 flex items-center justify-between">
             <label className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] text-[var(--ff-text-primary)]">
-              文字输入 / TEXT INPUT
+              {getCopy(copy.workspace.composer.textInput, locale)}
             </label>
             <span className="font-['JetBrains_Mono'] text-[10px] font-bold text-[var(--ff-accent-warning)]">
-              {isExtracting ? 'ANALYZING' : 'READY TO ANALYZE'}
+              {isExtracting
+                ? getCopy(copy.workspace.composer.analyzing, locale)
+                : getCopy(copy.workspace.composer.ready, locale)}
             </span>
           </div>
           <textarea
             className="h-48 w-full resize-none border-0 bg-transparent text-xl leading-relaxed outline-none placeholder:text-[var(--ff-text-muted)]"
             onChange={(event) => onInputChange(event.target.value)}
-            placeholder="在此输入患者病史或临床表现描述..."
+            placeholder={getCopy(copy.workspace.composer.inputPlaceholder, locale)}
             value={extractionInput}
           />
           <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -136,12 +153,16 @@ export function ExtractionComposer({
               onClick={onExtract}
               type="button"
             >
-              {isExtracting ? '提取中…' : '开始提取'}
+              {isExtracting
+                ? getCopy(copy.workspace.composer.extracting, locale)
+                : getCopy(copy.workspace.composer.extract, locale)}
             </button>
             {error ? <span className="text-sm text-[var(--ff-accent-warning)]">{error}</span> : null}
             {exportError ? <span className="text-sm text-[var(--ff-accent-warning)]">{exportError}</span> : null}
             {isSaving ? (
-              <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-warning)]">保存中…</span>
+              <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-warning)]">
+                {getCopy(copy.workspace.composer.saving, locale)}
+              </span>
             ) : null}
             {retryMode ? (
               <button
@@ -149,7 +170,9 @@ export function ExtractionComposer({
                 onClick={onRetry}
                 type="button"
               >
-                {retryMode === 'follow-up' ? '重试这轮补充' : '重试提取'}
+                {retryMode === 'follow-up'
+                  ? getCopy(copy.workspace.composer.retryFollowUp, locale)
+                  : getCopy(copy.workspace.composer.retryInitial, locale)}
               </button>
             ) : null}
           </div>
@@ -162,7 +185,9 @@ export function ExtractionComposer({
             onClick={onExtract}
             type="button"
           >
-            {isExtracting ? '提取中…' : '开始提取'}
+            {isExtracting
+              ? getCopy(copy.workspace.composer.extracting, locale)
+              : getCopy(copy.workspace.composer.extract, locale)}
           </button>
           <button
             className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
@@ -170,7 +195,9 @@ export function ExtractionComposer({
             onClick={() => onExport('pdf')}
             type="button"
           >
-            {isExporting && exportFormat === 'pdf' ? '导出 PDF 中…' : '导出 PDF'}
+            {isExporting && exportFormat === 'pdf'
+              ? getCopy(copy.workspace.composer.exportPdfLoading, locale)
+              : getCopy(copy.workspace.composer.exportPdf, locale)}
           </button>
           <button
             className="border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-40"
@@ -178,14 +205,20 @@ export function ExtractionComposer({
             onClick={() => onExport('png')}
             type="button"
           >
-            {isExporting && exportFormat === 'png' ? '导出 PNG 中…' : '导出 PNG'}
+            {isExporting && exportFormat === 'png'
+              ? getCopy(copy.workspace.composer.exportPngLoading, locale)
+              : getCopy(copy.workspace.composer.exportPng, locale)}
           </button>
           <ActionSurface className="ff-light-hard-shadow flex cursor-pointer flex-col items-center justify-center p-6 text-white transition-all hover:-translate-y-1" theme="light" tone="warning">
             <span className="material-symbols-outlined mb-2 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
               mic
             </span>
-            <span className="font-['Inter'] text-xs font-bold uppercase tracking-widest">语音录入</span>
-            <span className="mt-1 font-['JetBrains_Mono'] text-[10px] opacity-80">HOLD TO RECORD</span>
+            <span className="font-['Inter'] text-xs font-bold uppercase tracking-widest">
+              {getCopy(copy.workspace.composer.voice, locale)}
+            </span>
+            <span className="mt-1 font-['JetBrains_Mono'] text-[10px] opacity-80">
+              {getCopy(copy.workspace.composer.holdToRecord, locale)}
+            </span>
           </ActionSurface>
         </div>
       </div>
@@ -193,18 +226,20 @@ export function ExtractionComposer({
       <div className="col-span-4 flex flex-col gap-8 border-l-2 border-[var(--ff-border-default)] pl-8">
         <div>
           <h3 className="mb-4 border-b border-[var(--ff-border-default)] pb-2 font-['Playfair_Display'] text-2xl font-bold">
-            Instructional
+            {getCopy(copy.workspace.composer.instructionalTitle, locale)}
           </h3>
           <p className="ff-light-drop-cap text-sm italic leading-relaxed">
-            先输入完整病史，再根据追问一次性补充缺失的临床关键字段。当前仅对肿瘤类型、分期与治疗方案触发追问。
+            {getCopy(copy.workspace.composer.instructionalBody, locale)}
           </p>
         </div>
         <ActionSurface className="p-6 text-[var(--ff-surface-base)]" theme="light" tone="base">
-          <h4 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">Current Parameters</h4>
+          <h4 className="mb-4 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">
+            {getCopy(copy.workspace.composer.currentParameters, locale)}
+          </h4>
           <ul className="space-y-2 font-['JetBrains_Mono'] text-[11px] opacity-80">
-            <li className="flex justify-between"><span>MODEL</span><span>GEMINI</span></li>
-            <li className="flex justify-between"><span>FOLLOW UPS</span><span>MAX 3</span></li>
-            <li className="flex justify-between"><span>MISSING</span><span>{remainingMissingCount}</span></li>
+            <li className="flex justify-between"><span>{getCopy(copy.workspace.composer.model, locale)}</span><span>{getCopy(copy.workspace.composer.gemini, locale)}</span></li>
+            <li className="flex justify-between"><span>{getCopy(copy.workspace.composer.followUps, locale)}</span><span>{getCopy(copy.workspace.composer.followUps, locale)}</span></li>
+            <li className="flex justify-between"><span>{getCopy(copy.workspace.composer.missing, locale)}</span><span>{remainingMissingCount}</span></li>
           </ul>
         </ActionSurface>
       </div>

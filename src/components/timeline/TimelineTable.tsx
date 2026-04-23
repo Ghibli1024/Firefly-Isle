@@ -6,6 +6,8 @@
  */
 import { useState } from 'react'
 
+import { getCopy, copy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
 import type { Theme } from '@/lib/theme'
 import {
   getPatientArchetype,
@@ -77,10 +79,28 @@ type CellProps = {
   value?: string
 }
 
-const ARCHETYPE_LABELS: Record<PatientArchetype, string> = {
-  'de-novo-advanced': 'DE_NOVO_ADVANCED',
-  'non-advanced': 'NON_ADVANCED',
-  'relapsed-advanced': 'RELAPSED_ADVANCED',
+function padOrder(order: number) {
+  return String(order).padStart(2, '0')
+}
+
+function getArchetypeLabel(archetype: PatientArchetype, locale: 'zh' | 'en') {
+  if (archetype === 'de-novo-advanced') {
+    return getCopy(copy.timeline.archetypeLabels.deNovoAdvanced, locale)
+  }
+
+  if (archetype === 'relapsed-advanced') {
+    return getCopy(copy.timeline.archetypeLabels.relapsedAdvanced, locale)
+  }
+
+  return getCopy(copy.timeline.archetypeLabels.nonAdvanced, locale)
+}
+
+function getInitialOnsetSubtitle(locale: 'zh' | 'en') {
+  return `${getCopy(copy.timeline.initialOnsetSubtitle, locale)} / INITIAL_ONSET`
+}
+
+function getTreatmentLineSubtitle(lineNumber: number, locale: 'zh' | 'en') {
+  return `${getCopy(copy.timeline.treatmentLineSubtitle, locale)} ${lineNumber} / LINE_${padOrder(lineNumber)}`
 }
 
 function hasValue(value: unknown) {
@@ -99,11 +119,19 @@ function display(value: unknown) {
   return typeof value === 'string' ? value.trim() : String(value)
 }
 
-function formatMetric(value: number | undefined, unit: string) {
-  return value === undefined ? undefined : `${value} ${unit}`
+function formatMetric(value: number | undefined, unit: string, locale: 'zh' | 'en') {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (unit === '岁') {
+    return locale === 'zh' ? `${value} 岁` : `${value} years`
+  }
+
+  return `${value} ${unit}`
 }
 
-function formatPeriod(startDate?: string, endDate?: string) {
+function formatPeriod(startDate?: string, endDate?: string, locale?: 'zh' | 'en') {
   if (!startDate && !endDate) {
     return undefined
   }
@@ -113,7 +141,7 @@ function formatPeriod(startDate?: string, endDate?: string) {
   }
 
   if (!endDate) {
-    return `${startDate} — 至今`
+    return `${startDate} — ${locale === 'zh' ? '至今' : 'Present'}`
   }
 
   return `${startDate} — ${endDate}`
@@ -159,10 +187,6 @@ function getCellClass(theme: Theme, critical: boolean, filled: boolean) {
     : 'border-2 border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
 }
 
-function padOrder(order: number) {
-  return String(order).padStart(2, '0')
-}
-
 function getEditValue(value: unknown) {
   return value === undefined || value === null ? '' : String(value)
 }
@@ -183,7 +207,7 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
           </div>
         </div>
         <span className="min-w-[160px] self-start border border-[var(--ff-timeline-badge-border)] bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
-          {badge ?? '\u00A0'}
+          {badge ?? ' '}
         </span>
       </div>
     )
@@ -205,7 +229,7 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
         </div>
       </div>
       <span className="min-w-[160px] self-start bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
-        {badge ?? '\u00A0'}
+        {badge ?? ' '}
       </span>
     </div>
   )
@@ -226,42 +250,18 @@ function DataCell({
   theme,
   value,
 }: CellProps) {
-  const rendered = display(value)
-  const filled = rendered !== undefined
-  const prominent = !label.includes('免疫组化') && !label.includes('基因检测') && !label.includes('活检')
+  const filled = hasValue(value)
   const isEditing = editor?.id === cellId
-  const isInteractive = onCommitField !== undefined && !disabled
+  const rendered = display(value)
 
   return (
-    <div
-      className={`${getCellClass(theme, critical, filled)} flex min-h-[108px] flex-col justify-between gap-4 p-4 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[var(--ff-timeline-hover-border)] hover:bg-inherit' : ''
-      }`}
-      onClick={() => {
-        if (!isInteractive || isEditing) {
-          return
-        }
-
-        onBeginEdit(cellId, editValue)
-      }}
-      onKeyDown={(event) => {
-        if (!isInteractive || isEditing) {
-          return
-        }
-
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onBeginEdit(cellId, editValue)
-        }
-      }}
-      role={isInteractive ? 'button' : undefined}
-      tabIndex={isInteractive ? 0 : undefined}
-    >
-      <span className={getLabelClass()}>{label}</span>
+    <div className={`${getCellClass(theme, critical, filled)} p-4`}>
+      <div className={getLabelClass()}>{label}</div>
       {isEditing ? (
         <input
           autoFocus
-          className={`${getValueClass(theme, true, prominent)} min-h-[32px] w-full bg-transparent outline-none placeholder:opacity-40`}
+          className="mt-3 w-full bg-transparent text-sm outline-none"
+          disabled={disabled}
           onBlur={(event) => {
             void onCommitField?.(target, event.currentTarget.value)
           }}
@@ -270,90 +270,26 @@ function DataCell({
             if (event.key === 'Escape') {
               event.preventDefault()
               onCancelEdit()
-              return
-            }
-
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              event.currentTarget.blur()
             }
           }}
           value={editor?.value ?? ''}
         />
       ) : (
-        <span className={getValueClass(theme, filled, prominent)}>{rendered ?? '\u00A0'}</span>
+        <button
+          className="mt-3 w-full text-left"
+          disabled={disabled || !onCommitField}
+          onClick={() => onBeginEdit(cellId, editValue)}
+          type="button"
+        >
+          <div className={getValueClass(theme, filled, false)}>{rendered ?? ' '}</div>
+        </button>
       )}
     </div>
   )
 }
 
-function NarrativeCell({
-  cellId,
-  critical = false,
-  disabled,
-  editValue,
-  editor,
-  label,
-  onBeginEdit,
-  onCancelEdit,
-  onCommitField,
-  onUpdateEditorValue,
-  target,
-  theme,
-  value,
-}: CellProps) {
-  const rendered = display(value)
-  const filled = rendered !== undefined
-  const isEditing = editor?.id === cellId
-  const isInteractive = onCommitField !== undefined && !disabled
-
-  return (
-    <div
-      className={`${getCellClass(theme, critical, filled)} flex min-h-[176px] flex-col gap-4 p-5 ${
-        isInteractive ? 'cursor-text transition-colors hover:border-[var(--ff-timeline-hover-border)] hover:bg-inherit' : ''
-      }`}
-      onClick={() => {
-        if (!isInteractive || isEditing) {
-          return
-        }
-
-        onBeginEdit(cellId, editValue)
-      }}
-      onKeyDown={(event) => {
-        if (!isInteractive || isEditing) {
-          return
-        }
-
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onBeginEdit(cellId, editValue)
-        }
-      }}
-      role={isInteractive ? 'button' : undefined}
-      tabIndex={isInteractive ? 0 : undefined}
-    >
-      <span className={getLabelClass()}>{label}</span>
-      {isEditing ? (
-        <textarea
-          autoFocus
-          className={`${getValueClass(theme, true, false)} min-h-[104px] w-full flex-1 resize-none bg-transparent outline-none placeholder:opacity-40`}
-          onBlur={(event) => {
-            void onCommitField?.(target, event.currentTarget.value)
-          }}
-          onChange={(event) => onUpdateEditorValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault()
-              onCancelEdit()
-            }
-          }}
-          value={editor?.value ?? ''}
-        />
-      ) : (
-        <div className={getValueClass(theme, filled, false)}>{rendered ?? '\u00A0'}</div>
-      )}
-    </div>
-  )
+function NarrativeCell(props: CellProps) {
+  return <DataCell {...props} />
 }
 
 export function BasicInfoBlock({
@@ -366,47 +302,48 @@ export function BasicInfoBlock({
   onUpdateEditorValue,
   theme,
 }: BasicInfoBlockProps) {
+  const { locale } = useLocale()
   const fields = [
     {
       cellId: 'basicInfo.gender',
       editValue: getEditValue(basicInfo?.gender),
-      label: 'Gender / 性别',
+      label: getCopy(copy.timeline.gender, locale),
       target: { field: 'gender', section: 'basicInfo' } as const,
       value: display(basicInfo?.gender),
     },
     {
       cellId: 'basicInfo.age',
       editValue: getEditValue(basicInfo?.age),
-      label: 'Age / 年龄',
+      label: getCopy(copy.timeline.age, locale),
       target: { field: 'age', section: 'basicInfo' } as const,
-      value: formatMetric(basicInfo?.age, '岁'),
+      value: formatMetric(basicInfo?.age, '岁', locale),
     },
     {
       cellId: 'basicInfo.height',
       editValue: getEditValue(basicInfo?.height),
-      label: 'Height / 身高',
+      label: getCopy(copy.timeline.height, locale),
       target: { field: 'height', section: 'basicInfo' } as const,
-      value: formatMetric(basicInfo?.height, 'cm'),
+      value: formatMetric(basicInfo?.height, 'cm', locale),
     },
     {
       cellId: 'basicInfo.weight',
       editValue: getEditValue(basicInfo?.weight),
-      label: 'Weight / 体重',
+      label: getCopy(copy.timeline.weight, locale),
       target: { field: 'weight', section: 'basicInfo' } as const,
-      value: formatMetric(basicInfo?.weight, 'kg'),
+      value: formatMetric(basicInfo?.weight, 'kg', locale),
     },
     {
       cellId: 'basicInfo.tumorType',
       critical: true,
       editValue: getEditValue(basicInfo?.tumorType),
-      label: 'Tumor Type / 肿瘤类型',
+      label: getCopy(copy.timeline.tumorType, locale),
       target: { field: 'tumorType', section: 'basicInfo' } as const,
       value: display(basicInfo?.tumorType),
     },
     {
       cellId: 'basicInfo.diagnosisDate',
       editValue: getEditValue(basicInfo?.diagnosisDate),
-      label: 'Diagnosis Date / 诊断日期',
+      label: getCopy(copy.timeline.diagnosisDate, locale),
       target: { field: 'diagnosisDate', section: 'basicInfo' } as const,
       value: display(basicInfo?.diagnosisDate),
     },
@@ -414,7 +351,7 @@ export function BasicInfoBlock({
       cellId: 'basicInfo.stage',
       critical: true,
       editValue: getEditValue(basicInfo?.stage),
-      label: 'Stage / 分期',
+      label: getCopy(copy.timeline.stage, locale),
       target: { field: 'stage', section: 'basicInfo' } as const,
       value: display(basicInfo?.stage),
     },
@@ -431,16 +368,12 @@ export function BasicInfoBlock({
                 : "font-['Newsreader'] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)]"
             }
           >
-            基本信息
+            {getCopy(copy.timeline.basicInfoTitle, locale)}
           </h2>
-          <p className={`mt-2 ${getLabelClass()}`}>BASIC_INFO / TOP_BLOCK</p>
+          <p className={`mt-2 ${getLabelClass()}`}>{getCopy(copy.timeline.basicInfoSubtitle, locale)}</p>
         </div>
-        <span
-          className={
-            "font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-accent)]"
-          }
-        >
-          CRITICAL_FIELDS: TUMOR_TYPE / STAGE / REGIMEN
+        <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-accent)]">
+          {getCopy(copy.timeline.criticalFields, locale)}
         </span>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -478,13 +411,15 @@ export function InitialOnsetBlock({
   order,
   theme,
 }: InitialOnsetBlockProps) {
+  const { locale } = useLocale()
+
   return (
     <article className="space-y-6">
       <SectionHeader
         badge={display(initialOnset.triggerDate)}
         order={order}
-        subtitle="INITIAL_ONSET"
-        title="初发区块"
+        subtitle={getInitialOnsetSubtitle(locale)}
+        title={getCopy(copy.timeline.initialOnsetTitle, locale)}
         theme={theme}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
@@ -494,7 +429,7 @@ export function InitialOnsetBlock({
           disabled={disabled}
           editValue={getEditValue(initialOnset.treatment)}
           editor={editor}
-          label="治疗方案 / REGIMEN"
+          label={getCopy(copy.timeline.regimen, locale)}
           onBeginEdit={onBeginEdit}
           onCancelEdit={onCancelEdit}
           onCommitField={onCommitField}
@@ -509,7 +444,7 @@ export function InitialOnsetBlock({
             disabled={disabled}
             editValue={getEditValue(initialOnset.triggerDate)}
             editor={editor}
-            label="Trigger Date / 初发时间"
+            label={getCopy(copy.timeline.triggerDate, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -523,7 +458,7 @@ export function InitialOnsetBlock({
             disabled={disabled}
             editValue={getEditValue(initialOnset.immunohistochemistry)}
             editor={editor}
-            label="免疫组化 / IHC"
+            label={getCopy(copy.timeline.immunohistochemistry, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -537,7 +472,7 @@ export function InitialOnsetBlock({
             disabled={disabled}
             editValue={getEditValue(initialOnset.geneticTest)}
             editor={editor}
-            label="基因检测 / GENETIC"
+            label={getCopy(copy.timeline.genetic, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -563,13 +498,15 @@ export function TreatmentLineBlock({
   order,
   theme,
 }: TreatmentLineBlockProps) {
+  const { locale } = useLocale()
+
   return (
     <article className="space-y-6">
       <SectionHeader
-        badge={formatPeriod(line.startDate, line.endDate)}
+        badge={formatPeriod(line.startDate, line.endDate, locale)}
         order={order}
-        subtitle={`LINE_${padOrder(line.lineNumber)}`}
-        title={`治疗线 ${line.lineNumber}`}
+        subtitle={getTreatmentLineSubtitle(line.lineNumber, locale)}
+        title={`${getCopy(copy.timeline.treatmentLine, locale)} ${line.lineNumber}`}
         theme={theme}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
@@ -580,7 +517,7 @@ export function TreatmentLineBlock({
             disabled={disabled}
             editValue={getEditValue(line.regimen)}
             editor={editor}
-            label="治疗方案 / REGIMEN"
+            label={getCopy(copy.timeline.regimen, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -595,7 +532,7 @@ export function TreatmentLineBlock({
               disabled={disabled}
               editValue={getEditValue(line.startDate)}
               editor={editor}
-              label="Start Date / 开始时间"
+              label={getCopy(copy.timeline.startDate, locale)}
               onBeginEdit={onBeginEdit}
               onCancelEdit={onCancelEdit}
               onCommitField={onCommitField}
@@ -609,7 +546,7 @@ export function TreatmentLineBlock({
               disabled={disabled}
               editValue={getEditValue(line.endDate)}
               editor={editor}
-              label="End Date / 结束时间"
+              label={getCopy(copy.timeline.endDate, locale)}
               onBeginEdit={onBeginEdit}
               onCancelEdit={onCancelEdit}
               onCommitField={onCommitField}
@@ -626,7 +563,7 @@ export function TreatmentLineBlock({
             disabled={disabled}
             editValue={getEditValue(line.biopsy)}
             editor={editor}
-            label="活检 / BIOPSY"
+            label={getCopy(copy.timeline.biopsy, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -640,7 +577,7 @@ export function TreatmentLineBlock({
             disabled={disabled}
             editValue={getEditValue(line.immunohistochemistry)}
             editor={editor}
-            label="免疫组化 / IHC"
+            label={getCopy(copy.timeline.immunohistochemistry, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -654,7 +591,7 @@ export function TreatmentLineBlock({
             disabled={disabled}
             editValue={getEditValue(line.geneticTest)}
             editor={editor}
-            label="基因检测 / GENETIC"
+            label={getCopy(copy.timeline.genetic, locale)}
             onBeginEdit={onBeginEdit}
             onCancelEdit={onCancelEdit}
             onCommitField={onCommitField}
@@ -670,9 +607,11 @@ export function TreatmentLineBlock({
 }
 
 function EmptyState({ theme }: { theme: Theme }) {
+  const { locale } = useLocale()
+
   return (
     <div className={`${getSectionClass(theme)} text-[var(--ff-timeline-text-muted)]`}>
-      <div className={getLabelClass()}>TIMELINE_STATE</div>
+      <div className={getLabelClass()}>{getCopy(copy.timeline.emptyStateKey, locale)}</div>
       <p
         className={
           theme === 'dark'
@@ -680,14 +619,15 @@ function EmptyState({ theme }: { theme: Theme }) {
             : "mt-4 font-['Newsreader'] text-3xl font-bold"
         }
       >
-        尚未生成初发区块或治疗线。
+        {getCopy(copy.timeline.emptyTitle, locale)}
       </p>
-      <p className="mt-3 text-sm leading-7">提交患者描述后，这里会按 archetype 自动切换布局，并对关键缺失字段做高亮提示。</p>
+      <p className="mt-3 text-sm leading-7">{getCopy(copy.timeline.emptyBody, locale)}</p>
     </div>
   )
 }
 
 export function TimelineTable({ disabled = false, onCommitField, record, theme }: TimelineTableProps) {
+  const { locale } = useLocale()
   const archetype = getPatientArchetype(record)
   const [editor, setEditor] = useState<EditorState | null>(null)
   const sections: Array<
@@ -739,7 +679,7 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className={getLabelClass()}>TIMELINE_TABLE</div>
+            <div className={getLabelClass()}>{getCopy(copy.timeline.tableKey, locale)}</div>
             <h1
               className={
                 theme === 'dark'
@@ -747,7 +687,7 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
                   : "mt-3 font-['Playfair_Display'] text-5xl font-black tracking-tighter text-[var(--ff-timeline-text-strong)] sm:text-6xl"
               }
             >
-              治疗时间线表格
+              {getCopy(copy.timeline.tableTitle, locale)}
             </h1>
           </div>
           <div
@@ -757,13 +697,13 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
                 : 'border-2 border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right'
             }
           >
-            <div className={getLabelClass()}>ARCHETYPE</div>
+            <div className={getLabelClass()}>{getCopy(copy.timeline.archetypeKey, locale)}</div>
             <div
               className={
                 "mt-2 font-['JetBrains_Mono'] text-[12px] font-bold tracking-[0.18em] text-[var(--ff-timeline-accent)]"
               }
             >
-              {ARCHETYPE_LABELS[archetype]}
+              {getArchetypeLabel(archetype, locale)}
             </div>
           </div>
         </div>
