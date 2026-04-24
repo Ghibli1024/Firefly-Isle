@@ -52,8 +52,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
 - `supabase/`
   - `migrations/*.sql` — schema, RLS, trigger, and storage-adjacent infrastructure migrations
-- `.claude/skills/openspec-*` and `.claude/commands/opsx/*`
-  - local OpenSpec workflow helpers used by Claude Code
+- Global Claude OpenSpec helpers
+  - `~/.claude/skills/openspec-*` and `~/.claude/commands/opsx/*` provide reusable Claude Code workflow helpers
 
 ### Current product architecture
 
