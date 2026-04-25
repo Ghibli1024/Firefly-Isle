@@ -1,5 +1,5 @@
 # Firefly-Isle：One-page oncology treatment timeline & record builder.
-一页萤岛，晚期癌症患者治疗方案管理助手。
+一页萤屿，晚期癌症患者治疗方案管理助手。
 > Keep it running, make it helpful.
 
 ## 当前状态
