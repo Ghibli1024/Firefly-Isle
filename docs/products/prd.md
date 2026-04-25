@@ -1,6 +1,6 @@
 # Firefly-Isle PRD (Product Requirements Document)
 
-**产品名称：** 一页萤 (Firefly-Isle)
+**产品名称：** 一页萤屿 (Firefly-Isle)
 **定位：** One-page oncology treatment timeline & record builder
 **Slogan：** Keep it running, make it helpful.
 

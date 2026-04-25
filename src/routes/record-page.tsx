@@ -197,7 +197,7 @@ function DarkRecordPage({
             <div className="text-right">
               {getCopy(copy.recordPage.dark.authorizedSystem, locale)}
               <br />
-              <span className="font-bold text-[var(--ff-text-primary)]">{locale === 'zh' ? '萤岛核心系统 V1.0' : 'Firefly Isle Core V1.0'}</span>
+              <span className="font-bold text-[var(--ff-text-primary)]">{locale === 'zh' ? '萤屿核心系统 V1.0' : 'Firefly Isle Core V1.0'}</span>
             </div>
           </footer>
         </div>
