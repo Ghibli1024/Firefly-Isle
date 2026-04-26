@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate，依赖 ThemeProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF 与四类页面。
+ * [INPUT]: 依赖 react 的 useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate，依赖 ThemeProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF、品牌预览页与四类产品页面。
  * [OUTPUT]: 对外提供 App 组件。
- * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化与 /login、/privacy、/app、/record/:id 页面。
+ * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、/brand-lockup-preview 设计预览与 /login、/privacy、/app、/record/:id 页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type ReactNode, useMemo } from 'react'
@@ -13,6 +13,7 @@ import { getCopy, copy } from '@/lib/copy'
 import { LocaleProvider, useLocale } from '@/lib/locale'
 import { PRIVACY_PAGE_HREF } from '@/lib/privacy'
 import { ThemeProvider, useTheme } from '@/lib/theme'
+import { BrandLockupPreviewPage } from '@/routes/brand-lockup-preview-page'
 import { LoginPage } from '@/routes/login-page'
 import { PrivacyPage } from '@/routes/privacy-page'
 import { RecordPage } from '@/routes/record-page'
@@ -97,6 +98,7 @@ function AppRoutes() {
         path={PRIVACY_PAGE_HREF}
         element={<PrivacyPage />}
       />
+      <Route path="/brand-lockup-preview" element={<BrandLockupPreviewPage />} />
       <Route
         path="/app"
         element={

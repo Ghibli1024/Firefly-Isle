@@ -28,7 +28,7 @@ Inputs:
 
 Output directory:
 
-`/Users/Totoro/Desktop/Firefly-Isle/docs/design/image2-redesign/2026-04-25-v1/`
+`/Users/Totoro/Desktop/Firefly-Isle/docs/design/Image-2/V1/`
 
 Targets:
 

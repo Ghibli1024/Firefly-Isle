@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The current baseline specs now live under `openspec/specs/`.
 - Active OpenSpec changes currently include `add-language-toggle`, `flatten-workspace-report-shell`, and `split-ci-cd-deploy-control`; keep new scoped work on its own change instead of mutating unrelated active tracks.
 - Product context lives in `README.md` and `docs/products/`.
+- Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
 ## Common commands
 
@@ -28,6 +29,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### What exists today
 
+- `DESIGN.md`
+  - project-level design-system entrypoint linking to the current V3 `DESIGN.md` source
+- `docs/design/`
+  - `Image-2/` — image-model redesign batches, including V3 screenshot-derived design tokens and visual rules
+  - `stitch/` — Stitch-origin design references and runtime screenshot evidence
 - `docs/products/`
   - `prd.md` — product background, MVP scope, and future roadmap
   - `spec.md` — implementation plan and architectural decisions
@@ -63,7 +69,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AI boundary:** frontend calls a Supabase Edge Function proxy; provider API keys stay server-side
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → PDF/PNG export
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
-- **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
+- **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
 
 ### Core domain model
 
@@ -93,10 +99,11 @@ When implementation starts, read these in roughly this order:
 
 1. `README.md` — concise project purpose and current repo baseline
 2. `docs/products/prd.md` — user/problem framing and scope boundaries
-3. `openspec/specs/**/*.md` — current baseline behavior requirements
-4. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
-5. `openspec/changes/<new-change>/proposal.md` + `tasks.md` — active scoped work, once a new change is created
-6. `openspec/changes/archive/**/design.md` — historical rationale only, when current behavior or past decisions need explanation
+3. `DESIGN.md` — project-level visual-system entrypoint, linking to the active detailed design source
+4. `openspec/specs/**/*.md` — current baseline behavior requirements
+5. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
+6. `openspec/changes/<new-change>/proposal.md` + `tasks.md` — active scoped work, once a new change is created
+7. `openspec/changes/archive/**/design.md` — historical rationale only, when current behavior or past decisions need explanation
 
 ## Current architectural direction
 

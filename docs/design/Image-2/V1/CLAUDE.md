@@ -1,5 +1,5 @@
-# 2026-04-25-v1/
-> L2 | 父级: /docs/design/image2-redesign/CLAUDE.md
+# V1/
+> L2 | 父级: /docs/design/Image-2/CLAUDE.md
 
 成员清单
 brief.md: 本批次 Image2 重构目标、输入截图、输出命名与执行边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

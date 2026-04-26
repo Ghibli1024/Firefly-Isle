@@ -149,14 +149,14 @@ function formatPeriod(startDate?: string, endDate?: string, locale?: 'zh' | 'en'
 
 function getShellClass(theme: Theme) {
   return theme === 'dark'
-    ? 'border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
-    : 'ff-light-ink-shadow border-2 border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
+    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
+    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
 }
 
 function getSectionClass(theme: Theme) {
   return theme === 'dark'
-    ? 'border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
-    : 'border-2 border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
+    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
+    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
 }
 
 function getLabelClass() {
@@ -178,13 +178,13 @@ function getValueClass(theme: Theme, filled: boolean, prominent: boolean) {
 function getCellClass(theme: Theme, critical: boolean, filled: boolean) {
   if (critical && !filled) {
     return theme === 'dark'
-      ? 'border border-dashed border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
-      : 'border-2 border-dashed border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
+      ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
+      : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
   }
 
   return theme === 'dark'
-    ? 'border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
-    : 'border-2 border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
+    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
+    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
 }
 
 function getEditValue(value: unknown) {
@@ -216,11 +216,11 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-baseline gap-4">
-        <span className="font-['Playfair_Display'] text-5xl font-black text-[var(--ff-timeline-order)] sm:text-6xl">
+        <span className="font-['Inter'] text-5xl font-bold text-[var(--ff-timeline-order)] sm:text-6xl">
           {padOrder(order)}
         </span>
         <div>
-          <h3 className="border-b-2 border-[var(--ff-timeline-section-border)] pb-2 font-['Newsreader'] text-3xl font-bold tracking-tight sm:text-4xl">
+          <h3 className="border-b border-[var(--ff-timeline-section-border)] pb-2 font-['Inter'] text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
           </h3>
           <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
@@ -361,13 +361,7 @@ export function BasicInfoBlock({
     <section className={getSectionClass(theme)}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2
-            className={
-              theme === 'dark'
-                ? "font-['Inter_Tight'] text-3xl font-black tracking-tight text-[var(--ff-timeline-text-strong)]"
-                : "font-['Newsreader'] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)]"
-            }
-          >
+          <h2 className="font-['Inter'] text-3xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
             {getCopy(copy.timeline.basicInfoTitle, locale)}
           </h2>
           <p className={`mt-2 ${getLabelClass()}`}>{getCopy(copy.timeline.basicInfoSubtitle, locale)}</p>
@@ -670,33 +664,19 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
 
   return (
     <section className={getShellClass(theme)}>
-      <header
-        className={
-          theme === 'dark'
-            ? 'border-b border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8'
-            : 'border-b-2 border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8'
-        }
-      >
+      <header className="border-b border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className={getLabelClass()}>{getCopy(copy.timeline.tableKey, locale)}</div>
             <h1
               className={
-                theme === 'dark'
-                  ? "mt-3 font-['Inter_Tight'] text-4xl font-black tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
-                  : "mt-3 font-['Playfair_Display'] text-5xl font-black tracking-tighter text-[var(--ff-timeline-text-strong)] sm:text-6xl"
+                "mt-3 font-['Inter'] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
               }
             >
               {getCopy(copy.timeline.tableTitle, locale)}
             </h1>
           </div>
-          <div
-            className={
-              theme === 'dark'
-                ? 'border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right'
-                : 'border-2 border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right'
-            }
-          >
+          <div className="rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right">
             <div className={getLabelClass()}>{getCopy(copy.timeline.archetypeKey, locale)}</div>
             <div
               className={

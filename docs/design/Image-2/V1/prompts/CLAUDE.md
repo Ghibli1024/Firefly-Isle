@@ -1,5 +1,5 @@
 # prompts/
-> L2 | 父级: /docs/design/image2-redesign/2026-04-25-v1/CLAUDE.md
+> L2 | 父级: /docs/design/Image-2/V1/CLAUDE.md
 
 成员清单
 01-login-dark.prompt.txt: /login dark 单图编辑提示词，绑定 login-dark-full.png，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
