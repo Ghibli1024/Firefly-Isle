@@ -5,11 +5,9 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState } from 'react'
-
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
-
-import { ArchiveSideNav, DarkTopBar } from '@/components/app-shell'
+import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
 import { ExtractionComposer } from '@/components/workspace/extraction-composer'
@@ -80,11 +78,9 @@ function getExportFileBase() {
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-
   link.href = url
   link.download = fileName
   link.click()
-
   URL.revokeObjectURL(url)
 }
 
@@ -105,7 +101,6 @@ async function exportReportAsPng(element: HTMLElement) {
   if (!blob) {
     throw new Error('Failed to create PNG blob.')
   }
-
   downloadBlob(blob, `${getExportFileBase()}.png`)
 }
 
@@ -118,17 +113,14 @@ async function exportReportAsPdf(element: HTMLElement) {
   const imageHeight = (canvas.height * pageWidth) / canvas.width
   let remainingHeight = imageHeight
   let offsetY = 0
-
   pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
   remainingHeight -= pageHeight
-
   while (remainingHeight > 0) {
     offsetY = remainingHeight - imageHeight
     pdf.addPage()
     pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
     remainingHeight -= pageHeight
   }
-
   pdf.save(`${getExportFileBase()}.pdf`)
 }
 
@@ -140,11 +132,9 @@ function getExportErrorMessage(format: 'pdf' | 'png', locale: 'zh' | 'en') {
 
 function parseNumericField(value: string) {
   const trimmed = value.trim()
-
   if (!trimmed) {
     return undefined
   }
-
   const normalized = Number(trimmed)
   return Number.isFinite(normalized) ? normalized : undefined
 }
@@ -158,7 +148,6 @@ function normalizeFieldValue(target: PatientFieldTarget, value: string) {
   if (target.section === 'basicInfo' && ['age', 'height', 'weight'].includes(target.field)) {
     return parseNumericField(value)
   }
-
   return parseTextField(value)
 }
 
@@ -174,7 +163,6 @@ function ensurePatientShell(record: PatientRecord): PatientRecord {
 function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, rawValue: string): PatientRecord {
   const baseRecord = ensurePatientShell(record)
   const value = normalizeFieldValue(target, rawValue)
-
   if (target.section === 'basicInfo') {
     return {
       ...baseRecord,
@@ -184,7 +172,6 @@ function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, raw
       },
     }
   }
-
   if (target.section === 'initialOnset') {
     return {
       ...baseRecord,
@@ -194,7 +181,6 @@ function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, raw
       },
     }
   }
-
   return {
     ...baseRecord,
     treatmentLines: baseRecord.treatmentLines.map((line) =>
@@ -654,6 +640,7 @@ function useExtractionState() {
 }
 
 function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePageProps) {
+  const { locale } = useLocale()
   const {
     currentQuestion,
     error,
@@ -678,11 +665,11 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
 
   return (
     <div className="min-h-screen bg-[var(--ff-surface-base)] font-['Inter'] text-[var(--ff-text-primary)]">
-      <DarkTopBar />
+      <ClinicalTopBar theme="dark" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
       <ArchiveSideNav dark isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="dark">
-        <SectionSurface className="border-b border-[var(--ff-border-default)] p-8" theme="dark" tone="base">
+        <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="dark" tone="base">
           <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
@@ -707,7 +694,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
           </div>
         </SectionSurface>
 
-        <SectionSurface className="p-8" theme="dark" tone="panel">
+        <SectionSurface className="border-0 px-4 pb-8 pt-2 md:px-8 md:pb-8 md:pt-3" theme="dark" tone="base">
           <div className={shellContentWidthClass}>
             <ReportPreviewFrame
               isExtracting={isExtracting}
@@ -752,29 +739,12 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
 
   return (
     <div className="ff-light-workspace-bg min-h-screen text-[var(--ff-text-primary)]">
-      <div className="flex min-h-screen">
-        <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
+      <ClinicalTopBar theme="light" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
+      <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel} />
 
-        <MainShell className="flex-1 overflow-y-auto p-12" theme="light">
-          <header className={`${shellContentWidthClass} mb-12`}>
-            <div className="mb-4 flex items-start justify-between gap-6">
-              <div>
-                <h1 className="font-['Playfair_Display'] text-7xl font-black uppercase -tracking-widest text-[var(--ff-text-primary)]">
-                  {getCopy(copy.workspace.composer.extractor, locale)}
-                </h1>
-                <p className="mt-2 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[var(--ff-text-secondary)]">
-                  {getCopy(copy.workspace.composer.sessionId, locale)} // {getCopy(copy.workspace.report.engineLabel, locale)}
-                </p>
-              </div>
-              <div className="text-right font-['JetBrains_Mono'] text-xs text-[var(--ff-text-muted)]">
-                <span className="block">{getCopy(copy.workspace.composer.date, locale)}</span>
-                <span className="block">{getCopy(copy.workspace.composer.location, locale)}</span>
-              </div>
-            </div>
-            <div className="ff-light-double-rule" />
-          </header>
-
-          <div className={shellContentWidthClass}>
+      <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="light">
+        <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="light" tone="base">
+          <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
               exportError={exportError}
@@ -791,15 +761,15 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               retryMode={retryMode}
               theme="light"
             />
-          </div>
 
-          {currentQuestion ? (
-            <section className={`${shellContentWidthClass} mt-8`}>
+            {currentQuestion ? (
               <FollowUpPanel currentQuestion={currentQuestion} onSubmit={(value) => void runFollowUpExtraction(value)} theme="light" />
-            </section>
-          ) : null}
+            ) : null}
+          </div>
+        </SectionSurface>
 
-          <section className={`${shellContentWidthClass} mt-8`}>
+        <SectionSurface className="border-0 px-4 pb-8 pt-2 md:px-8 md:pb-8 md:pt-3" theme="light" tone="base">
+          <div className={shellContentWidthClass}>
             <ReportPreviewFrame
               followUpCount={Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
               isExtracting={isExtracting}
@@ -810,16 +780,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               setReportRef={setReportRef}
               theme="light"
             />
-          </section>
-
-          <footer className={`${shellContentWidthClass} mt-12 border-t border-[var(--ff-border-muted)] py-12 text-center text-[var(--ff-text-secondary)]`}>
-            <span className="font-['Playfair_Display'] text-4xl font-black uppercase italic tracking-tighter">{getCopy(copy.workspace.report.footerBrand, locale)}</span>
-            <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em]">
-              {getCopy(copy.workspaceShell.footerProtocol, locale)}
-            </p>
-          </footer>
-        </MainShell>
-      </div>
+          </div>
+        </SectionSurface>
+      </MainShell>
     </div>
   )
 }

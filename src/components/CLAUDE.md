@@ -3,12 +3,11 @@
 
 成员清单
 CLAUDE.md: 说明页面骨架组件与共享交互组件职责，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-app-shell.tsx: Dark/Light 共享壳层入口，组合设计系统 shell、导航、主题切换、认证出口与占位素材输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-login-page-view.tsx: 登录页纯展示层，承载无工作区导航的 Dark/Light 入口画布、表单展示、页面级主题切换与隐私条款入口，不直接触碰 Supabase 认证状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-login-page-view.test.tsx: 登录页主题壳层回归测试，约束 dark 不混入工作区侧栏、light 使用纯色背景、主题切换脱离认证卡片 header，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-privacy-gate.tsx: 首次使用隐私门控层，负责 localStorage 确认状态、独立隐私页放行与全屏阻塞弹层，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-record/: 档案详情 feature 组件目录，统一总览头部、章节骨架与侧栏信息卡，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-system/: 设计系统壳层与 surface 基元目录，统一 sidebar、top bar、panel 与 section 结构语义
+app-shell.tsx: Dark/Light 共享壳层入口，导出 V3 顶部状态条、可变侧栏、主题切换、认证出口与占位素材，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+login-page-view.tsx: 登录页纯展示层，按 V3 全视口双面板复刻品牌入口、能力卡、运行状态与身份访问控制台，不直接触碰 Supabase 认证状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+login-page-view.test.tsx: 登录页主题壳层回归测试，约束入口页不混入工作区侧栏、点阵背景、旧固定宽画布，并保持主题切换位于身份访问表单动作之后，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+privacy-gate.tsx: 首次使用隐私门控层，负责 localStorage 确认状态、独立隐私页放行与可滚动全屏阻塞弹层，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+system/: 设计系统壳层、品牌 mark 与 surface 基元目录，统一 sidebar、top bar、panel 与 section 结构语义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 timeline/: 时间线表格组件目录，收敛 TimelineTable、基本信息区块、初发区块与治疗线区块渲染，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme-toggle.tsx: 全局主题切换入口，供壳层头部复用且只负责 theme 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale-toggle.tsx: 全局语言切换入口，与 ThemeToggle 并列复用但只负责 locale 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

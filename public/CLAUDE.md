@@ -3,7 +3,11 @@
 
 成员清单
 CLAUDE.md: 说明静态资源目录边界与部署期约束，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-icon.ico: 时间线脉冲品牌 icon 多尺寸容器，以三行治疗线与一枚萤光承载浏览器标签与收藏入口的第一视觉识别，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+icon.ico: 旧版时间线脉冲品牌 icon 多尺寸容器，保留作历史兼容但不再由 index.html 作为当前 favicon 引用，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+logo-island-lighthouse.svg: 岛屿微光灯塔方案的 standalone SVG 容器，内嵌当前 PNG 以保证像素级一致而不做失真的矢量描摹，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+logo-island-lighthouse.png: 从生成板第 1 案“岛屿微光灯塔”直接裁取并重建透明背景的 1024x1024 PNG 品牌 mark，是当前选定方案的位图真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+logo-island-lighthouse.webp: 由当前 PNG 以 lossless WebP 转出的透明品牌 mark，用于现代 Web 轻量加载场景，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+logo-island-lighthouse.ico: 由当前 PNG 多尺寸封装的 ICO 品牌 mark，包含 16/24/32/48/64/128/256 图标尺寸用于 favicon/系统入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 _headers: Cloudflare Pages 响应头配置，收敛静态缓存与基础安全头，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 _redirects: Cloudflare Pages SPA 回退规则，确保前端路由刷新可落回 index.html，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 

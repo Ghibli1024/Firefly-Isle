@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 PropsWithChildren、useEffect、useState，依赖 react-router-dom 的 Link、useLocation，依赖 @/lib/privacy 的隐私文案、独立隐私页路由与 localStorage key，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 PrivacyGate 组件。
- * [POS]: components 的全局隐私门控层，在用户本地确认前阻塞整个应用入口，并为独立隐私页放行访问。
+ * [POS]: components 的全局隐私门控层，在用户本地确认前阻塞整个应用入口，保证窄视口可滚动确认，并为独立隐私页放行访问。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type PropsWithChildren, useEffect, useState } from 'react'
@@ -25,7 +25,7 @@ function readPrivacyAccepted() {
 
 function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void; onStayBlocked: () => void }) {
   return (
-    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[var(--ff-text-ink)]/96 p-6 text-[var(--ff-text-primary)] backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex min-h-screen items-start justify-center overflow-y-auto bg-[var(--ff-text-ink)]/96 p-4 text-[var(--ff-text-primary)] backdrop-blur-sm md:items-center md:p-6">
       <div className="w-full max-w-3xl border border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8 md:p-12">
         <div className="mb-4 inline-block border border-[var(--ff-border-default)] bg-[var(--ff-surface-accent)] px-3 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
           Privacy Gate
@@ -80,7 +80,7 @@ function DarkPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void;
 
 function LightPrivacyOverlay({ onAccept, onStayBlocked }: { onAccept: () => void; onStayBlocked: () => void }) {
   return (
-    <div className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center bg-[var(--ff-surface-soft)]/96 p-6 text-[var(--ff-text-primary)] backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex min-h-screen items-start justify-center overflow-y-auto bg-[var(--ff-surface-soft)]/96 p-4 text-[var(--ff-text-primary)] backdrop-blur-sm md:items-center md:p-6">
       <div className="ff-light-ink-shadow w-full max-w-3xl border-2 border-[var(--ff-border-default)] bg-[var(--ff-surface-base)] p-8 md:p-12">
         <div className="mb-5 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.35em] text-[var(--ff-text-muted)]">
           Privacy Notice / 入场须知
@@ -176,4 +176,3 @@ export function PrivacyGate({ children }: PropsWithChildren) {
     </>
   )
 }
-

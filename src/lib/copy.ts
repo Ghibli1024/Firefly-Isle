@@ -181,7 +181,7 @@ export const copy = {
     },
   },
   timeline: {
-    tableTitle: text('治疗时间线表格', 'Treatment Timeline Table'),
+    tableTitle: text('病历预览', 'Record Preview'),
     basicInfoTitle: text('基本信息', 'Basic Information'),
     basicInfoSubtitle: text('基础信息区块', 'Basic Info Block'),
     criticalFields: text('关键字段：肿瘤类型 / 分期 / 治疗方案', 'Critical Fields: Tumor Type / Stage / Regimen'),

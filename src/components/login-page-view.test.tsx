@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 ./login-page-view 的 LoginPageView。
  * [OUTPUT]: 对外提供登录页主题壳层的回归测试。
- * [POS]: components 的登录页主题测试，约束入口页不再混入工作区导航、点阵背景与卡片内主题切换。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、伪技术装饰、点阵背景，并保持主题切换位于身份访问表单动作之后。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -49,6 +49,7 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('content_paste_search')
     expect(markup).not.toContain('folder_managed')
     expect(markup).not.toContain('analytics')
+    expect(markup).not.toContain('CLINICAL ARCHIVE CONSOLE')
     expect(markup).toContain('dark_mode')
   })
 
@@ -56,17 +57,29 @@ describe('LoginPageView theme shell', () => {
     const markup = renderLogin('light')
 
     expect(markup).not.toContain('ff-light-login-bg')
+    expect(markup).not.toContain('FORENSIC_ARCHIVE_SYSTEM_V3.0')
+    expect(markup).not.toContain('ENCRYPTION_LEVEL')
+    expect(markup).not.toContain('DATA_EXTRACTION_PROTOCOL')
     expect(markup).toContain('bg-[var(--ff-surface-base)]')
+  })
+
+  it('fills the browser viewport instead of keeping the old fixed-width canvas', () => {
+    const markup = renderLogin('light')
+
+    expect(markup).toContain('min-h-dvh')
+    expect(markup).toContain('w-full')
+    expect(markup).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]')
+    expect(markup).not.toContain('max-w-[1510px]')
   })
 
   it('keeps light theme toggle outside the authentication card header', () => {
     const markup = renderLogin('light')
     const headingIndex = markup.indexOf('身份访问控制台')
-    const contrastIndex = markup.indexOf('contrast')
+    const themeIconIndex = markup.indexOf('light_mode')
 
     expect(headingIndex).toBeGreaterThan(-1)
-    expect(contrastIndex).toBeGreaterThan(headingIndex)
-    expect(contrastIndex - headingIndex).toBeGreaterThan(1800)
+    expect(themeIconIndex).toBeGreaterThan(headingIndex)
+    expect(themeIconIndex - headingIndex).toBeGreaterThan(1800)
   })
 
   it('does not render the light login vertical watermark', () => {

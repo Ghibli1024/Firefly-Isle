@@ -1,12 +1,12 @@
 /**
  * [INPUT]: 依赖 @/components/system 的 topbar、masthead、sidebar 导出，承载占位素材常量供页面复用。
- * [OUTPUT]: 对外提供 DarkTopBar、ArchiveSideNav、LightMasthead 与设计复刻所需的占位图常量。
- * [POS]: components 的薄壳层导出文件，负责复用系统组件并暴露页面所需占位素材，不再承载主题结构实现细节。
+ * [OUTPUT]: 对外提供 ClinicalTopBar、DarkTopBar、ArchiveSideNav、LightMasthead 与设计复刻所需的占位图常量。
+ * [POS]: components 的薄壳层导出文件，负责复用 V3 可变侧栏与 system shell 并暴露页面所需占位素材，不再承载主题结构实现细节。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export { ArchiveSideNav, AVATAR_PLACEHOLDER } from '@/components/system/sidebar-nav'
 export { LightMasthead } from '@/components/system/masthead'
-export { DarkTopBar } from '@/components/system/topbar'
+export { ClinicalTopBar, DarkTopBar } from '@/components/system/topbar'
 
 export const QR_PLACEHOLDER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCodMwGgWvuwF5LOmg917ngq1oe0WPAGBvhZreAMsUlKJvYTRJWEVO4reEpFvrks9HRlph4tMYP8n0cUIH1tr0G1iY4h8ejtcyA9YbsVggEGH8XpAXsiVtqDp_iUEs4YkP7ZBbbfvVG8Smlndbs3Pep1M4IC4QyLH2XKQ6__VO4hEqXYrsZyIviesrCk1LwAv-73YdRfFeRkZAR_YYQdbAXSNUwkXW5lO17y6apkHeyptmFTiCLefqtyyFjUSMkduWUunUTiDnmQsBc'

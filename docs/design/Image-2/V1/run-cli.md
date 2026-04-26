@@ -5,7 +5,7 @@ Use this only when the built-in Image2 / image generation tool is unavailable an
 ```bash
 export IMAGE_GEN="$HOME/.codex/skills/.system/imagegen/scripts/image_gen.py"
 export SRC="/Users/Totoro/Desktop/Firefly-Isle/docs/design/runtime-screenshots/2026-04-25"
-export OUT="/Users/Totoro/Desktop/Firefly-Isle/docs/design/image2-redesign/2026-04-25-v1"
+export OUT="/Users/Totoro/Desktop/Firefly-Isle/docs/design/Image-2/V1"
 
 python3 "$IMAGE_GEN" edit --model gpt-image-2 --quality high --size auto --image "$SRC/login-dark-full.png" --prompt-file "$OUT/prompts/01-login-dark.prompt.txt" --out "$OUT/01-login-dark.png"
 python3 "$IMAGE_GEN" edit --model gpt-image-2 --quality high --size auto --image "$SRC/login-light-full.png" --prompt-file "$OUT/prompts/02-login-light.prompt.txt" --out "$OUT/02-login-light.png"

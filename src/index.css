@@ -2,7 +2,6 @@
 
 * {
   box-sizing: border-box;
-  border-radius: 0 !important;
 }
 
 html,
@@ -12,28 +11,60 @@ body,
 }
 
 :root {
-  --ff-accent-primary: #111111;
-  --ff-accent-success: #205d38;
-  --ff-accent-warning: #ba1a1a;
-  --ff-border-default: #111111;
-  --ff-border-muted: rgba(17, 17, 17, 0.1);
-  --ff-border-strong: #ba1a1a;
-  --ff-surface-base: #f9f9f7;
-  --ff-surface-shell: #f9f9f7;
-  --ff-surface-sidebar: #f9f9f7;
+  --ff-accent-primary: #e85d2a;
+  --ff-accent-strong: #ff4a1c;
+  --ff-accent-soft: #fce9e1;
+  --ff-accent-success: #43a56b;
+  --ff-accent-warning: #e85d2a;
+  --ff-border-default: #d8d5ce;
+  --ff-border-muted: rgba(22, 22, 22, 0.12);
+  --ff-border-strong: #e85d2a;
+  --ff-surface-base: #f8f7f4;
+  --ff-surface-shell: #f8f7f4;
+  --ff-surface-sidebar: #f8f7f4;
   --ff-surface-panel: #ffffff;
   --ff-surface-inset: #f4f4f2;
-  --ff-surface-soft: #f3f0e9;
+  --ff-surface-soft: #f1f0ec;
   --ff-surface-subtle: #f4f4f2;
-  --ff-surface-accent: #f3f0e9;
-  --ff-surface-warning: #fff1ec;
+  --ff-surface-accent: #fce9e1;
+  --ff-surface-warning: #fce9e1;
   --ff-surface-paper: #ffffff;
-  --ff-surface-paper-muted: #eeeeec;
-  --ff-text-primary: #111111;
-  --ff-text-muted: #5d5f5b;
-  --ff-text-secondary: rgba(17, 17, 17, 0.7);
-  --ff-text-subtle: rgba(17, 17, 17, 0.82);
+  --ff-surface-paper-muted: #f1f0ec;
+  --ff-text-primary: #161616;
+  --ff-text-muted: #6f6b65;
+  --ff-text-secondary: rgba(22, 22, 22, 0.7);
+  --ff-text-subtle: rgba(22, 22, 22, 0.82);
   --ff-text-ink: #0a0a0a;
+  --ff-line: #8b8b86;
+  --ff-radius-sm: 4px;
+  --ff-radius-md: 8px;
+  --ff-radius-lg: 12px;
+  --ff-radius-full: 9999px;
+  --ff-sidebar-width: 148px;
+  --ff-sidebar-offset: 148px;
+  --ff-shell-topbar-height: 68px;
+  --ff-font-display: "Inter", "Noto Sans SC", sans-serif;
+  --ff-font-ui: "Inter", "Noto Sans SC", sans-serif;
+  --ff-font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+  --ff-timeline-shell-bg: var(--ff-surface-panel);
+  --ff-timeline-shell-border: var(--ff-border-default);
+  --ff-timeline-shell-text: var(--ff-text-primary);
+  --ff-timeline-section-bg: var(--ff-surface-panel);
+  --ff-timeline-section-border: var(--ff-border-default);
+  --ff-timeline-header-panel-bg: var(--ff-surface-inset);
+  --ff-timeline-cell-bg: var(--ff-surface-panel);
+  --ff-timeline-cell-border: var(--ff-border-default);
+  --ff-timeline-cell-critical-bg: var(--ff-surface-warning);
+  --ff-timeline-cell-critical-border: var(--ff-accent-primary);
+  --ff-timeline-label: var(--ff-text-muted);
+  --ff-timeline-text-strong: var(--ff-text-primary);
+  --ff-timeline-text-body: var(--ff-text-subtle);
+  --ff-timeline-text-muted: var(--ff-text-muted);
+  --ff-timeline-order: var(--ff-accent-primary);
+  --ff-timeline-accent: var(--ff-accent-primary);
+  --ff-timeline-badge-bg: var(--ff-surface-accent);
+  --ff-timeline-badge-border: var(--ff-accent-primary);
+  --ff-timeline-badge-text: var(--ff-accent-primary);
 }
 
 html {
@@ -42,28 +73,50 @@ html {
 }
 
 html.dark {
-  --ff-accent-primary: #ff3d00;
-  --ff-accent-success: #9ccc65;
-  --ff-accent-warning: #ff8a65;
-  --ff-border-default: #262626;
-  --ff-border-muted: #353534;
-  --ff-border-strong: #7a1f00;
-  --ff-surface-base: #0a0a0a;
-  --ff-surface-shell: #0a0a0a;
-  --ff-surface-sidebar: #0a0a0a;
-  --ff-surface-panel: #131313;
-  --ff-surface-inset: #0f0f0f;
-  --ff-surface-soft: #1a1a1a;
-  --ff-surface-subtle: #131313;
-  --ff-surface-accent: #1a1a1a;
-  --ff-surface-warning: #1a1a1a;
+  --ff-accent-primary: #e85d2a;
+  --ff-accent-strong: #ff4a1c;
+  --ff-accent-soft: #2a1712;
+  --ff-accent-success: #43a56b;
+  --ff-accent-warning: #e85d2a;
+  --ff-border-default: #30363a;
+  --ff-border-muted: rgba(244, 240, 232, 0.14);
+  --ff-border-strong: #e85d2a;
+  --ff-surface-base: #080a0b;
+  --ff-surface-shell: #080a0b;
+  --ff-surface-sidebar: #0b0e0f;
+  --ff-surface-panel: #111517;
+  --ff-surface-inset: #0d1011;
+  --ff-surface-soft: #181d20;
+  --ff-surface-subtle: #181d20;
+  --ff-surface-accent: #1f1512;
+  --ff-surface-warning: #2a1712;
   --ff-surface-paper: #ffffff;
-  --ff-surface-paper-muted: #f0f0f0;
-  --ff-text-primary: #fafafa;
-  --ff-text-muted: #666666;
-  --ff-text-secondary: rgba(250, 250, 250, 0.7);
-  --ff-text-subtle: rgba(250, 250, 250, 0.88);
+  --ff-surface-paper-muted: #f1f0ec;
+  --ff-text-primary: #f4f0e8;
+  --ff-text-muted: #a9a39a;
+  --ff-text-secondary: rgba(244, 240, 232, 0.72);
+  --ff-text-subtle: rgba(244, 240, 232, 0.88);
   --ff-text-ink: #0a0a0a;
+  --ff-line: #8b8b86;
+  --ff-timeline-shell-bg: var(--ff-surface-panel);
+  --ff-timeline-shell-border: var(--ff-border-default);
+  --ff-timeline-shell-text: var(--ff-text-primary);
+  --ff-timeline-section-bg: var(--ff-surface-inset);
+  --ff-timeline-section-border: var(--ff-border-default);
+  --ff-timeline-header-panel-bg: var(--ff-surface-soft);
+  --ff-timeline-cell-bg: rgba(255, 255, 255, 0.02);
+  --ff-timeline-cell-border: var(--ff-border-muted);
+  --ff-timeline-cell-critical-bg: var(--ff-surface-warning);
+  --ff-timeline-cell-critical-border: var(--ff-accent-primary);
+  --ff-timeline-label: var(--ff-text-muted);
+  --ff-timeline-text-strong: var(--ff-text-primary);
+  --ff-timeline-text-body: var(--ff-text-subtle);
+  --ff-timeline-text-muted: var(--ff-text-muted);
+  --ff-timeline-order: var(--ff-accent-primary);
+  --ff-timeline-accent: var(--ff-accent-primary);
+  --ff-timeline-badge-bg: var(--ff-surface-accent);
+  --ff-timeline-badge-border: var(--ff-accent-primary);
+  --ff-timeline-badge-text: var(--ff-accent-primary);
   background: var(--ff-surface-base);
   color: var(--ff-text-primary);
 }
@@ -76,7 +129,7 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--ff-font-ui);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -119,8 +172,10 @@ a {
 .ff-light-login-bg,
 .ff-light-workspace-bg {
   background-color: var(--ff-surface-base);
-  background-image: radial-gradient(var(--ff-border-default) 0.5px, transparent 0.5px);
-  background-size: 12px 12px;
+  background-image:
+    linear-gradient(90deg, rgba(22, 22, 22, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(22, 22, 22, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 .ff-light-workspace-bg {
@@ -129,8 +184,8 @@ a {
 
 .ff-light-record-bg {
   background-color: var(--ff-surface-base);
-  background-image: radial-gradient(var(--ff-surface-soft) 0.5px, transparent 0.5px);
-  background-size: 12px 12px;
+  background-image: linear-gradient(rgba(22, 22, 22, 0.035) 1px, transparent 1px);
+  background-size: 100% 32px;
 }
 
 .ff-light-double-rule,
@@ -142,16 +197,16 @@ a {
 }
 
 .ff-light-ink-shadow {
-  box-shadow: 4px 4px 0 0 var(--ff-border-default);
+  box-shadow: 0 1px 0 0 rgba(22, 22, 22, 0.04);
 }
 
 .ff-light-ink-shadow-hover:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 0 var(--ff-border-default);
+  border-color: var(--ff-accent-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ff-accent-primary) 14%, transparent);
 }
 
 .ff-light-hard-shadow {
-  box-shadow: 4px 4px 0 0 var(--ff-border-default);
+  box-shadow: inset 0 0 0 1px var(--ff-border-default);
 }
 
 .ff-light-drop-cap::first-letter {
