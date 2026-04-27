@@ -8,6 +8,7 @@ logo-island-lighthouse.svg: 岛屿微光灯塔方案的 standalone SVG 容器，
 logo-island-lighthouse.png: 从生成板第 1 案“岛屿微光灯塔”直接裁取并重建透明背景的 1024x1024 PNG 品牌 mark，是当前选定方案的位图真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 logo-island-lighthouse.webp: 由当前 PNG 以 lossless WebP 转出的透明品牌 mark，用于现代 Web 轻量加载场景，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 logo-island-lighthouse.ico: 由当前 PNG 多尺寸封装的 ICO 品牌 mark，包含 16/24/32/48/64/128/256 图标尺寸用于 favicon/系统入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+login/: 登录页专用静态视觉资产目录，保存从 V3 设计图提取并重建的透明位图人体背景，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 _headers: Cloudflare Pages 响应头配置，收敛静态缓存与基础安全头，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 _redirects: Cloudflare Pages SPA 回退规则，确保前端路由刷新可落回 index.html，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
