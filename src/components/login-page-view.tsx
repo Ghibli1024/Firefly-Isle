@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 FireflyMark，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖登录页表单状态 props。
+ * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 FireflyMark，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 public/login 的透明位图人体背景资产。
  * [OUTPUT]: 对外提供 LoginPageView 组件，以及 AuthMode / AuthFeedback / LoginPageViewProps 类型。
- * [POS]: components 的登录页展示层，按 V3 全视口双面板复刻品牌入口与身份访问控制台，不触碰 Supabase 认证状态机。
+ * [POS]: components 的登录页展示层，按 V3 全视口双面板复刻品牌入口、位图人体背景与身份访问控制台，不触碰 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type FormEvent } from 'react'
@@ -45,6 +45,11 @@ type Capability = {
   body: string
   icon: string
   title: string
+}
+
+const loginAnatomyAssets: Record<Theme, string> = {
+  dark: '/login/anatomy-dark.png',
+  light: '/login/anatomy-light.png',
 }
 
 function getCapabilities(locale: 'zh' | 'en'): Capability[] {
@@ -131,60 +136,25 @@ function CapabilityCard({ body, icon, title }: Capability) {
   )
 }
 
-function ClinicalBackdrop({ dark }: { dark: boolean }) {
+function LoginAnatomyBackdrop({ dark }: { dark: boolean }) {
   return (
     <div
       aria-hidden="true"
       className={[
-        'pointer-events-none absolute right-[-190px] top-16 h-[430px] w-[360px] overflow-visible opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_28%,transparent_74%)] sm:right-[7%] sm:top-8 sm:h-[560px] sm:w-[500px] sm:opacity-70',
-        dark ? 'text-[var(--ff-accent-primary)]' : 'text-[var(--ff-line)]',
+        'pointer-events-none absolute z-0 hidden max-w-none select-none xl:block',
+        'right-[clamp(1.5rem,4vw,5.5rem)] top-[clamp(5rem,11vh,7rem)] w-[clamp(180px,17vw,370px)]',
+        dark
+          ? 'opacity-[0.58]'
+          : 'opacity-[0.52]',
       ].join(' ')}
     >
-      <svg className="h-full w-full" viewBox="0 0 560 560">
-        <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-          <path
-            d="M280 40c1 62 1 120 0 174M276 176c-30-34-66-45-98-24-30 20-44 67-36 122 9 64 45 125 88 145 25 11 48 3 57-21 9-23 3-60-16-111"
-            opacity={dark ? 0.24 : 0.12}
-            strokeWidth="1.4"
-          />
-          <path
-            d="M284 176c30-34 66-45 98-24 30 20 44 67 36 122-9 64-45 125-88 145-25 11-48 3-57-21-9-23-3-60 16-111"
-            opacity={dark ? 0.24 : 0.12}
-            strokeWidth="1.4"
-          />
-          <path d="M280 106c-14 22-16 50-9 86M280 106c14 22 16 50 9 86" opacity={dark ? 0.2 : 0.11} strokeWidth="1" />
-          <path d="M270 190c-32 15-61 38-88 68M290 190c32 15 61 38 88 68" opacity={dark ? 0.32 : 0.15} strokeWidth="1" />
-          <path d="M264 232c-30 3-58 15-84 35M296 232c30 3 58 15 84 35" opacity={dark ? 0.26 : 0.13} strokeWidth="1" />
-          <path d="M258 276c-28 14-52 36-74 66M302 276c28 14 52 36 74 66" opacity={dark ? 0.24 : 0.12} strokeWidth="1" />
-          <path d="M257 321c-22 1-43 9-62 24M303 321c22 1 43 9 62 24" opacity={dark ? 0.22 : 0.11} strokeWidth="1" />
-          <path d="M280 210c21 14 35 35 42 63 7 27 1 59-17 94M280 210c-21 14-35 35-42 63-7 27-1 59 17 94" opacity={dark ? 0.2 : 0.11} strokeWidth="1" />
-          <path d="M280 43c-7 44-7 94 0 150M280 43c7 44 7 94 0 150" opacity={dark ? 0.17 : 0.09} strokeWidth="1" />
-          <path d="M280 72c-40 35-82 52-126 53M280 72c40 35 82 52 126 53" opacity={dark ? 0.12 : 0.07} strokeWidth="0.9" />
-          <path d="M278 222c-15 17-22 39-21 66M282 222c15 17 22 39 21 66" opacity={dark ? 0.18 : 0.1} strokeWidth="1" />
-          {Array.from({ length: 7 }, (_, index) => {
-            const y = 148 + index * 37
-            const spread = 66 + index * 11
-            const lift = 14 + index * 3
-
-            return (
-              <g key={y} opacity={dark ? 0.14 : 0.08}>
-                <path d={`M276 ${y}C${242 - index * 2} ${y - lift} ${194 - index * 2} ${y - lift + 12} ${280 - spread} ${y + 39}`} strokeWidth="0.8" />
-                <path d={`M284 ${y}C${318 + index * 2} ${y - lift} ${366 + index * 2} ${y - lift + 12} ${280 + spread} ${y + 39}`} strokeWidth="0.8" />
-              </g>
-            )
-          })}
-        </g>
-        <g fill={dark ? 'var(--ff-accent-primary)' : 'var(--ff-text-muted)'} opacity={dark ? 0.5 : 0.12}>
-          {Array.from({ length: 72 }, (_, index) => {
-            const angle = (index * 137.5 * Math.PI) / 180
-            const radius = 36 + index * 2.8
-            const cx = 280 + Math.cos(angle) * radius
-            const cy = 260 + Math.sin(angle) * radius * 1.12
-            return <circle cx={cx} cy={cy} key={index} r={index % 7 === 0 ? 1.8 : 0.8} />
-          })}
-        </g>
-        <circle cx="280" cy="260" fill="none" opacity={dark ? 0.06 : 0.04} r="205" stroke="currentColor" strokeWidth="1" />
-      </svg>
+      <img
+        alt=""
+        className="h-auto w-full max-w-none object-contain"
+        data-testid="login-anatomy-backdrop"
+        draggable={false}
+        src={loginAnatomyAssets[dark ? 'dark' : 'light']}
+      />
     </div>
   )
 }
@@ -268,9 +238,9 @@ function V3LoginView({
 
   return (
     <div className="min-h-dvh w-full overflow-x-hidden bg-[var(--ff-surface-base)] px-4 py-4 font-['Inter'] text-[var(--ff-text-primary)] md:px-6 md:py-6">
-      <main className="grid min-h-[calc(100dvh-32px)] w-full gap-5 md:min-h-[calc(100dvh-48px)] lg:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]">
+      <main className="grid min-h-[calc(100dvh-32px)] w-full gap-5 md:min-h-[calc(100dvh-48px)] xl:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]">
         <section className="relative min-w-0 overflow-hidden rounded-[var(--ff-radius-lg)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-8 md:p-12">
-          <ClinicalBackdrop dark={isDark} />
+          <LoginAnatomyBackdrop dark={isDark} />
           <div className="relative z-10 flex min-h-full flex-col">
             <div className="flex flex-col justify-between gap-6 md:flex-row">
               <div className="flex min-w-0 items-center gap-5">
@@ -283,7 +253,7 @@ function V3LoginView({
             </div>
 
             <div className="mt-16 max-w-4xl md:mt-24">
-              <h1 className="max-w-4xl break-words text-[2.125rem] font-bold leading-[1.06] tracking-normal md:text-7xl">
+              <h1 className="max-w-4xl break-words text-[2.125rem] font-bold leading-[1.06] tracking-normal md:text-[4rem]">
                 {locale === 'zh' ? (
                   <>
                     <span className="md:hidden">

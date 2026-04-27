@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 ./login-page-view 的 LoginPageView。
  * [OUTPUT]: 对外提供登录页主题壳层的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、伪技术装饰、点阵背景，并保持主题切换位于身份访问表单动作之后。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，使用稳定响应式锚点的位图人体背景而非 SVG 背景，并移除协议标签且保持主题切换顺序。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -49,7 +49,10 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('content_paste_search')
     expect(markup).not.toContain('folder_managed')
     expect(markup).not.toContain('analytics')
-    expect(markup).not.toContain('CLINICAL ARCHIVE CONSOLE')
+    expect(markup).not.toContain('CLINICAL ARCHIVE CONSOLE v3.0')
+    expect(markup).not.toContain('login-clinical-backdrop')
+    expect(markup).toContain('data-testid="login-anatomy-backdrop"')
+    expect(markup).toContain('/login/anatomy-dark.png')
     expect(markup).toContain('dark_mode')
   })
 
@@ -60,6 +63,7 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('FORENSIC_ARCHIVE_SYSTEM_V3.0')
     expect(markup).not.toContain('ENCRYPTION_LEVEL')
     expect(markup).not.toContain('DATA_EXTRACTION_PROTOCOL')
+    expect(markup).toContain('/login/anatomy-light.png')
     expect(markup).toContain('bg-[var(--ff-surface-base)]')
   })
 
@@ -68,8 +72,20 @@ describe('LoginPageView theme shell', () => {
 
     expect(markup).toContain('min-h-dvh')
     expect(markup).toContain('w-full')
-    expect(markup).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]')
+    expect(markup).toContain('xl:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]')
+    expect(markup).not.toContain('lg:grid-cols-[minmax(0,1fr)_minmax(420px,680px)]')
     expect(markup).not.toContain('max-w-[1510px]')
+  })
+
+  it('keeps the anatomy backdrop anchored after the two-panel layout is stable', () => {
+    const markup = renderLogin('dark')
+
+    expect(markup).toContain('xl:block')
+    expect(markup).toContain('w-[clamp(180px,17vw,370px)]')
+    expect(markup).toContain('right-[clamp(1.5rem,4vw,5.5rem)]')
+    expect(markup).not.toContain('object-contain lg:block')
+    expect(markup).not.toContain('object-contain md:block')
+    expect(markup).not.toContain('max-w-[430px]')
   })
 
   it('keeps light theme toggle outside the authentication card header', () => {
