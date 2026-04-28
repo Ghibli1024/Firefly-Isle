@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-定义正式病历档案页的 PDF/PNG 导出能力、文件命名、loading 状态与失败处理边界，并明确 `/app` 工作区不再承担正式导出入口。
-## Requirements
 ### Requirement: PDF 导出
 系统 SHALL 支持在正式病历档案页将时间线表格导出为 PDF 文件，使用 html2canvas 截图后经 jsPDF 生成，文件名包含当前日期。
 

@@ -15,28 +15,18 @@
 - **THEN** 侧栏、顶部区域、主内容区、版心、报告容器和主要操作位置 SHALL 保持同构空间角色，而不是因主题切换变成不同信息架构
 
 ### Requirement: 页面结构必须复刻设计稿
-系统 SHALL 以 `docs/design/Image-2/V3/` 中的 `DESIGN.md` 与截图作为页面结构实现的设计证据源，并将这些结构约束折叠为统一的壳层几何合同、组件角色与主题材料语言。
+系统 SHALL 以输入提取台和正式档案导出台的职责分离为 `/app` 与 `/record/:id` 的页面结构依据，并保持 dark / light 主题只改变 token、材质与品牌 mark，不改变页面职责。
 
-#### Scenario: 登录页复刻 V3 入口结构
-- **WHEN** 系统实现 `/login` 的 Dark 或 Light 页面
-- **THEN** 页面 SHALL 对齐 V3 品牌入口与身份访问控制台结构
-- **AND** 页面 SHALL 保留强烈视觉冲击，不得退化为通用 SaaS 登录页
-- **AND** Supabase 邮箱登录、注册与匿名登录行为 SHALL 保持不变
-
-#### Scenario: 临床工作区复刻 V3 页面结构
+#### Scenario: 临床工作区复刻输入提取台结构
 - **WHEN** 系统实现 `/app` 的 Dark 或 Light 页面
-- **THEN** 页面 SHALL 对齐 V3 的响应式左侧导航、顶部状态区、病史输入、行动按钮和治疗时间线主流
-- **AND** 页面 SHALL 保持主内容起始线与版心关系在主题切换时一致
+- **THEN** 页面 SHALL 将病史输入与结构化提取作为主职责
+- **AND** 页面 SHALL 在输入区之后进入提取参数、结构化病历预览、缺失字段提示与草稿状态
+- **AND** 页面 SHALL NOT 将 PDF/PNG 正式导出动作作为 `/app` 输入区动作
 
-#### Scenario: 档案详情复刻 V3 长卷结构
+#### Scenario: 档案详情复刻正式导出台结构
 - **WHEN** 系统实现 `/record/:id` 的 Dark 或 Light 页面
-- **THEN** 页面 SHALL 对齐 V3 的顶部病历概要、纵向治疗时间线、右侧临床证据卡片与底部审计/验证区
-- **AND** 页面 SHALL 保留长卷阅读节奏，不得压缩为一屏通用 dashboard
-
-#### Scenario: 隐私页消费 V3 视觉系统
-- **WHEN** 系统实现 `/privacy`
-- **THEN** 页面 SHALL 消费 V3 token、surface 与 typography 语义
-- **AND** 隐私文案真相源 SHALL 继续来自 `src/lib/privacy.ts`
+- **THEN** 页面 SHALL 将正式病历档案、长卷治疗线阅读与 PDF/PNG 导出作为主职责
+- **AND** 页面 SHALL 保留患者概要、治疗线、右侧临床证据卡与底部审计/验证区
 
 ### Requirement: 主题切换作用于全局页面结构
 系统 SHALL 将主题切换能力放置在应用壳层中，并要求主题切换只改变材质和设计系统映射，不改变壳层空间关系。
@@ -82,7 +72,7 @@
 
 #### Scenario: workspace route 聚焦状态与编排
 - **WHEN** 系统实现 `/app` 对应的 route 文件
-- **THEN** route SHALL 保留提取、导出、持久化与 follow-up 状态机，并将输入区、追问区与报告预览区委派给独立 feature components
+- **THEN** route SHALL 保留提取、持久化与 follow-up 状态机，并将输入区、追问区与报告预览区委派给独立 feature components
 
 #### Scenario: record route 聚焦主题分发与编排
 - **WHEN** 系统实现 `/record/:id` 对应的 route 文件
@@ -111,23 +101,28 @@
 - **THEN** 页面 SHALL 复用设计系统定义的壳层组件，而不是在页面文件中重新发明结构与视觉语义
 
 ### Requirement: 工作区主操作不得重复
-系统 SHALL 在 `/app` 中只渲染一个主要结构化提取动作，并将 PDF/PNG 导出作为次级动作保留在同一输入行动区，不得在同一页面中重复渲染第二个主要提取按钮。
+系统 SHALL 在 `/app` 中只渲染一个主要结构化提取动作，并将文件导入、语音输入与字数统计作为同一个病史输入 buffer 的输入工具，不得在 `/app` 中暴露正式 PDF/PNG 导出入口。
 
 #### Scenario: 单一主提取动作
 - **WHEN** 系统渲染 `/app` 的 Dark 或 Light 主题
 - **THEN** 页面 SHALL 在病史输入区附近渲染且仅渲染一个主要“开始结构化提取”动作
 - **AND** 页面 SHALL NOT 在输入面板外再渲染第二个主提取动作
 
-#### Scenario: 次级导出动作保留
-- **WHEN** 系统渲染 `/app` 的输入行动区
-- **THEN** 页面 SHALL 保留 PDF 与 PNG 导出动作
-- **AND** 导出行为 SHALL 继续调用现有 html2canvas/jsPDF 链路
+#### Scenario: 输入工具与字数统计归属 textarea
+- **WHEN** 系统渲染 `/app` 的病史输入 textarea
+- **THEN** textarea 底部左侧 SHALL 提供“导入病历文件”输入工具
+- **AND** textarea 底部右侧 SHALL 提供语音输入入口与 `0 / 8000` 字数统计
+- **AND** 语音入口 SHALL NOT 以独立“语音录入卡片”进入主流程行动块
 
-#### Scenario: V3 已废弃控制块不进入主流程
+#### Scenario: 正式导出不属于工作区输入台
+- **WHEN** 系统渲染 `/app` 的输入行动区
+- **THEN** 页面 SHALL NOT 渲染“导出 PDF”或“导出 PNG”按钮
+- **AND** 提取完成后的下一步动作 MAY 引导用户保存并打开 `/record/:id`
+
+#### Scenario: 已废弃控制块不进入主流程
 - **WHEN** 系统渲染 `/app` 的主工作流
-- **THEN** 页面 SHALL NOT 在主输入后继续显示“当前提取参数”控制块
-- **AND** 页面 SHALL NOT 将语音录入卡片作为主流程行动块
-- **AND** 病史输入后 SHALL 直接进入治疗时间线表格与缺失字段提示
+- **THEN** 页面 SHALL NOT 在主输入后继续显示已废弃的独立语音录入卡片
+- **AND** 病史输入后 SHALL 直接进入治疗时间线草稿、缺失字段提示与状态信息
 
 ### Requirement: 视觉重构不得改变业务边界
 系统 SHALL 将本次变更限制在视觉系统、theme token、shared shell、页面 composition、组件 styling 与文档同步，不得改变当前业务流程与数据边界。
@@ -138,4 +133,4 @@
 
 #### Scenario: 数据与导出边界保持不变
 - **WHEN** 系统渲染、编辑、保存或导出 PatientRecord
-- **THEN** `PatientRecord` schema、inline edit 保存语义、PDF 导出和 PNG 导出行为 SHALL 保持不变
+- **THEN** `PatientRecord` schema、inline edit 保存语义、以及 `/record/:id` 内的 PDF 导出和 PNG 导出行为 SHALL 保持不变

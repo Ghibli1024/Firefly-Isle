@@ -1,13 +1,15 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 @/lib/export-record 的正式病历 PDF/PNG 导出工具，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams。
  * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id。
- * [POS]: routes 的档案详情 orchestration 层，按 V3 宽幅响应式长卷病历复刻临床概要、纵向治疗时间线、右侧证据卡、禁用态导出入口与底部审计状态，不改变路由或认证出口。
+ * [POS]: routes 的档案详情 orchestration 层，按宽幅响应式长卷病历复刻临床概要、纵向治疗时间线、右侧证据卡、正式导出入口与底部审计状态，不改变路由或认证出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { useRef, useState, type RefObject } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { MainShell } from '@/components/system/surfaces'
+import { exportElementAsPdf, exportElementAsPng } from '@/lib/export-record'
 import { useLocale, type Locale } from '@/lib/locale'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
@@ -16,6 +18,14 @@ type RecordPageProps = {
   isSigningOut?: boolean
   onSignOut?: () => void
   userLabel?: string
+}
+
+type ExportFormat = 'pdf' | 'png'
+
+type RecordExportState = {
+  error: string | null
+  format: ExportFormat | null
+  isExporting: boolean
 }
 
 type Metric = {
@@ -59,8 +69,11 @@ const labels = {
     clinicalNotes: 'Clinical Notes',
     completeness: 'Data Completeness',
     dossier: 'CLINICAL HISTORY DOSSIER',
+    exportError: 'Export failed. Please try again later.',
     exportPdf: 'Export PDF',
+    exportPdfLoading: 'Exporting PDF...',
     exportPng: 'Export PNG',
+    exportPngLoading: 'Exporting PNG...',
     footer: 'Firefly Core System V3.1',
     headerSubtitle: 'Zhang San · NSCLC · EGFR L858R',
     pageTitle: 'Clinical History Dossier',
@@ -75,8 +88,11 @@ const labels = {
     clinicalNotes: '临床备注',
     completeness: '数据完整性',
     dossier: 'CLINICAL HISTORY DOSSIER',
+    exportError: '导出失败，请稍后重试。',
     exportPdf: '导出 PDF',
+    exportPdfLoading: '导出 PDF 中...',
     exportPng: '导出 PNG',
+    exportPngLoading: '导出 PNG 中...',
     footer: '萤岛核心系统 V3.1',
     headerSubtitle: '张三 · NSCLC · EGFR L858R',
     pageTitle: '临床病史档案',
@@ -419,12 +435,31 @@ function TimelineNode({ entry }: { entry: TimelineEntry }) {
   )
 }
 
-function RecordDossier({ locale }: { locale: Locale }) {
+function RecordDossier({
+  exportError,
+  exportFormat,
+  isExportDisabled,
+  isExporting,
+  locale,
+  onExport,
+  recordRef,
+}: {
+  exportError: string | null
+  exportFormat: ExportFormat | null
+  isExportDisabled: boolean
+  isExporting: boolean
+  locale: Locale
+  onExport: (format: ExportFormat) => void
+  recordRef: RefObject<HTMLDivElement>
+}) {
   const text = labels[locale]
   const entries = getTimelineEntries(locale)
 
   return (
-    <div className="w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] md:p-8 2xl:p-10">
+    <div
+      className="w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] md:p-8 2xl:p-10"
+      ref={recordRef}
+    >
       <header className="mb-8">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
@@ -438,13 +473,23 @@ function RecordDossier({ locale }: { locale: Locale }) {
               {text.access}
             </div>
             <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
-              <button className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" disabled type="button">
+              <button
+                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isExportDisabled || isExporting}
+                onClick={() => onExport('pdf')}
+                type="button"
+              >
                 <span className="material-symbols-outlined text-xl">description</span>
-                {text.exportPdf}
+                {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
               </button>
-              <button className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" disabled type="button">
+              <button
+                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isExportDisabled || isExporting}
+                onClick={() => onExport('png')}
+                type="button"
+              >
                 <span className="material-symbols-outlined text-xl">image</span>
-                {text.exportPng}
+                {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
               </button>
               <Link
                 className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
@@ -454,6 +499,11 @@ function RecordDossier({ locale }: { locale: Locale }) {
                 {text.back}
               </Link>
             </div>
+            {exportError ? (
+              <div className="mt-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
+                {exportError}
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
@@ -536,7 +586,47 @@ export function RecordPage({ isSigningOut, onSignOut, userLabel }: RecordPagePro
   const { id = 'demo' } = useParams()
   const { locale } = useLocale()
   const { theme } = useTheme()
+  const recordRef = useRef<HTMLDivElement>(null)
+  const [exportState, setExportState] = useState<RecordExportState>({
+    error: null,
+    format: null,
+    isExporting: false,
+  })
   const dark = theme === 'dark'
+  const isDemoRecord = id === 'demo'
+
+  async function handleExport(format: ExportFormat) {
+    if (!recordRef.current || isDemoRecord || exportState.isExporting) {
+      return
+    }
+
+    setExportState({
+      error: null,
+      format,
+      isExporting: true,
+    })
+
+    try {
+      if (format === 'pdf') {
+        await exportElementAsPdf(recordRef.current)
+      } else {
+        await exportElementAsPng(recordRef.current)
+      }
+
+      setExportState({
+        error: null,
+        format: null,
+        isExporting: false,
+      })
+    } catch (error) {
+      console.error(error)
+      setExportState({
+        error: labels[locale].exportError,
+        format: null,
+        isExporting: false,
+      })
+    }
+  }
 
   return (
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
@@ -544,7 +634,15 @@ export function RecordPage({ isSigningOut, onSignOut, userLabel }: RecordPagePro
       <ArchiveSideNav dark={dark} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel ?? id} />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
         <div className={`${shellWideContentClass} mt-5 md:mt-6`} data-testid="record-responsive-canvas">
-          <RecordDossier locale={locale} />
+          <RecordDossier
+            exportError={exportState.error}
+            exportFormat={exportState.format}
+            isExportDisabled={isDemoRecord}
+            isExporting={exportState.isExporting}
+            locale={locale}
+            onExport={(format) => void handleExport(format)}
+            recordRef={recordRef}
+          />
         </div>
       </MainShell>
     </div>
