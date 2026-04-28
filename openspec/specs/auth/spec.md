@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 Firefly-Isle 的邮箱认证、匿名模式、隐私条款门控与 session 持久化行为。
+
+## Requirements
 
 ### Requirement: 邮箱登录
 系统 SHALL 支持用户通过邮箱和密码注册、登录，使用 Supabase Auth 邮箱认证流程。

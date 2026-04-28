@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义患者相关资源的 Supabase Storage 基础设施、访问隔离与 MVP 范围边界。
+
+## Requirements
 
 ### Requirement: Storage 基础设施存在
 系统 SHALL 在 Supabase 中配置患者相关资源的 Storage 基础设施边界，用于后续可选的附件或图片资源扩展。

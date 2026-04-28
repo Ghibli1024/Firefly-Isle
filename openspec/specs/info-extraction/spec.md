@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义自然语言病史到 PatientRecord 的结构化提取、缺失字段追问与 LLM 输出约束。
+
+## Requirements
 
 ### Requirement: 自然语言输入转换为 PatientRecord
 系统 SHALL 接受用户自然语言描述，调用 LLM 提取结构化 PatientRecord JSON，用于后续追问、渲染与保存。

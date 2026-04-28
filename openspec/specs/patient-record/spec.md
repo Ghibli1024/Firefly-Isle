@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 PatientRecord、TreatmentLine、initialOnset 以及三类患者渲染判定的数据模型规则。
+
+## Requirements
 
 ### Requirement: PatientRecord 核心数据结构
 系统 SHALL 定义 PatientRecord 接口，包含基本信息、初发区块、治疗线数组三个顶层字段，所有字段均为可选。

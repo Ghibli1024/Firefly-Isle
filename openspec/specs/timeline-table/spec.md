@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 PatientRecord 在时间线表格中的患者类型渲染、检测信息归属、空字段与基本信息展示规则。
+
+## Requirements
 
 ### Requirement: 非晚期患者渲染规则
 系统 SHALL 对非晚期患者仅渲染初发区块，不显示治疗线区块。

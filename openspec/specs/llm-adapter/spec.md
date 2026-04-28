@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 LLM Adapter 的统一 chat 接口、Supabase Edge Function 代理边界、模型切换与错误处理规则。
+
+## Requirements
 
 ### Requirement: 统一 chat 接口
 系统 SHALL 提供统一的 `chat(messages, options)` 接口，调用方无需感知底层 LLM 提供商差异。
