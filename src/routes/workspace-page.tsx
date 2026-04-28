@@ -1,12 +1,10 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme，依赖 html2canvas 与 jsPDF 的前端导出能力。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区 orchestration 层，保留文本提取、追问、解析错误恢复、inline edit 持久化与 PDF/PNG 导出状态机，并编排统一 system shell 与 workspace feature 组件。
+ * [POS]: routes 的临床工作区 orchestration 层，保留文本提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
+import { useEffect, useState } from 'react'
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -37,11 +35,8 @@ type WorkspacePageProps = {
 type ExtractionState = {
   currentQuestion: string | null
   error: string | null
-  exportError: string | null
-  exportFormat: 'pdf' | 'png' | null
   extractionInput: string
   followUpAnswers: string[]
-  isExporting: boolean
   isExtracting: boolean
   isSaving: boolean
   record: PatientRecord | null
@@ -68,66 +63,6 @@ type TreatmentLineRow = {
 
 const EMPTY_RECORD: PatientRecord = {
   treatmentLines: [],
-}
-
-function getExportFileBase() {
-  const date = new Date().toISOString().slice(0, 10)
-  return `firefly-${date}`
-}
-
-function downloadBlob(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.click()
-  URL.revokeObjectURL(url)
-}
-
-async function renderReportCanvas(element: HTMLElement) {
-  return html2canvas(element, {
-    backgroundColor: 'var(--ff-surface-paper)',
-    scale: 2,
-    useCORS: true,
-  })
-}
-
-async function exportReportAsPng(element: HTMLElement) {
-  const canvas = await renderReportCanvas(element)
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, 'image/png')
-  })
-
-  if (!blob) {
-    throw new Error('Failed to create PNG blob.')
-  }
-  downloadBlob(blob, `${getExportFileBase()}.png`)
-}
-
-async function exportReportAsPdf(element: HTMLElement) {
-  const canvas = await renderReportCanvas(element)
-  const image = canvas.toDataURL('image/png')
-  const pdf = new jsPDF({ format: 'a4', orientation: 'portrait', unit: 'mm' })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imageHeight = (canvas.height * pageWidth) / canvas.width
-  let remainingHeight = imageHeight
-  let offsetY = 0
-  pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
-  remainingHeight -= pageHeight
-  while (remainingHeight > 0) {
-    offsetY = remainingHeight - imageHeight
-    pdf.addPage()
-    pdf.addImage(image, 'PNG', 0, offsetY, pageWidth, imageHeight)
-    remainingHeight -= pageHeight
-  }
-  pdf.save(`${getExportFileBase()}.pdf`)
-}
-
-function getExportErrorMessage(format: 'pdf' | 'png', locale: 'zh' | 'en') {
-  return format === 'pdf'
-    ? getCopy(copy.workspace.errors.exportPdf, locale)
-    : getCopy(copy.workspace.errors.exportPng, locale)
 }
 
 function parseNumericField(value: string) {
@@ -306,15 +241,11 @@ function getNextQuestion(missingFields: string[], followUpCount: number) {
 function useExtractionState() {
   const { user } = useAuth()
   const { locale } = useLocale()
-  const reportRef = useRef<HTMLDivElement | null>(null)
   const [state, setState] = useState<ExtractionState>({
     currentQuestion: null,
     error: null,
-    exportError: null,
-    exportFormat: null,
     extractionInput: '',
     followUpAnswers: [],
-    isExporting: false,
     isExtracting: false,
     isSaving: false,
     record: null,
@@ -584,58 +515,17 @@ function useExtractionState() {
     }
   }
 
-  async function handleExport(format: 'pdf' | 'png') {
-    if (!reportRef.current || state.isExporting) {
-      return
-    }
-
-    setState((current) => ({
-      ...current,
-      exportError: null,
-      exportFormat: format,
-      isExporting: true,
-    }))
-
-    try {
-      if (format === 'pdf') {
-        await exportReportAsPdf(reportRef.current)
-      } else {
-        await exportReportAsPng(reportRef.current)
-      }
-
-      setState((current) => ({
-        ...current,
-        exportFormat: null,
-        isExporting: false,
-      }))
-    } catch (error) {
-      console.error(error)
-      setState((current) => ({
-        ...current,
-        exportError: getExportErrorMessage(format, locale),
-        exportFormat: null,
-        isExporting: false,
-      }))
-    }
-  }
-
-  function setReportRef(node: HTMLDivElement | null) {
-    reportRef.current = node
-  }
-
   function setExtractionInput(extractionInput: string) {
     setState((current) => ({ ...current, extractionInput }))
   }
 
   return {
     ...state,
-    handleExport,
     handleFieldCommit,
     retryLastAction,
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
-    setReportRef,
   }
 }
 
@@ -644,12 +534,8 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
   const {
     currentQuestion,
     error,
-    exportError,
-    exportFormat,
     extractionInput,
-    handleExport,
     handleFieldCommit,
-    isExporting,
     isExtracting,
     isSaving,
     record,
@@ -659,7 +545,6 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
-    setReportRef,
   } = useExtractionState()
   const displayRecord = record ?? EMPTY_RECORD
 
@@ -673,13 +558,9 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
           <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
-              exportError={exportError}
-              exportFormat={exportFormat}
               extractionInput={extractionInput}
-              isExporting={isExporting}
               isExtracting={isExtracting}
               isSaving={isSaving}
-              onExport={(format) => void handleExport(format)}
               onExtract={() => void runInitialExtraction()}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
@@ -702,7 +583,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePage
               onCommitField={handleFieldCommit}
               record={displayRecord}
               remainingMissing={remainingMissing}
-              setReportRef={setReportRef}
+              setReportRef={() => undefined}
               theme="dark"
             />
           </div>
@@ -717,13 +598,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
   const {
     currentQuestion,
     error,
-    exportError,
-    exportFormat,
     extractionInput,
     followUpAnswers,
-    handleExport,
     handleFieldCommit,
-    isExporting,
     isExtracting,
     isSaving,
     record,
@@ -733,7 +610,6 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
     runFollowUpExtraction,
     runInitialExtraction,
     setExtractionInput,
-    setReportRef,
   } = useExtractionState()
   const displayRecord = record ?? EMPTY_RECORD
 
@@ -747,13 +623,9 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
           <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
-              exportError={exportError}
-              exportFormat={exportFormat}
               extractionInput={extractionInput}
-              isExporting={isExporting}
               isExtracting={isExtracting}
               isSaving={isSaving}
-              onExport={(format) => void handleExport(format)}
               onExtract={() => void runInitialExtraction()}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
@@ -777,7 +649,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userLabel }: WorkspacePag
               onCommitField={handleFieldCommit}
               record={displayRecord}
               remainingMissing={remainingMissing}
-              setReportRef={setReportRef}
+              setReportRef={() => undefined}
               theme="light"
             />
           </div>

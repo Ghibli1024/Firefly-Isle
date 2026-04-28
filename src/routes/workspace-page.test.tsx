@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 ./workspace-page。
- * [OUTPUT]: 对外提供工作区报告预览、侧栏壳层、职责边界与 locale 回归测试。
- * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻 V3 病历预览主表面、单一主提取动作、导出动作、文本输入边界、无装饰性状态卡侧栏、无右侧 active 亮条导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
+ * [OUTPUT]: 对外提供工作区报告预览、输入 composer、侧栏壳层、职责边界与 locale 回归测试。
+ * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻病历预览主表面、单一主提取动作、无正式导出入口、textarea 输入工具行、无装饰性状态卡侧栏、无右侧 active 亮条导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -99,19 +99,20 @@ describe('WorkspacePage report shell', () => {
     expect(markup).not.toContain('当前参数')
   })
 
-  it('keeps /app export actions wired through the composer', () => {
+  it('keeps formal PDF and PNG export actions out of /app', () => {
     const markup = renderWorkspace('light')
 
-    expect(markup).toContain('导出 PDF')
-    expect(markup).toContain('导出 PNG')
+    expect(markup).not.toContain('导出 PDF')
+    expect(markup).not.toContain('导出 PNG')
   })
 
-  it('keeps the composer as text input plus explicit actions without file or microphone controls', () => {
+  it('keeps file import, voice and character count inside the textarea tool row', () => {
     const markup = renderWorkspace('light')
 
     expect(markup).toContain('id="patient-history-input"')
-    expect(markup).not.toContain('导入文件')
-    expect(markup).not.toContain('>mic</span>')
+    expect(markup).toContain('导入病历文件')
+    expect(markup).toContain('>mic</span>')
+    expect(markup).toContain('0 / 8000')
     expect(markup).not.toContain('type="file"')
   })
 

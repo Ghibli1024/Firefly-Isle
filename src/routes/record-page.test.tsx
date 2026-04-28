@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LocaleProvider } from '@/lib/locale'
@@ -49,13 +49,15 @@ vi.mock('@/lib/theme', async () => {
 
 import { RecordPage } from './record-page'
 
-function renderRecord(theme: 'light' | 'dark') {
+function renderRecord(theme: 'light' | 'dark', initialEntry = '/record/demo') {
   currentTheme = theme
 
   return renderToStaticMarkup(
     <LocaleProvider>
-      <MemoryRouter initialEntries={['/record/demo']}>
-        <RecordPage isSigningOut={false} onSignOut={() => undefined} userLabel="ANON_SESSION" />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/record/:id" element={<RecordPage isSigningOut={false} onSignOut={() => undefined} userLabel="ANON_SESSION" />} />
+        </Routes>
       </MemoryRouter>
     </LocaleProvider>,
   )
@@ -78,10 +80,12 @@ describe('RecordPage responsive dossier shell', () => {
   })
 
   it('places PDF and PNG export actions on the record page', () => {
-    const markup = renderRecord('light')
+    const markup = renderRecord('light', '/record/patient-42')
 
     expect(markup).toContain('导出 PDF')
     expect(markup).toContain('导出 PNG')
+    expect(markup).toMatch(/<button(?![^>]*disabled="")[^>]*>[\s\S]*导出 PDF/)
+    expect(markup).toMatch(/<button(?![^>]*disabled="")[^>]*>[\s\S]*导出 PNG/)
   })
 
   it('does not allow demo fallback export before a real saved record is loaded', () => {

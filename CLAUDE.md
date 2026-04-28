@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - This repository has completed its MVP implementation baseline. The full MVP change was archived at `openspec/changes/archive/2026-04-13-mvp-core/`.
 - The commit-history documentation change was archived at `openspec/changes/archive/2026-04-14-commit-history-log/`.
 - The current baseline specs now live under `openspec/specs/`.
-- Active OpenSpec changes currently include `add-language-toggle`, `flatten-workspace-report-shell`, and `split-ci-cd-deploy-control`; keep new scoped work on its own change instead of mutating unrelated active tracks.
+- There are currently no active OpenSpec changes. The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
 - Product context lives in `README.md` and `docs/products/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
@@ -52,6 +52,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived theme-system unification artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-23-refine-login-theme-entry/`
   - archived login theme-entry refinement artifacts (proposal/design/specs/tasks)
+- `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`
+  - archived input/export ownership artifacts separating `/app` input/extraction from `/record/:id` formal PDF/PNG export
 - `.github/`
   - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`
@@ -67,7 +69,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
 - **AI boundary:** frontend calls a Supabase Edge Function proxy; provider API keys stay server-side
-- **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → PDF/PNG export
+- **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → PDF/PNG export
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
 - **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
 

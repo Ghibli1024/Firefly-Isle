@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 FireflyMark，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 public/login 的透明位图人体背景资产。
+ * [INPUT]: 依赖 react 的表单事件类型，依赖 react-router-dom 的 Link，依赖 FireflyMark，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 public/login 的透明位图人体背景资产与夜航岛屿登录场景资产。
  * [OUTPUT]: 对外提供 LoginPageView 组件，以及 AuthMode / AuthFeedback / LoginPageViewProps 类型。
- * [POS]: components 的登录页展示层，按 V3 全视口双面板复刻品牌入口、位图人体背景与身份访问控制台，不触碰 Supabase 认证状态机。
+ * [POS]: components 的登录页展示层，保留 V3 全视口双面板品牌入口，只把右侧身份访问面板复刻为 D 夜航岛屿登录入口与单纯登录按钮，不触碰 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { type FormEvent } from 'react'
+import { type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { FireflyMark } from '@/components/system/firefly-mark'
@@ -51,6 +51,8 @@ const loginAnatomyAssets: Record<Theme, string> = {
   dark: '/login/anatomy-dark.png',
   light: '/login/anatomy-light.png',
 }
+
+const nightIslandAuthScene = '/login/night-island-auth-scene.png'
 
 function getCapabilities(locale: 'zh' | 'en'): Capability[] {
   if (locale === 'en') {
@@ -120,7 +122,7 @@ function AuthFeedbackBlock({ feedback }: { feedback: AuthFeedback | null }) {
   }
 
   return (
-    <div className={`rounded-[var(--ff-radius-md)] border px-4 py-3 text-sm ${feedbackClass(feedback)}`}>
+    <div className={`rounded-[var(--ff-radius-md)] border bg-black/20 px-4 py-3 text-sm ${feedbackClass(feedback)}`}>
       {feedback.message}
     </div>
   )
@@ -159,52 +161,129 @@ function LoginAnatomyBackdrop({ dark }: { dark: boolean }) {
   )
 }
 
-function WechatGlyph() {
+function AuthBeaconPreview({ locale }: { locale: 'zh' | 'en' }) {
   return (
-    <svg aria-hidden="true" className="h-8 w-8" viewBox="0 0 32 32">
-      <circle cx="13" cy="13" fill="var(--ff-accent-success)" r="9" />
-      <circle cx="20" cy="19" fill="var(--ff-accent-success)" r="8" opacity="0.92" />
-      <circle cx="10" cy="11" fill="white" r="1.3" />
-      <circle cx="15" cy="11" fill="white" r="1.3" />
-      <circle cx="18" cy="17" fill="white" r="1.1" />
-      <circle cx="22" cy="17" fill="white" r="1.1" />
-      <path d="M8.5 20.8 7 24l4-1.9" fill="var(--ff-accent-success)" />
-      <path d="M24.1 24.3 25.7 28l-4.3-2" fill="var(--ff-accent-success)" opacity="0.92" />
-    </svg>
+    <div className="relative min-h-[335px] overflow-hidden rounded-t-[28px] bg-[#050b0e] md:min-h-[360px]">
+      <img
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-95"
+        draggable={false}
+        src={nightIslandAuthScene}
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_29%,rgba(244,240,232,0.12),transparent_18%),linear-gradient(180deg,rgba(5,9,11,0.72)_0%,rgba(5,9,11,0.08)_34%,rgba(5,9,11,0.12)_58%,rgba(5,9,11,0.94)_100%)]" />
+      <div className="absolute inset-x-0 bottom-8 px-6 text-center md:bottom-10">
+        <h2 className="text-[2.45rem] font-black leading-none tracking-normal text-[#f4f0e8] drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)] md:text-[2.75rem]">
+          {locale === 'zh' ? '身份访问' : 'Identity Access'}
+        </h2>
+        <p className="mt-4 text-sm font-semibold text-white/54">
+          {locale === 'zh' ? '在安全的光下，开始您的旅程' : 'Begin under a secure clinical beacon'}
+        </p>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(180deg,rgba(5,11,14,0),#050b0e)]" />
+    </div>
   )
 }
 
-function GoogleGlyph() {
-  return (
-    <svg aria-hidden="true" className="h-8 w-8" viewBox="0 0 32 32">
-      <path d="M28.8 16.3c0-1-.1-1.8-.3-2.6H16.3v5h7c-.3 1.6-1.2 3-2.6 3.9v3.2h4.2c2.4-2.3 3.9-5.6 3.9-9.5Z" fill="#4285F4" />
-      <path d="M16.3 29c3.5 0 6.4-1.1 8.6-3.2l-4.2-3.2c-1.2.8-2.6 1.2-4.4 1.2-3.4 0-6.2-2.3-7.2-5.4H4.8v3.3C6.9 26 11.2 29 16.3 29Z" fill="#34A853" />
-      <path d="M9.1 18.4a8.1 8.1 0 0 1 0-5.1V10H4.8a13 13 0 0 0 0 11.7l4.3-3.3Z" fill="#FBBC05" />
-      <path d="M16.3 8c1.9 0 3.6.7 4.9 2l3.8-3.7A12.7 12.7 0 0 0 16.3 3C11.2 3 6.9 6 4.8 10l4.3 3.3c1-3 3.8-5.3 7.2-5.3Z" fill="#EA4335" />
-    </svg>
-  )
-}
-
-function SocialButton({ icon, label }: { icon: string; label: string }) {
+function SocialButton({ icon, label, subLabel }: { icon: string; label: string; subLabel: string }) {
   return (
     <button
-      className="flex h-[61px] w-full items-center justify-center gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-lg font-semibold text-[var(--ff-text-primary)] opacity-90"
+      className="flex h-[72px] min-w-0 flex-1 items-center justify-center gap-4 rounded-[10px] border border-[#353b3b] bg-[rgba(255,255,255,0.035)] text-base font-semibold text-[#d9d1c4] shadow-[inset_0_0_22px_rgba(255,255,255,0.018)] transition-colors hover:border-[#6c665c] hover:bg-white/[0.055] disabled:cursor-not-allowed"
       disabled
       type="button"
     >
-      <span className="flex w-8 shrink-0 items-center justify-center">{icon === 'wechat' ? <WechatGlyph /> : <GoogleGlyph />}</span>
-      <span className="min-w-[8em] text-left leading-none">{label}</span>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-[#b8ae9e] drop-shadow-[0_0_12px_rgba(184,174,158,0.16)]">
+        {icon === 'wechat' ? <WechatWarmGlyph /> : <GoogleWarmGlyph />}
+      </span>
+      <span className="flex flex-col items-start leading-none">
+        <span className="text-[17px] font-semibold text-[#d8d0c4]">{label}</span>
+        <span className="mt-2 text-xs font-semibold text-[#8b867f]">{subLabel}</span>
+      </span>
     </button>
   )
 }
 
-function Divider({ label }: { label: string }) {
+function WechatWarmGlyph() {
   return (
-    <div className="flex items-center gap-4">
-      <div className="h-px flex-1 bg-[var(--ff-border-default)]" />
-      <span className="text-sm text-[var(--ff-text-muted)]">{label}</span>
-      <div className="h-px flex-1 bg-[var(--ff-border-default)]" />
-    </div>
+    <svg aria-hidden="true" className="h-9 w-9" fill="none" viewBox="0 0 36 36">
+      <path
+        d="M17.3 9.4c-6.3 0-11.4 3.9-11.4 8.8 0 2.8 1.7 5.3 4.3 6.9l-.9 3.5 4.2-1.9c1.2.3 2.5.4 3.8.4 6.3 0 11.4-3.9 11.4-8.9s-5.1-8.8-11.4-8.8Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.2"
+      />
+      <path
+        d="M20.5 25.9c1.1.5 2.5.7 3.9.7.9 0 1.8-.1 2.6-.3l3.6 1.6-.8-3c2.2-1.3 3.6-3.4 3.6-5.7 0-3.5-3.2-6.5-7.6-7.1"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.2"
+      />
+      <circle cx="13.5" cy="17.8" fill="currentColor" r="1.45" />
+      <circle cx="18.8" cy="17.8" fill="currentColor" r="1.45" />
+      <circle cx="24" cy="18.8" fill="currentColor" r="1.25" />
+    </svg>
+  )
+}
+
+function GoogleWarmGlyph() {
+  return (
+    <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 36 36">
+      <text
+        dominantBaseline="central"
+        fill="currentColor"
+        fontFamily="Inter, Arial, sans-serif"
+        fontSize="29"
+        fontWeight="800"
+        textAnchor="middle"
+        x="18"
+        y="18.8"
+      >
+        G
+      </text>
+    </svg>
+  )
+}
+
+function CredentialField({
+  children,
+  icon,
+  label,
+  trailing,
+}: {
+  children: ReactNode
+  icon: string
+  label: string
+  trailing?: ReactNode
+}) {
+  return (
+    <label className="block rounded-[14px] border border-white/12 bg-black/16 px-4 py-3 transition-colors focus-within:border-[var(--ff-accent-primary)]/48">
+      <span className="mb-2 block text-xs font-semibold text-white/48">{label}</span>
+      <span className="flex min-h-10 items-center gap-4">
+        <span className="material-symbols-outlined text-[20px] text-white/56">{icon}</span>
+        {children}
+        {trailing}
+      </span>
+    </label>
+  )
+}
+
+function LoginSubmitButton({
+  isSubmitting,
+  label,
+}: {
+  isSubmitting: boolean
+  label: string
+}) {
+  return (
+    <button
+      className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-[14px] bg-[var(--ff-accent-primary)] px-5 text-base font-bold text-white shadow-[0_16px_34px_rgba(232,93,42,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+      data-testid="login-submit-button"
+      disabled={isSubmitting}
+      type="submit"
+    >
+      <span>{label}</span>
+    </button>
   )
 }
 
@@ -228,8 +307,8 @@ function V3LoginView({
   const capabilities = getCapabilities(locale)
   const submitLabel =
     mode === 'login' ? getCopy(copy.login.auth.submitLoginLight, locale) : getCopy(copy.login.auth.submitSignup, locale)
-  const dividerLabel =
-    mode === 'login' ? getCopy(copy.login.auth.dividerLogin, locale) : getCopy(copy.login.auth.dividerSignup, locale)
+  const primaryActionLabel = mode === 'login' ? getCopy(copy.login.auth.login, locale) : submitLabel
+  const loginButtonLabel = isSubmitting ? getCopy(copy.workspace.composer.processing, locale) : primaryActionLabel
   const currentFeedback = feedback ?? (authError ? { message: authError, tone: 'error' as const } : null)
   const privacySummary =
     locale === 'zh'
@@ -300,144 +379,114 @@ function V3LoginView({
           </div>
         </section>
 
-        <section className="min-w-0 rounded-[var(--ff-radius-lg)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-8 md:p-10">
-          <div className="mx-auto flex h-full max-w-[520px] flex-col justify-center">
-            <h2 className="text-4xl font-bold tracking-normal md:text-5xl">{getCopy(copy.login.auth.heading, locale)}</h2>
+        <section className="flex min-w-0 items-center justify-center p-0 md:px-6">
+          <div className="mx-auto flex h-full w-full max-w-[520px] flex-col overflow-hidden rounded-[28px] border border-white/14 bg-[#050b0e] text-[#f4f0e8] shadow-[0_26px_72px_rgba(0,0,0,0.42)]">
+            <AuthBeaconPreview locale={locale} />
+            <div className="px-6 pb-6 pt-4 md:px-7 md:pb-7">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-xs font-semibold text-white/48">{locale === 'zh' ? '一键登录' : 'One-tap sign in'}</p>
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <button
+                    className={mode === 'login' ? 'text-[var(--ff-accent-primary)]' : 'text-white/40 hover:text-white/72'}
+                    onClick={() => onModeChange('login')}
+                    type="button"
+                  >
+                    {getCopy(copy.login.auth.login, locale)}
+                  </button>
+                  <span className="h-3 w-px bg-white/14" />
+                  <button
+                    className={mode === 'sign-up' ? 'text-[var(--ff-accent-primary)]' : 'text-white/40 hover:text-white/72'}
+                    onClick={() => onModeChange('sign-up')}
+                    type="button"
+                  >
+                    {getCopy(copy.login.auth.signup, locale)}
+                  </button>
+                </div>
+              </div>
 
-            <div className="mt-8 grid grid-cols-2 border border-[var(--ff-border-default)]">
-              <button
-                className={[
-                  'h-14 text-lg font-semibold transition-colors',
-                  mode === 'login'
-                    ? 'border-b-2 border-[var(--ff-accent-primary)] text-[var(--ff-accent-primary)]'
-                    : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]',
-                ].join(' ')}
-                onClick={() => onModeChange('login')}
-                type="button"
-              >
-                {getCopy(copy.login.auth.login, locale)}
-              </button>
-              <button
-                className={[
-                  'h-14 text-lg font-semibold transition-colors',
-                  mode === 'sign-up'
-                    ? 'border-b-2 border-[var(--ff-accent-primary)] text-[var(--ff-accent-primary)]'
-                    : 'text-[var(--ff-text-secondary)] hover:text-[var(--ff-text-primary)]',
-                ].join(' ')}
-                onClick={() => onModeChange('sign-up')}
-                type="button"
-              >
-                {getCopy(copy.login.auth.signup, locale)}
-              </button>
-            </div>
-
-            <div className="mt-7 space-y-4">
-              <SocialButton icon="wechat" label={getCopy(copy.login.auth.wechat, locale)} />
-              <SocialButton icon="google" label={getCopy(copy.login.auth.google, locale)} />
-            </div>
-
-            <div className="my-8">
-              <Divider label={dividerLabel} />
-            </div>
-
-            <form className="space-y-5" onSubmit={onSubmit}>
-              <AuthFeedbackBlock feedback={currentFeedback} />
-
-              <div>
-                <label className="mb-3 block text-base text-[var(--ff-text-primary)]" htmlFor="login-email">
-                  {getCopy(copy.login.auth.emailLabelLight, locale)}
-                </label>
-                <input
-                  autoComplete="email"
-                  className="h-14 w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-base text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--ff-accent-primary)_16%,transparent)]"
-                  id="login-email"
-                  onChange={(event) => onEmailChange(event.target.value)}
-                  placeholder={getCopy(copy.login.auth.emailPlaceholderLight, locale)}
-                  required
-                  type="email"
-                  value={email}
+              <div className="mt-3 flex gap-3">
+                <SocialButton
+                  icon="wechat"
+                  label={getCopy(copy.login.auth.wechat, locale)}
+                  subLabel={locale === 'zh' ? '快捷登录' : 'Quick sign in'}
+                />
+                <SocialButton
+                  icon="google"
+                  label={getCopy(copy.login.auth.google, locale)}
+                  subLabel={locale === 'zh' ? '快捷登录' : 'Quick sign in'}
                 />
               </div>
 
-              <div>
-                <label className="mb-3 block text-base text-[var(--ff-text-primary)]" htmlFor="login-password">
-                  {locale === 'zh' ? '密码 / 加密密钥' : 'Password / Encryption Key'}
-                </label>
-                <div className="relative">
+              <form className="mt-3 space-y-4" onSubmit={onSubmit}>
+                <AuthFeedbackBlock feedback={currentFeedback} />
+
+                <CredentialField icon="mail" label={locale === 'zh' ? '邮箱' : 'Email'}>
+                  <span className="sr-only">{getCopy(copy.login.auth.emailLabelLight, locale)}</span>
+                  <input
+                    autoComplete="email"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-[#f4f0e8] outline-none placeholder:text-white/40"
+                    id="login-email"
+                    onChange={(event) => onEmailChange(event.target.value)}
+                    placeholder={getCopy(copy.login.auth.emailPlaceholderLight, locale)}
+                    required
+                    type="email"
+                    value={email}
+                  />
+                </CredentialField>
+
+                <CredentialField
+                  icon="key"
+                  label={locale === 'zh' ? '密码' : 'Password'}
+                  trailing={<span className="material-symbols-outlined text-[20px] text-white/56">visibility</span>}
+                >
+                  <span className="sr-only">{locale === 'zh' ? '密码 / 加密密钥' : 'Password / Encryption Key'}</span>
                   <input
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    className="h-14 w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 pr-14 text-base text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--ff-accent-primary)_16%,transparent)]"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-[#f4f0e8] outline-none placeholder:text-white/40"
                     id="login-password"
                     onChange={(event) => onPasswordChange(event.target.value)}
-                    placeholder={getCopy(copy.login.auth.passwordPlaceholder, locale)}
+                    placeholder={locale === 'zh' ? '访问密钥（256 位加密）' : 'Access key (256-bit encrypted)'}
                     required
                     type="password"
                     value={password}
                   />
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[var(--ff-text-muted)]">
-                    visibility
-                  </span>
-                </div>
+                </CredentialField>
+
+                <LoginSubmitButton isSubmitting={isSubmitting} label={loginButtonLabel} />
+
+                <button
+                  className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-[14px] border border-white/10 bg-white/[0.035] text-sm font-semibold text-white/70 transition-colors hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isSubmitting}
+                  onClick={onAnonymousLogin}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[20px]">lock_open</span>
+                  <span>{locale === 'zh' ? '匿名会话' : 'Anonymous session'}</span>
+                  <span className="text-xs font-medium text-white/40">{locale === 'zh' ? '无需登录，直接使用' : 'Use directly without login'}</span>
+                </button>
+              </form>
+
+              <p className="mt-4 rounded-[var(--ff-radius-full)] bg-white/[0.045] px-4 py-3 text-center text-xs leading-6 text-white/52">
+                <span className="material-symbols-outlined mr-2 inline text-base align-[-3px]">verified_user</span>
+                {privacySummary}
+                {' '}
+                <Link className="text-white/78 underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
+                  {getCopy(copy.login.footer.fullPrivacy, locale)}
+                </Link>
+              </p>
+
+              <div className="mt-3 flex items-center justify-center gap-3 text-xs text-white/44">
+                <button className="inline-flex items-center gap-1.5 hover:text-white/72" onClick={onToggleTheme} type="button">
+                  <span className="material-symbols-outlined text-base">{isDark ? 'dark_mode' : 'light_mode'}</span>
+                  {isDark ? getCopy(copy.themeToggle.dark, locale) : getCopy(copy.themeToggle.light, locale)}
+                </button>
+                <span className="h-3 w-px bg-white/14" />
+                <button className="inline-flex items-center gap-1.5 hover:text-white/72" onClick={toggleLocale} type="button">
+                  <span className="material-symbols-outlined text-base">language</span>
+                  {getCopy(copy.localeToggle[locale], locale)}
+                </button>
               </div>
-
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <label className="flex items-center gap-3 text-[var(--ff-text-primary)]">
-                  <input className="h-5 w-5 accent-[var(--ff-accent-primary)]" type="checkbox" />
-                  {locale === 'zh' ? '记住我' : 'Remember me'}
-                </label>
-                <a className="text-[var(--ff-accent-primary)]" href="#">
-                  {locale === 'zh' ? '忘记密码?' : 'Forgot password?'}
-                </a>
-              </div>
-
-              <button
-                className="flex h-16 w-full items-center justify-center gap-4 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] text-xl font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSubmitting}
-                type="submit"
-              >
-                <span className="material-symbols-outlined">my_location</span>
-                {isSubmitting ? getCopy(copy.workspace.composer.processing, locale) : submitLabel}
-              </button>
-
-              <button
-                className="flex h-16 w-full items-center justify-center gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-lg font-semibold text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isSubmitting}
-                onClick={onAnonymousLogin}
-                type="button"
-              >
-                <span className="material-symbols-outlined">person_add</span>
-                {getCopy(copy.login.auth.anonymous, locale)}
-              </button>
-            </form>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <button
-                className="flex h-14 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-base"
-                onClick={onToggleTheme}
-                type="button"
-              >
-                <span className="material-symbols-outlined">{isDark ? 'dark_mode' : 'light_mode'}</span>
-                {isDark ? getCopy(copy.themeToggle.dark, locale) : getCopy(copy.themeToggle.light, locale)}
-              </button>
-              <button
-                className="flex h-14 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-base"
-                onClick={toggleLocale}
-                type="button"
-              >
-                <span className="material-symbols-outlined">language</span>
-                {getCopy(copy.localeToggle[locale], locale)}
-                <span className="material-symbols-outlined text-lg">expand_more</span>
-              </button>
             </div>
-
-            <p className="mt-6 text-center text-sm leading-7 text-[var(--ff-text-muted)]">
-              <span className="material-symbols-outlined mr-2 inline text-base align-[-3px]">security</span>
-              {privacySummary}
-              {' '}
-              <Link className="underline underline-offset-4" to={PRIVACY_PAGE_HREF}>
-                {getCopy(copy.login.footer.fullPrivacy, locale)}
-              </Link>
-            </p>
           </div>
         </section>
       </main>
