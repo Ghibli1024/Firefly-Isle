@@ -3,16 +3,37 @@
 定义 Firefly-Isle MVP 的页面壳层、三类核心页面、主题切换空间角色与登录页入口边界。
 ## Requirements
 ### Requirement: MVP 仅包含三类 Web 页面结构
-系统 SHALL 在 MVP 中围绕登录页面、临床工作区、档案详情与独立隐私页组织界面结构，并要求这些页面在 dark / light 主题间共享同一套视觉系统、组件角色与主题语义。
+系统 SHALL 在 MVP 中围绕登录页面、临床工作区、档案详情与独立隐私页组织界面结构，并要求这些页面在 dark / light 主题间共享同一套视觉系统、组件角色与主题语义；登录页面 SHALL 在同一路由内使用项目介绍页与 CTA 驱动统一登录弹层的组合入口。
 
-#### Scenario: 页面结构范围
-- **WHEN** 实现 MVP 前端页面结构
-- **THEN** 系统 SHALL 保持既有 `/login`、`/privacy`、`/app`、`/record/:id` 路由不变
-- **AND** 系统 SHALL NOT 新增或删除路由来完成本次视觉重构
+#### Scenario: 登录页保持单一路由
+- **WHEN** 系统实现项目介绍页与统一登录弹层
+- **THEN** 系统 SHALL 继续使用既有 `/login` 路由
+- **AND** 系统 SHALL NOT 为登录弹层或项目介绍新增单独路由
 
-#### Scenario: dark / light 页面共享空间角色
-- **WHEN** 系统在同一 Web 页面上切换 Dark 或 Light 主题
-- **THEN** 侧栏、顶部区域、主内容区、版心、报告容器和主要操作位置 SHALL 保持同构空间角色，而不是因主题切换变成不同信息架构
+#### Scenario: 登录页结构包含介绍页与按需登录弹层
+- **WHEN** 用户访问 `/login`
+- **THEN** 页面 SHALL 提供全屏双主题海岸介绍区域用于展示产品定位、能力路径与安全状态
+- **AND** 页面 SHALL 在用户触发 `登录` 后提供统一登录弹层用于承载登录、注册、匿名会话与隐私说明
+- **AND** 页面 SHALL 在项目介绍区域提供主题切换与语言切换工具
+- **AND** 登录弹层 SHALL 与项目介绍区域处于同一页面结构，而不是独立跳转页面
+
+#### Scenario: 登录弹层由 CTA 展开或收起
+- **WHEN** 用户首次访问 `/login`
+- **THEN** 页面 SHALL 默认只展示项目介绍区域与 `登录` CTA
+- **AND** 页面 SHALL NOT 默认展示登录表单或右侧窄身份访问抽屉
+- **WHEN** 用户触发项目介绍区域中的 `登录` CTA
+- **THEN** 页面 SHALL 挂载并展示统一登录弹层
+- **AND** 桌面端 SHALL 使用与窄屏一致的居中弹层，而不是右侧抽屉或横向让位布局
+- **AND** 该状态变化 SHALL NOT 改变认证业务语义或已输入表单值
+
+#### Scenario: 窄屏按需弹出登录卡
+- **WHEN** 窄屏用户访问 `/login`
+- **THEN** 页面 SHALL 优先展示项目介绍区域
+- **AND** 与桌面统一弹层同源的登录卡 SHALL 默认隐藏
+- **WHEN** 用户触发项目介绍区域中的 `登录` CTA
+- **THEN** 页面 SHALL 以弹层呈现同源登录卡
+- **AND** 登录卡 SHALL 保留邮箱登录、注册模式、匿名会话与隐私说明入口
+- **AND** 用户 SHALL 能关闭弹层回到项目介绍区域
 
 ### Requirement: 页面结构必须复刻设计稿
 系统 SHALL 以输入提取台和正式档案导出台的职责分离为 `/app` 与 `/record/:id` 的页面结构依据，并保持 dark / light 主题只改变 token、材质与品牌 mark，不改变页面职责。
@@ -127,10 +148,7 @@
 ### Requirement: 视觉重构不得改变业务边界
 系统 SHALL 将本次变更限制在视觉系统、theme token、shared shell、页面 composition、组件 styling 与文档同步，不得改变当前业务流程与数据边界。
 
-#### Scenario: 认证与提取边界保持不变
-- **WHEN** 用户登录、注册、匿名进入、提交病史或回答追问
-- **THEN** 系统 SHALL 保持现有 Supabase Auth、提取状态机、最多三轮追问、落库与错误恢复行为不变
-
-#### Scenario: 数据与导出边界保持不变
-- **WHEN** 系统渲染、编辑、保存或导出 PatientRecord
-- **THEN** `PatientRecord` schema、inline edit 保存语义、以及 `/record/:id` 内的 PDF 导出和 PNG 导出行为 SHALL 保持不变
+#### Scenario: 登录入口不改变 Auth 行为
+- **WHEN** 用户在登录入口内登录、注册、匿名进入、切换主题或切换语言
+- **THEN** 系统 SHALL 保持现有 Supabase Auth、匿名 session、主题偏好、语言偏好与错误反馈行为不变
+- **AND** 弹层展开或收起 SHALL NOT 触发认证请求

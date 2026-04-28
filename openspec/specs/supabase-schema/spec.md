@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 Supabase PostgreSQL 表结构、RLS 策略、部署区域与更新时间戳基础设施规则。
+
+## Requirements
 
 ### Requirement: patients 表结构
 系统 SHALL 在 Supabase PostgreSQL 中创建 patients 表，存储 PatientRecord 的顶层信息与 basicInfo、initialOnset 字段。

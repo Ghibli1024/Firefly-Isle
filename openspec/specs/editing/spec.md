@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义时间线表格字段编辑、自动保存、空白高亮与布局稳定性规则。
+
+## Requirements
 
 ### Requirement: 点击字段进入编辑模式
 系统 SHALL 支持用户点击表格中任意字段单元格，将其切换为可编辑的 input 或 textarea 控件。

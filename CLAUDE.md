@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - This repository has completed its MVP implementation baseline. The full MVP change was archived at `openspec/changes/archive/2026-04-13-mvp-core/`.
 - The commit-history documentation change was archived at `openspec/changes/archive/2026-04-14-commit-history-log/`.
 - The current baseline specs now live under `openspec/specs/`.
-- There are currently no active OpenSpec changes. The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
+- The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
+- The login intro/drawer refinement is archived at `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`.
 - Product context lives in `README.md` and `docs/products/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
@@ -44,6 +45,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
 - `openspec/specs/`
   - current baseline requirements merged from archived MVP and commit-history changes
+  - `CLAUDE.md` maps each baseline spec file and records that main specs must use `## Purpose` + `## Requirements`
 - `openspec/changes/archive/2026-04-13-mvp-core/`
   - archived MVP implementation artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-14-commit-history-log/`
@@ -54,6 +56,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived login theme-entry refinement artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`
   - archived input/export ownership artifacts separating `/app` input/extraction from `/record/:id` formal PDF/PNG export
+- `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`
+  - archived login-entry artifacts defining the dual-theme project intro page and CTA-opened unified login overlay
 - `.github/`
   - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`

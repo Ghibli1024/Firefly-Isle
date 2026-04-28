@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+定义 docs/log 提交历史日志的粒度、证据边界与置信度标注规则。
+
+## Requirements
 
 ### Requirement: docs/log 采用每个 commit 一份日志文件
 系统 SHALL 在 `docs/log/` 下按 git 提交粒度维护历史日志，每个 commit 对应一个独立文件，而不是将多个提交混写在单文档中。
