@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @supabase/supabase-js 的 createClient，依赖 Vite 注入的 Supabase 环境变量。
- * [OUTPUT]: 对外提供 getSupabaseClient、hasSupabaseEnv、hasSupabaseFunctionEnv、supabaseEnv 与 supabaseEdgeFunctionUrl。
+ * [OUTPUT]: 对外提供 getSupabaseClient、hasSupabaseEnv、hasSupabaseFunctionEnv、supabaseEnv 与 supabaseEdgeFunctionUrl，Auth 使用 PKCE URL 回调恢复。
  * [POS]: lib 的 BaaS 边界入口，把客户端初始化与环境变量读取锁在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -33,6 +33,7 @@ export function getSupabaseClient() {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        flowType: 'pkce',
         persistSession: true,
       },
     })

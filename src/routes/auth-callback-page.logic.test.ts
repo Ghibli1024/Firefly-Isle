@@ -1,0 +1,91 @@
+/**
+ * [INPUT]: 依赖 vitest 的 Supabase Auth mock，依赖 ./auth-callback-page.logic 的 OAuth 回调恢复函数。
+ * [OUTPUT]: 对外提供 /auth/callback code exchange、session restore 与错误回落的回归测试。
+ * [POS]: routes 的 OAuth 回调逻辑测试文件，约束 Google 回调先恢复 Supabase session，再交给路由守卫进入 /app。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import { describe, expect, it, vi } from 'vitest'
+
+import {
+  getOAuthCallbackErrorMessage,
+  restoreAuthCallbackSession,
+  type AuthCallbackClient,
+} from './auth-callback-page.logic'
+
+function createCallbackClient(overrides: Partial<AuthCallbackClient> = {}): AuthCallbackClient {
+  return {
+    exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+    getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: 'auth-user-id' } } }, error: null }),
+    ...overrides,
+  }
+}
+
+describe('auth callback restore logic', () => {
+  it('maps expired OAuth state errors before attempting session restore', async () => {
+    const auth = createCallbackClient()
+
+    const result = await restoreAuthCallbackSession(
+      auth,
+      'https://firefly.ghibli1024.com/?error=invalid_request&error_code=bad_oauth_state&error_description=OAuth+state+has+expired',
+    )
+
+    expect(auth.exchangeCodeForSession).not.toHaveBeenCalled()
+    expect(auth.getSession).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      message: 'Google 登录请求已过期，请重新使用 Google 继续。',
+      status: 'error',
+    })
+  })
+
+  it('exposes a friendly OAuth error message for route-level redirects', () => {
+    expect(
+      getOAuthCallbackErrorMessage(
+        '?error=invalid_request&error_code=bad_oauth_state&error_description=OAuth+state+has+expired',
+      ),
+    ).toBe('Google 登录请求已过期，请重新使用 Google 继续。')
+  })
+
+  it('exchanges a Google OAuth code before reading the restored Supabase session', async () => {
+    const auth = createCallbackClient()
+
+    const result = await restoreAuthCallbackSession(auth, 'http://localhost:5173/auth/callback?code=oauth-code')
+
+    expect(auth.exchangeCodeForSession).toHaveBeenCalledWith('oauth-code')
+    expect(auth.getSession).toHaveBeenCalledWith()
+    expect(result).toEqual({ status: 'authenticated' })
+  })
+
+  it('accepts an already-restored callback when Supabase removed the code from the URL', async () => {
+    const auth = createCallbackClient()
+
+    const result = await restoreAuthCallbackSession(auth, 'http://localhost:5173/auth/callback')
+
+    expect(auth.exchangeCodeForSession).not.toHaveBeenCalled()
+    expect(auth.getSession).toHaveBeenCalledWith()
+    expect(result).toEqual({ status: 'authenticated' })
+  })
+
+  it('maps code exchange failures to friendly retry copy', async () => {
+    const auth = createCallbackClient({
+      exchangeCodeForSession: vi.fn().mockResolvedValue({ error: new Error('invalid request') }),
+    })
+
+    const result = await restoreAuthCallbackSession(auth, 'http://localhost:5173/auth/callback?code=expired')
+
+    expect(auth.getSession).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      message: '登录回调已失效，请重新使用 Google 继续。',
+      status: 'error',
+    })
+  })
+
+  it('returns anonymous when no Supabase session exists after callback processing', async () => {
+    const auth = createCallbackClient({
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    })
+
+    const result = await restoreAuthCallbackSession(auth, 'http://localhost:5173/auth/callback')
+
+    expect(result).toEqual({ status: 'anonymous' })
+  })
+})

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 ./login-page-view 的 LoginPageView。
- * [OUTPUT]: 对外提供登录页主题壳层的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、双主题扁平全屏背景、无圆形光晕主入口、默认不挂载统一登录弹层与主页面工具区。
+ * [OUTPUT]: 对外提供登录页主题壳层与认证弹层语义的回归测试。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性与无伪控件边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -18,10 +18,12 @@ function renderLogin(theme: LoginPageViewProps['theme'], overrides: Partial<Logi
   const props: LoginPageViewProps = {
     email: '',
     feedback: null,
+    defaultAuthOpen: false,
     isSubmitting: false,
     mode: 'login',
     onAnonymousLogin: vi.fn(),
     onEmailChange: vi.fn(),
+    onGoogleLogin: vi.fn(),
     onModeChange: vi.fn(),
     onPasswordChange: vi.fn(),
     onSubmit: vi.fn(),
@@ -53,6 +55,7 @@ function readTraceMapSource() {
 describe('LoginPageView theme shell', () => {
   it('renders dark login as an entry page without workspace side navigation', () => {
     const markup = renderLogin('dark')
+    const loginSource = readLoginSource()
 
     expect(markup).not.toContain('FORENSIC_ARCHIVE_V1')
     expect(markup).not.toContain('临床 AI 控制台')
@@ -92,14 +95,21 @@ describe('LoginPageView theme shell', () => {
     expect(markup).toContain('data-testid="login-page-utility-controls"')
     expect(markup).toContain('data-testid="login-auth-cta"')
     expect(markup).toContain('class="whitespace-nowrap">登录</span>')
+    expect(markup).toContain('min-h-[52px]')
+    expect(markup).toContain('min-w-[156px]')
+    expect(loginSource).not.toContain('min-h-[66px] w-full max-w-[340px]')
+    expect(loginSource).not.toContain('gap-4 rounded-[14px] bg-[var(--ff-accent-primary)] px-8 text-[1.35rem]')
     expect(markup).not.toContain('进入身份访问')
     expect(markup).not.toContain('data-testid="login-beacon-mark"')
     expect(markup).not.toContain('等待凭证')
     expect(markup).not.toContain('填写邮箱与密码后可登录')
     expect(markup).not.toContain('快捷登录')
     expect(markup).not.toContain('记住我')
-    expect(markup).toContain('深色')
-    expect(markup).not.toContain('dark_mode')
+    expect(markup).toContain('>主题</button>')
+    expect(markup).toContain('>语言</button>')
+    expect(markup).toContain('>light_mode</span>')
+    expect(markup).toContain('>g_translate</span>')
+    expect(markup).not.toContain('>深色</button>')
   })
 
   it('keeps the intro access action as a plain login button after credentials are present', () => {
@@ -179,12 +189,42 @@ describe('LoginPageView theme shell', () => {
     expect(source).not.toContain('className="hidden h-full w-full xl:flex')
   })
 
-  it('uses the short login title in the auth card hero', () => {
-    const source = readLoginSource()
+  it('renders the auth overlay title and submit action from the active mode', () => {
+    const loginMarkup = renderLogin('dark', { defaultAuthOpen: true, mode: 'login' })
+    const signUpMarkup = renderLogin('dark', { defaultAuthOpen: true, mode: 'sign-up' })
 
-    expect(source).toContain("{locale === 'zh' ? '登录' : 'Login'}")
-    expect(source).not.toContain('账号登录')
-    expect(source).not.toContain('Account Login')
+    expect(loginMarkup).toContain('aria-label="登录"')
+    expect(loginMarkup).toContain('data-testid="login-auth-card-title"')
+    expect(loginMarkup).toContain('>登录</h2>')
+    expect(loginMarkup).toContain('登录并进入工作区')
+    expect(loginMarkup).not.toContain('创建账户并发送验证邮件')
+    expect(signUpMarkup).toContain('aria-label="注册"')
+    expect(signUpMarkup).toContain('>注册</h2>')
+    expect(signUpMarkup).toContain('创建账户并发送验证邮件')
+    expect(signUpMarkup).not.toContain('aria-label="登录"')
+  })
+
+  it('renders password reset as an email-only mode', () => {
+    const markup = renderLogin('light', { defaultAuthOpen: true, mode: 'password-reset' })
+
+    expect(markup).toContain('aria-label="重置密码"')
+    expect(markup).toContain('>重置密码</h2>')
+    expect(markup).toContain('发送重置邮件')
+    expect(markup).toContain('邮箱')
+    expect(markup).not.toContain('for="login-auth-card-password"')
+    expect(markup).not.toContain('placeholder="访问密钥（区分大小写）"')
+    expect(markup).not.toContain('data-testid="login-password-input"')
+  })
+
+  it('does not render fake remember-me or disabled WeChat controls in the auth card', () => {
+    const markup = renderLogin('dark', { defaultAuthOpen: true, mode: 'login' })
+
+    expect(markup).not.toContain('记住我')
+    expect(markup).not.toContain('微信')
+    expect(markup).not.toContain('disabled=""')
+    expect(markup).toContain('使用 Google 继续')
+    expect(markup).toContain('自动登录或注册')
+    expect(markup).toContain('忘记密码？')
   })
 
   it('keeps the intro background clean without visible workflow waypoints', () => {
@@ -233,8 +273,10 @@ describe('LoginPageView theme shell', () => {
     const utilityIndex = markup.indexOf('data-testid="login-page-utility-controls"')
     const ctaIndex = markup.indexOf('data-testid="login-auth-cta"')
     const securityIndex = markup.indexOf('data-testid="login-security-status"')
-    const themeLabelIndex = markup.indexOf('浅色')
-    const languageLabelIndex = markup.indexOf('中文')
+    const themeLabelIndex = markup.indexOf('>主题</button>')
+    const languageLabelIndex = markup.indexOf('>语言</button>')
+    const themeIconIndex = markup.indexOf('>dark_mode</span>')
+    const languageIconIndex = markup.indexOf('>g_translate</span>')
 
     expect(markup.indexOf('登录')).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(-1)
@@ -246,10 +288,16 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('data-testid="login-mobile-auth-card"')
     expect(markup).not.toContain('data-testid="login-mobile-auth-overlay"')
     expect(securityIndex).toBeGreaterThan(ctaIndex)
+    expect(themeIconIndex).toBeGreaterThan(utilityIndex)
+    expect(languageIconIndex).toBeGreaterThan(utilityIndex)
+    expect(themeIconIndex).toBeLessThan(themeLabelIndex)
+    expect(languageIconIndex).toBeLessThan(languageLabelIndex)
     expect(themeLabelIndex).toBeGreaterThan(utilityIndex)
     expect(languageLabelIndex).toBeGreaterThan(utilityIndex)
     expect(themeLabelIndex).toBeLessThan(ctaIndex)
     expect(languageLabelIndex).toBeLessThan(ctaIndex)
+    expect(markup).not.toContain('>浅色</button>')
+    expect(markup).not.toContain('>中文</button>')
   })
 
   it('does not render the light login vertical watermark', () => {

@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的表单状态 hooks，依赖 @/components/login-page-view 的展示层，依赖 @/lib/theme 与 @/lib/supabase 的认证边界。
+ * [INPUT]: 依赖 react 的表单状态 hooks，依赖 @/components/login-page-view 的展示层，依赖 ./login-page.logic 的认证动作，依赖 @/lib/theme 与 @/lib/supabase 的认证边界。
  * [OUTPUT]: 对外提供 LoginPage 组件，对应 /login。
- * [POS]: routes 的登录页容器，管理邮箱登录、注册、匿名进入与主题切换，不承载大段设计复刻 markup。
+ * [POS]: routes 的登录页容器，管理邮箱登录、注册、重置密码、Google OAuth 启动、匿名进入与主题切换，不承载大段设计复刻 markup。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type FormEvent, useState } from 'react'
@@ -14,6 +14,30 @@ import {
 import { getSupabaseClient, hasSupabaseEnv } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 
+import {
+  getAuthRedirectTo,
+  startAnonymousAuth,
+  startGoogleAuth,
+  submitEmailAuth,
+  type AuthActionResult,
+} from './login-page.logic'
+
+function missingEnvFeedback(mode: AuthMode): AuthFeedback {
+  if (mode === 'password-reset') {
+    return { tone: 'error', message: '缺少 Supabase 环境变量，当前无法发送重置邮件。' }
+  }
+
+  return { tone: 'error', message: '缺少 Supabase 环境变量，当前无法完成认证。' }
+}
+
+function unexpectedFeedback(mode: AuthMode): AuthFeedback {
+  if (mode === 'password-reset') {
+    return { tone: 'error', message: '暂时无法发送重置邮件，请稍后再试。' }
+  }
+
+  return { tone: 'error', message: '认证服务暂时不可用，请稍后再试。' }
+}
+
 export function LoginPage({ authError = null }: { authError?: string | null }) {
   const { theme, toggleTheme } = useTheme()
   const [mode, setMode] = useState<AuthMode>('login')
@@ -22,48 +46,44 @@ export function LoginPage({ authError = null }: { authError?: string | null }) {
   const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const applyAuthResult = (result: AuthActionResult) => {
+    if (result.clearPassword) {
+      setPassword('')
+    }
+
+    if (result.nextMode) {
+      setMode(result.nextMode)
+    }
+
+    setFeedback(result.feedback)
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!hasSupabaseEnv) {
-      setFeedback({ tone: 'error', message: '缺少 Supabase 环境变量，当前无法完成认证。' })
+      setFeedback(missingEnvFeedback(mode))
       return
     }
 
     setIsSubmitting(true)
     setFeedback(null)
 
-    const supabase = getSupabaseClient()
-
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-      if (error) {
-        setFeedback({ tone: 'error', message: '邮箱或密码错误，请重新确认后再试。' })
-        setIsSubmitting(false)
-        return
-      }
-
-      setFeedback({ tone: 'neutral', message: '认证成功，正在进入工作区。' })
+    try {
+      applyAuthResult(
+        await submitEmailAuth({
+          auth: getSupabaseClient().auth,
+          email,
+          mode,
+          password,
+          passwordResetRedirectTo: getAuthRedirectTo('/login'),
+        }),
+      )
+    } catch {
+      setFeedback(unexpectedFeedback(mode))
+    } finally {
       setIsSubmitting(false)
-      return
     }
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (error) {
-      setFeedback({ tone: 'error', message: '暂时无法完成注册，请稍后再试。' })
-      setIsSubmitting(false)
-      return
-    }
-
-    setPassword('')
-    setMode('login')
-    setFeedback({ tone: 'success', message: '注册成功，请查收验证邮件。' })
-    setIsSubmitting(false)
   }
 
   const handleAnonymousLogin = async () => {
@@ -75,16 +95,31 @@ export function LoginPage({ authError = null }: { authError?: string | null }) {
     setIsSubmitting(true)
     setFeedback(null)
 
-    const { error } = await getSupabaseClient().auth.signInAnonymously()
-
-    if (error) {
+    try {
+      applyAuthResult(await startAnonymousAuth(getSupabaseClient().auth))
+    } catch {
       setFeedback({ tone: 'error', message: '匿名入口暂时不可用，请稍后再试。' })
+    } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    if (!hasSupabaseEnv) {
+      setFeedback({ tone: 'error', message: '缺少 Supabase 环境变量，当前无法使用 Google 登录。' })
       return
     }
 
-    setFeedback({ tone: 'neutral', message: '匿名会话已建立，正在进入工作区。' })
-    setIsSubmitting(false)
+    setIsSubmitting(true)
+    setFeedback(null)
+
+    try {
+      applyAuthResult(await startGoogleAuth(getSupabaseClient().auth, getAuthRedirectTo('/auth/callback')))
+    } catch {
+      setFeedback({ tone: 'error', message: 'Google 登录暂时不可用，请稍后再试。' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -96,6 +131,7 @@ export function LoginPage({ authError = null }: { authError?: string | null }) {
       mode={mode}
       onAnonymousLogin={handleAnonymousLogin}
       onEmailChange={setEmail}
+      onGoogleLogin={handleGoogleLogin}
       onModeChange={setMode}
       onPasswordChange={setPassword}
       onSubmit={handleSubmit}
