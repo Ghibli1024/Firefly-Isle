@@ -1,8 +1,4 @@
-## Purpose
-
-定义 Firefly-Isle 的邮箱认证、密码重置、Google OAuth、匿名模式、隐私条款门控与 session 持久化行为。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 邮箱登录
 系统 SHALL 支持用户通过邮箱和密码注册、登录，使用 Supabase Auth 邮箱认证流程，并保证认证弹层的可见文案与当前认证模式一致。
@@ -27,14 +23,37 @@
 - **THEN** 系统 SHALL 进入已认证状态
 - **AND** 路由 SHALL 通过统一 session 恢复路径进入 `/app`
 
-#### Scenario: 邮箱登录成功
-- **WHEN** 用户输入正确的邮箱和密码
-- **THEN** 系统 SHALL 获取有效 session，用户进入已认证状态，跳转到主界面
-
 #### Scenario: 邮箱登录失败
 - **WHEN** 用户输入错误的邮箱或密码
 - **THEN** 系统 SHALL 展示可读错误信息
 - **AND** 系统 SHALL NOT 暴露账户存在性、密码校验细节或后端原始错误
+
+### Requirement: 匿名模式
+系统 SHALL 支持用户在不注册的情况下以匿名身份使用，并通过 Supabase `signInAnonymously()` 创建匿名 session，将数据关联到匿名用户 uid。
+
+#### Scenario: 匿名入口说明真实身份边界
+- **WHEN** 用户查看匿名会话入口
+- **THEN** 系统 SHALL 说明匿名会话会创建 Supabase 匿名身份
+- **AND** 系统 SHALL 说明用户创建的数据会绑定到该匿名 uid
+
+#### Scenario: 匿名模式进入
+- **WHEN** 用户触发匿名会话入口
+- **THEN** 系统 SHALL 调用 Supabase `signInAnonymously()`
+- **AND** 成功后用户 SHALL 通过统一 session 路径进入主界面
+
+### Requirement: Session 持久化
+系统 SHALL 在用户关闭并重新打开浏览器后保持登录状态，直到用户主动退出。
+
+#### Scenario: 不展示未实现的记住我控制
+- **WHEN** 系统没有实现可切换的 session 持久化策略
+- **THEN** 登录表单 SHALL NOT 展示可交互的 `记住我` 控件
+
+#### Scenario: Session 自动恢复
+- **WHEN** 已登录用户关闭浏览器后重新打开应用
+- **THEN** 系统 SHALL 自动恢复 Supabase session
+- **AND** 已认证用户访问 `/login` SHALL 被导向 `/app`
+
+## ADDED Requirements
 
 ### Requirement: 密码重置入口
 系统 SHALL 为邮箱密码用户提供真实密码重置入口，并使用 Supabase Auth 的 password reset 能力。
@@ -91,55 +110,3 @@
 - **WHEN** 任意第三方 provider 只作为未来计划存在
 - **THEN** 系统 SHALL 隐藏该入口或明确标记为不可用
 - **AND** 系统 SHALL NOT 让它看起来像当前可点击的主登录方式
-
-### Requirement: 匿名模式
-系统 SHALL 支持用户在不注册的情况下以匿名身份使用，并通过 Supabase `signInAnonymously()` 创建匿名 session，将数据关联到匿名用户 uid。
-
-#### Scenario: 匿名模式进入
-- **WHEN** 用户触发匿名会话入口
-- **THEN** 系统 SHALL 调用 Supabase `signInAnonymously()`
-- **AND** 成功后用户 SHALL 通过统一 session 路径进入主界面
-
-#### Scenario: 匿名入口说明真实身份边界
-- **WHEN** 用户查看匿名会话入口
-- **THEN** 系统 SHALL 说明匿名会话会创建 Supabase 匿名身份
-- **AND** 系统 SHALL 说明用户创建的数据会绑定到该匿名 uid
-
-#### Scenario: 匿名用户数据隔离
-- **WHEN** 匿名用户创建患者记录
-- **THEN** 记录的 user_id SHALL 为匿名用户的 uid，RLS 策略同等生效，其他用户不可访问
-
-### Requirement: 首次使用显示隐私条款
-系统 SHALL 在用户首次进入应用时展示隐私条款门控，用户确认后方可继续使用，并与独立隐私页共享同一份文案真相源。
-
-#### Scenario: 首次使用隐私条款展示
-- **WHEN** 用户首次访问应用（本地无已确认记录）
-- **THEN** 系统 SHALL 在进入主功能前展示隐私条款门控，包含数据使用说明，并阻塞主功能导航
-
-#### Scenario: 用户拒绝隐私条款
-- **WHEN** 用户拒绝或关闭隐私条款而未确认
-- **THEN** 系统 SHALL 不允许用户进入主功能，停留在隐私条款门控状态
-
-#### Scenario: 已确认用户不重复展示
-- **WHEN** 用户已确认过隐私条款（本地有确认记录）
-- **THEN** 系统 SHALL 跳过隐私条款门控，直接进入主界面
-
-#### Scenario: 门控与独立隐私页共用同一文案来源
-- **WHEN** 用户在首次门控与独立隐私页之间切换查看说明
-- **THEN** 两处内容 SHALL 受同一真相源约束，不得出现摘要与条款边界相互漂移
-
-### Requirement: Session 持久化
-系统 SHALL 在用户关闭并重新打开浏览器后保持登录状态，直到用户主动退出。
-
-#### Scenario: Session 自动恢复
-- **WHEN** 已登录用户关闭浏览器后重新打开应用
-- **THEN** 系统 SHALL 自动恢复 Supabase session
-- **AND** 已认证用户访问 `/login` SHALL 被导向 `/app`
-
-#### Scenario: 不展示未实现的记住我控制
-- **WHEN** 系统没有实现可切换的 session 持久化策略
-- **THEN** 登录表单 SHALL NOT 展示可交互的 `记住我` 控件
-
-#### Scenario: 主动退出登录
-- **WHEN** 用户点击退出登录
-- **THEN** 系统 SHALL 调用 Supabase Auth signOut，清除本地 session，跳转到登录页

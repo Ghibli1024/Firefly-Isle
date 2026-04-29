@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 ./workspace-page。
  * [OUTPUT]: 对外提供工作区报告预览、输入 composer、侧栏壳层、职责边界与 locale 回归测试。
- * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻病历预览主表面、单一主提取动作、无正式导出入口、textarea 输入工具行、无装饰性状态卡侧栏、无右侧 active 亮条导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
+ * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻病历预览主表面、单一主提取动作、无正式导出入口、textarea 输入工具行、无装饰性状态卡侧栏、统计敬请期待按钮、主题/语言顺序、无右侧 active 亮条导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -81,6 +81,10 @@ function renderWorkspace(theme: 'light' | 'dark') {
 
 function readSidebarSource() {
   return readFileSync(new URL('../components/system/sidebar-nav.tsx', import.meta.url), 'utf8')
+}
+
+function readCopySource() {
+  return readFileSync(new URL('../lib/copy.ts', import.meta.url), 'utf8')
 }
 
 describe('WorkspacePage report shell', () => {
@@ -178,6 +182,31 @@ describe('WorkspacePage report shell', () => {
     expect(markup).not.toContain('>expand_more</span>')
   })
 
+  it('keeps the sidebar theme control above the language control with short labels', () => {
+    const markup = renderWorkspace('light')
+
+    expect(markup).toContain('>主题</span>')
+    expect(markup).toContain('>语言</span>')
+    expect(markup).not.toContain('>中文</span>')
+    expect(markup).not.toContain('>切换主题</span>')
+    expect(markup.indexOf('>dark_mode</span>')).toBeLessThan(markup.indexOf('>g_translate</span>'))
+  })
+
+  it('turns analytics into a coming-soon button instead of a route jump', () => {
+    const markup = renderWorkspace('light')
+    const sidebarSource = readSidebarSource()
+    const copySource = readCopySource()
+
+    expect(markup).toMatch(/<button[^>]*aria-label="统计"[^>]*data-nav-action="coming-soon"/)
+    expect(markup).not.toContain('href="/login"')
+    expect(sidebarSource).not.toContain("href: '/login'")
+    expect(sidebarSource).toContain('onClick={showComingSoon}')
+    expect(sidebarSource).toContain('onPointerLeave={hideComingSoon}')
+    expect(sidebarSource).toContain('}, 3000)')
+    expect(sidebarSource).toContain('role="status"')
+    expect(copySource).toContain("comingSoon: text('敬请期待', 'Coming Soon')")
+  })
+
   it('keeps the hidden-sidebar restore handle narrow', () => {
     const sidebarSource = readSidebarSource()
 
@@ -231,5 +260,15 @@ describe('WorkspacePage report shell', () => {
     expect(markup).toContain('AI 验证状态')
     expect(markup).toContain('未开始验证')
     expect(markup).not.toContain('Clinical Notes')
+  })
+
+  it('persists new patient rows under the authenticated Supabase user id', () => {
+    const source = readFileSync(new URL('./workspace-page.tsx', import.meta.url), 'utf8')
+
+    expect(source).toContain('async function ensurePatientRecordExists(record: PatientRecord, userId: string)')
+    expect(source).toContain(".eq('user_id', userId)")
+    expect(source).toContain('user_id: userId')
+    expect(source).toContain('const patientId = await ensurePatientRecordExists(record, user.id)')
+    expect(source).not.toContain('user_id: user.email')
   })
 })

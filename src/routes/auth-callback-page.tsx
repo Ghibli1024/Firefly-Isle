@@ -1,0 +1,80 @@
+/**
+ * [INPUT]: 依赖 react 的 Effect 与状态，依赖 react-router-dom 的 Navigate，依赖 @/lib/auth 的 session 真相源，依赖 @/lib/supabase 的 Auth client，依赖 ./auth-callback-page.logic 的回调恢复动作，依赖 ./login-page 的失败回落入口。
+ * [OUTPUT]: 对外提供 AuthCallbackPage 组件，对应 /auth/callback。
+ * [POS]: routes 的公共 OAuth 回调页，先恢复 Supabase session，再让路由守卫把已认证用户送入 /app。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
+
+import { useAuth } from '@/lib/auth'
+import { getSupabaseClient, hasSupabaseEnv } from '@/lib/supabase'
+
+import { restoreAuthCallbackSession, type AuthCallbackResult } from './auth-callback-page.logic'
+import { LoginPage } from './login-page'
+
+function AuthCallbackStatus() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[var(--ff-surface-base)] px-6 text-[var(--ff-text-primary)]">
+      <div className="border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-8 py-6 text-center">
+        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.4em] text-[var(--ff-accent-primary)]">
+          Auth callback
+        </div>
+        <div className="mt-3 font-['Inter_Tight'] text-2xl font-black tracking-tight">
+          正在恢复登录状态
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function AuthCallbackPage() {
+  const { isAuthenticated } = useAuth()
+  const [result, setResult] = useState<AuthCallbackResult | null>(null)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      return
+    }
+
+    if (!hasSupabaseEnv) {
+      return
+    }
+
+    let active = true
+
+    void restoreAuthCallbackSession(getSupabaseClient().auth)
+      .then((nextResult) => {
+        if (active) {
+          setResult(nextResult)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setResult({ message: 'Google 登录回调暂时不可用，请稍后再试。', status: 'error' })
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated])
+
+  if (isAuthenticated) {
+    return <Navigate replace to="/app" />
+  }
+
+  if (!hasSupabaseEnv) {
+    return <LoginPage authError="缺少 Supabase 环境变量，当前无法完成 Google 登录。" />
+  }
+
+  if (result?.status === 'error') {
+    return <LoginPage authError={result.message} />
+  }
+
+  if (result?.status === 'anonymous') {
+    return <Navigate replace to="/login" />
+  }
+
+  return <AuthCallbackStatus />
+}

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 Context、hooks，依赖 @supabase/supabase-js 的 Session/User，依赖 @/lib/supabase 的客户端入口。
- * [OUTPUT]: 对外提供 AuthProvider 与 useAuth。
+ * [OUTPUT]: 对外提供 AuthProvider 与 useAuth，并在路由就绪前完成 Supabase URL callback/session 初始化。
  * [POS]: lib 的认证状态中心，统一管理 session 恢复、认证状态广播与登出动作。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -46,8 +46,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true
 
     void supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
+      .initialize()
+      .then(async ({ error: initializeError }) => {
+        const { data, error } = await supabase.auth.getSession()
+
         if (!active) {
           return
         }
@@ -56,8 +58,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setAuthError('无法恢复登录状态，请刷新后重试。')
           setSession(null)
         } else {
-          setAuthError(null)
           setSession(data.session ?? null)
+          setAuthError(initializeError ? '登录回调已失效，请重新登录。' : null)
         }
 
         setIsAuthReady(true)

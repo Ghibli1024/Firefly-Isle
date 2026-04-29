@@ -4,7 +4,7 @@
 成员清单
 app-shell/spec.md: 页面壳层、路由范围、登录入口与 feature 组件边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 asset-storage/spec.md: Supabase Storage 基础设施、用户隔离与 MVP 上传范围的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-auth/spec.md: 邮箱登录、匿名模式、隐私条款门控与 session 持久化的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+auth/spec.md: 邮箱登录、密码重置、Google OAuth、匿名模式、隐私条款门控与 session 持久化的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 commit-history/spec.md: docs/log 提交日志粒度、证据来源与置信度标注的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 deployment/spec.md: 部署入口、Cloudflare Pages 与发布控制的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 editing/spec.md: 时间线表格字段编辑、blur 保存、空白高亮与布局稳定性的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -1,5 +1,5 @@
 # 2026-04-25/
-> L2 | 父级: /docs/design/runtime-screenshots/CLAUDE.md
+> L2 | 父级: /docs/design/stitch/runtime-screenshots/CLAUDE.md
 
 成员清单
 login-light-full.png: /login light 退出登录态完整长截图，1440 桌面视口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
