@@ -9,7 +9,8 @@
 
 成员清单
 CLAUDE.md: 说明前端 LLM adapter 目录的职责边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-types.ts: Message、ChatOptions 与具名错误类型定义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-index.ts: 统一导出 chat(messages, options) 封装，负责 JWT 透传与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+types.ts: Message、ChatProvider、ChatOptions、responseFormat 与具名错误类型定义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+index.ts: 统一导出 chat(messages, options) 封装，负责 JWT 透传、provider/model/responseFormat 请求协议与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+index.test.ts: chat 请求协议回归测试，约束 provider、model 与 responseFormat 透传到 Edge Function，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
 法则: 调用方只知道 chat 接口，不知道 provider 细节。

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/transitions-dev.css";
 
 * {
   box-sizing: border-box;
@@ -43,9 +44,9 @@ body,
   --ff-sidebar-width: 148px;
   --ff-sidebar-offset: 148px;
   --ff-shell-topbar-height: 68px;
-  --ff-font-display: "Inter", "Noto Sans SC", sans-serif;
-  --ff-font-ui: "Inter", "Noto Sans SC", sans-serif;
-  --ff-font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+  --ff-font-display: "New York", "Songti SC", "STSong", "Times New Roman", serif;
+  --ff-font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
+  --ff-font-mono: "SFMono-Regular", "SF Mono", ui-monospace, monospace;
   --ff-timeline-shell-bg: var(--ff-surface-panel);
   --ff-timeline-shell-border: var(--ff-border-default);
   --ff-timeline-shell-text: var(--ff-text-primary);
@@ -135,6 +136,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--ff-font-display);
+}
+
+.font-\[var\(--ff-font-display\)\] {
+  font-family: var(--ff-font-display);
+}
+
+.font-\[var\(--ff-font-ui\)\] {
+  font-family: var(--ff-font-ui);
+}
+
+.font-\[var\(--ff-font-mono\)\] {
+  font-family: var(--ff-font-mono);
+}
+
 button,
 input,
 textarea {
@@ -211,7 +233,7 @@ a {
 
 .ff-light-drop-cap::first-letter {
   float: left;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--ff-font-display);
   font-size: 4.5rem;
   line-height: 1;
   padding-right: 0.75rem;

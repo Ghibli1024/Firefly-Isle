@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 node:fs 的源码合同检查，依赖隐私文案真相源与 PatientRecord 类型工具。
+ * [OUTPUT]: 对外提供隐私内容、患者类型判定、认证路由与背景音 Provider 挂载位置的回归测试。
+ * [POS]: lib 的应用级合同测试，约束 App 装配层不丢失隐私、路由守卫、OAuth 错误与全局背景音生命周期边界。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
@@ -68,5 +74,13 @@ describe('auth route guard contract', () => {
 
     expect(source).toContain('const oauthRedirectError = getOAuthCallbackErrorMessage(location.search)')
     expect(source).toContain('<LoginPage authError={oauthRedirectError} />')
+  })
+
+  it('keeps background audio above route changes so navigation does not reset playback state', () => {
+    const source = readAppSource()
+
+    expect(source).toContain('BackgroundAudioProvider')
+    expect(source).toContain('<BackgroundAudioProvider>{children}</BackgroundAudioProvider>')
+    expect(source.indexOf('<BackgroundAudioProvider>')).toBeLessThan(source.indexOf('<AppContent />'))
   })
 })

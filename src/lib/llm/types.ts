@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，只定义前端 LLM adapter 的公共消息、参数与错误类型。
- * [OUTPUT]: 对外提供 Message、ChatOptions、ChatErrorName、ChatError 与 ChatResult 类型。
+ * [OUTPUT]: 对外提供 Message、ChatProvider、ChatResponseFormat、ChatOptions、ChatErrorName、ChatError 与 ChatResult 类型。
  * [POS]: src/lib/llm 的类型边界文件，被 chat 封装与上层业务共同消费。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,8 +9,14 @@ export type Message = {
   content: string
 }
 
+export type ChatProvider = 'gemini' | 'deepseek'
+
+export type ChatResponseFormat = 'text' | 'json_object'
+
 export type ChatOptions = {
   model?: string
+  provider?: ChatProvider
+  responseFormat?: ChatResponseFormat
 }
 
 export type ChatErrorName =

@@ -1,13 +1,14 @@
 /**
- * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 ./record-page。
+ * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider 与 ./record-page。
  * [OUTPUT]: 对外提供病例详情页响应式版心与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，并承接 PDF/PNG 正式导出入口。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar 依赖与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackgroundAudioProvider } from '@/lib/background-audio'
 import { LocaleProvider } from '@/lib/locale'
 import { shellWideContentClass } from '@/lib/theme/tokens'
 
@@ -54,11 +55,13 @@ function renderRecord(theme: 'light' | 'dark', initialEntry = '/record/demo') {
 
   return renderToStaticMarkup(
     <LocaleProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/record/:id" element={<RecordPage isSigningOut={false} onSignOut={() => undefined} userLabel="ANON_SESSION" />} />
-        </Routes>
-      </MemoryRouter>
+      <BackgroundAudioProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route path="/record/:id" element={<RecordPage isSigningOut={false} onSignOut={() => undefined} userLabel="ANON_SESSION" />} />
+          </Routes>
+        </MemoryRouter>
+      </BackgroundAudioProvider>
     </LocaleProvider>,
   )
 }

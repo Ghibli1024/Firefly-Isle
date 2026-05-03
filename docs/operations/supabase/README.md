@@ -1,6 +1,6 @@
 <!--
-[INPUT]: 依赖 /supabase/migrations/001_init.sql、/.env.local.example、/src/lib/supabase.ts 与 OpenSpec 中已完成的 3.1~3.7 事实。
-[OUTPUT]: 提供 Firefly-Isle 的 Supabase 从零配置、db push、bucket、storage policy、术语与常见错误手册。
+[INPUT]: 依赖 /supabase/migrations/001_init.sql、/.env.local.example、/src/lib/supabase.ts、/supabase/functions/llm-proxy 与 OpenSpec 中已完成的 Supabase / LLM 事实。
+[OUTPUT]: 提供 Firefly-Isle 的 Supabase 从零配置、Auth 无邮箱确认、db push、bucket、storage policy、LLM proxy、术语与常见错误手册。
 [POS]: docs/operations/supabase 的主 runbook，供下次重新配置项目时直接照做。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
@@ -22,9 +22,10 @@
 - 已验证完成的阶段：OpenSpec `3.1 ~ 3.7`
 - 当前已实现的 5.x 代码边界：
   - `supabase/functions/llm-proxy/index.ts`
+  - `supabase/functions/llm-proxy/handler.ts`
   - `src/lib/llm/index.ts`
   - `src/lib/llm/types.ts`
-- 若你是从零重建 Supabase 项目，仍需重新配置 `GEMINI_API_KEY` / `DEFAULT_GEMINI_MODEL` secret，并重新部署 `supabase functions deploy llm-proxy`
+- 若你是从零重建 Supabase 项目，仍需重新配置 Gemini / DeepSeek LLM proxy secrets，并重新部署 `supabase functions deploy llm-proxy`
 
 真相源文件：
 
@@ -56,8 +57,9 @@
 因此在 Dashboard 的 Auth 配置里至少检查：
 
 - Email provider 可用
+- Email 的 Confirm email / 邮箱确认已关闭；当前前端注册按钮是“创建账户并登录”，要求 `signUp()` 直接返回 session
 - Anonymous Sign-In 已开启；如果前端匿名入口返回 422，优先回到这里核对是否被关闭
-- Site URL 至少指向一个有效回跳地址；如果你希望验证邮件直接回到当前本地 origin，或后续重新显式传入 `emailRedirectTo`，再把该 origin 加入 Additional Redirect URLs
+- Site URL 至少指向一个有效回跳地址；如果后续重新启用验证邮件或显式传入 `emailRedirectTo`，再把当前 origin 加入 Additional Redirect URLs
 
 说明：匿名登录不是“无身份”。Supabase 会为匿名用户创建真实 uid，所以后面的 `auth.uid()` RLS 和 Storage policy 仍然成立。
 
@@ -359,11 +361,14 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 
 当前实现真相源：
 
-- `supabase/functions/llm-proxy/index.ts` 已存在
+- `supabase/functions/llm-proxy/index.ts` 是 Deno 启动壳
+- `supabase/functions/llm-proxy/handler.ts` 是 Gemini / DeepSeek provider proxy 核心
 - 前端统一入口是 `src/lib/llm/index.ts`
 - 真正对外可用仍取决于：
-  - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash"`
+  - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash" DEEPSEEK_API_KEY="..." DEFAULT_DEEPSEEK_MODEL="deepseek-v4-flash" DEFAULT_LLM_PROVIDER="gemini" DEEPSEEK_BASE_URL="https://api.deepseek.com"`
   - `supabase functions deploy llm-proxy`
+
+`DEFAULT_LLM_PROVIDER` 建议先保留 `gemini`。DeepSeek key、余额、限流和结构化提取 live 验证通过后，再把它切到 `deepseek`；回滚时改回 `gemini`。
 
 ### 8.6 匿名入口返回 422
 
@@ -384,14 +389,19 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 
 - `supabase.auth.signUp({ email, password })`
 
-也就是说，默认注册流程不再强依赖 `emailRedirectTo: window.location.origin`。
+也就是说，默认注册流程不再强依赖 `emailRedirectTo: window.location.origin`，但强依赖 Supabase 直接返回 session。
 
-如果本地注册仍然直接 400，优先检查：
+如果本地注册直接 400，优先检查：
 
 - Dashboard → Auth URL Configuration 的 Site URL 是否有效
 - 是否有其他分支/旧代码重新显式传入 `emailRedirectTo`
-- 如果你希望验证邮件回到本地开发 origin，Additional Redirect URLs 是否已包含当前 origin（例如 `http://127.0.0.1:5173`、`http://localhost:5173` 或当前实际端口）
 - 当前本地访问地址是否和 allow list 完全一致（协议、host、端口都要一致）
+
+如果本地注册返回成功但没有进入工作区，而是出现“注册未返回有效会话”，优先检查：
+
+- Dashboard → Auth Providers → Email 的 Confirm email / 邮箱确认是否仍然开启
+- 是否有项目级 Auth 设置强制新邮箱先确认后才签发 session
+- 代码是否仍在期待“查收验证邮件”的旧分支
 
 ## 9. 发布前 Supabase 安全与可用性复核
 
@@ -416,6 +426,8 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 
 - `llm-proxy` 已部署到当前发布环境，对应 `VITE_SUPABASE_EDGE_FUNCTION_URL` 可达
 - 前端请求仍只打到 Supabase Edge Function，不直接暴露模型 API key
+- Gemini / DeepSeek API key 均只存在于 Supabase secrets；浏览器网络请求只包含 Supabase JWT
+- `DEFAULT_LLM_PROVIDER` 与对应默认模型符合当前发布策略；若切到 DeepSeek，至少完成一次真实结构化提取验证
 - 发布环境里至少手动走一遍：登录/匿名进入 → 提取 → 追问 → 渲染 → 编辑 → 导出
 - 若当前发布环境关闭了 Anonymous Sign-In，就不要把匿名模式写成“已可用”；先改配置，或同步改 spec / README / 产品文案
 
@@ -425,7 +437,7 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 
 - 还没有一份针对发布环境的已执行 11.5 勾选记录
 - Storage policy 仍是手工 SQL，不是迁移文件的一部分
-- `llm-proxy` 的发布环境可用性仍依赖外部 secret 与 deploy 状态
+- `llm-proxy` 的发布环境可用性仍依赖外部模型 secret、provider 默认值与 deploy 状态
 - 匿名模式是否可用取决于 Dashboard 的 Auth provider 配置，不能只从前端代码推断
 
 ## 10. 一次性恢复清单
@@ -436,13 +448,13 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 2. 保存数据库密码与 `project_ref`
 3. 创建 Personal Access Token，完成 `supabase login`
 4. 复制 `.env.local.example`，填好 3 个 Vite 变量
-5. 在 Dashboard 检查 Email provider、Anonymous Sign-In；如需让验证邮件回到当前本地 origin 或后续重新显式传入 `emailRedirectTo`，再配置本地 origin redirect allow list
+5. 在 Dashboard 检查 Email provider、Confirm email 已关闭、Anonymous Sign-In；如后续重新启用验证邮件或显式传入 `emailRedirectTo`，再配置本地 origin redirect allow list
 6. 从 Dashboard 复制 session pooler URI
 7. 执行 `supabase db push --db-url '<完整 pooler 连接串>'`
 8. 在 Dashboard 手动创建 `patient-assets`
 9. 在 SQL Editor 执行 Storage policy SQL
 10. 用两个不同用户 + 一个匿名用户验证隔离
-11. 配置 `GEMINI_API_KEY` 与 `DEFAULT_GEMINI_MODEL`
+11. 配置 Gemini / DeepSeek proxy secrets：`GEMINI_API_KEY`、`DEFAULT_GEMINI_MODEL`、`DEEPSEEK_API_KEY`、`DEFAULT_DEEPSEEK_MODEL`、`DEFAULT_LLM_PROVIDER`
 12. 执行 `supabase functions deploy llm-proxy`
 13. 再开始 `6.x` 的信息提取主流程
 

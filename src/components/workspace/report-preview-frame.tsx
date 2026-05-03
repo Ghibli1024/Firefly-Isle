@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy 与 locale 文案，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界。
+ * [INPUT]: 依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy 与 locale 文案，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group 数字动效合同。
  * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、缺失字段告警、临床备注与验证状态带。
  * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，同时保留 setReportRef 导出捕获点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -53,6 +53,8 @@ const placeholderMissing = {
   zh: ['肿瘤类型', '分期', '治疗方案'],
 } satisfies Record<Locale, string[]>
 
+const previewSectionTitleClass = 'font-[var(--ff-font-display)] text-base font-semibold tracking-normal text-[var(--ff-text-primary)]'
+
 function hasRecordData(record: PatientRecord) {
   return Boolean(record.basicInfo || record.initialOnset || record.treatmentLines.length > 0)
 }
@@ -75,6 +77,20 @@ function displayAge(value: number | undefined, locale: Locale) {
   }
 
   return locale === 'zh' ? `${value} 岁` : `${value} years`
+}
+
+function AnimatedNumber({ value }: { value: number }) {
+  const digits = String(value).split('')
+
+  return (
+    <span aria-label={String(value)} className="t-digit-group is-animating inline-flex min-w-[1ch] justify-center">
+      {digits.map((digit, index) => (
+        <span className="t-digit" data-stagger={index === 0 ? undefined : index === 1 ? '1' : '2'} key={`${digit}-${index}`}>
+          {digit}
+        </span>
+      ))}
+    </span>
+  )
 }
 
 function firstTreatmentLine(record: PatientRecord) {
@@ -127,7 +143,7 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
       >
         <span>
           <span className="block text-xs text-[var(--ff-text-muted)]">{label}</span>
-          <span className="mt-1 block font-['Inter'] text-base font-semibold tracking-normal">{value}</span>
+          <span className="mt-1 block font-[var(--ff-font-ui)] text-base font-semibold tracking-normal">{value}</span>
         </span>
         {critical && isMissing ? (
           <span className="flex h-6 w-6 items-center justify-center rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] text-xs font-bold text-white">
@@ -190,7 +206,7 @@ function DisplayCell({ critical = false, label, value }: DisplayCellProps) {
       ].join(' ')}
     >
       <span className="block text-xs text-[var(--ff-text-muted)]">{label}</span>
-      <span className="mt-1 block font-['Inter'] text-base font-semibold">{value}</span>
+      <span className="mt-1 block font-[var(--ff-font-ui)] text-base font-semibold">{value}</span>
     </div>
   )
 }
@@ -224,7 +240,7 @@ function AuditItem({ icon, label, value }: AuditItemProps) {
     <div className="flex min-w-0 flex-1 items-center gap-4">
       <span className="material-symbols-outlined text-[32px] text-[var(--ff-text-primary)]">{icon}</span>
       <div className="min-w-0">
-        <span className="block font-['Inter'] text-lg font-bold">{label}</span>
+        <span className="block font-[var(--ff-font-display)] text-lg font-bold tracking-normal">{label}</span>
         <span className="mt-1 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)] px-4 py-2 text-sm text-[var(--ff-text-secondary)]">
           {value}
         </span>
@@ -260,7 +276,7 @@ export function ReportPreviewFrame({
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[28px]">calendar_month</span>
-            <h2 className="font-['Inter'] text-2xl font-bold tracking-normal">
+            <h2 className="font-[var(--ff-font-display)] text-2xl font-black leading-tight tracking-normal">
               {getCopy(copy.timeline.tableTitle, locale)}
             </h2>
             <span className="rounded-[var(--ff-radius-full)] border border-[color:color-mix(in_srgb,var(--ff-accent-success)_36%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_12%,var(--ff-surface-panel))] px-3 py-1 text-sm font-semibold text-[var(--ff-accent-success)]">
@@ -278,15 +294,21 @@ export function ReportPreviewFrame({
             <div className="inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
               <span className="material-symbols-outlined text-xl">chat_bubble</span>
               <span>
-                {locale === 'zh'
-                  ? `待补充 ${missingCount} 项 · 第 ${followUpCount}/3 轮追问`
-                  : `${missingCount} missing · round ${followUpCount}/3`}
+                {locale === 'zh' ? (
+                  <>
+                    待补充 <AnimatedNumber value={missingCount} /> 项 · 第 <AnimatedNumber value={followUpCount} />/3 轮追问
+                  </>
+                ) : (
+                  <>
+                    <AnimatedNumber value={missingCount} /> missing · round <AnimatedNumber value={followUpCount} />/3
+                  </>
+                )}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="mb-2 text-base font-semibold">{getCopy(copy.timeline.basicInfoTitle, locale)}</div>
+        <h3 className={`mb-2 ${previewSectionTitleClass}`}>{getCopy(copy.timeline.basicInfoTitle, locale)}</h3>
         <div className="grid gap-2 lg:grid-cols-[1.08fr_1fr]">
           <div className="grid gap-2 sm:grid-cols-3">
             <DisplayCell label={locale === 'zh' ? '姓名' : 'Name'} value={locale === 'zh' ? '张三' : 'Zhang San'} />
@@ -345,7 +367,7 @@ export function ReportPreviewFrame({
           </div>
         </div>
 
-        <div className="mt-4 text-base font-semibold">{locale === 'zh' ? '治疗时间线' : 'Treatment Timeline'}</div>
+        <h3 className={`mt-4 ${previewSectionTitleClass}`}>{locale === 'zh' ? '治疗时间线' : 'Treatment Timeline'}</h3>
         <div className="mt-2 max-w-full overflow-x-auto pb-2">
           <div className="flex flex-col gap-3 md:min-w-max md:flex-row md:items-center md:gap-2">
             <span className="hidden h-8 w-8 shrink-0 rounded-[var(--ff-radius-full)] border-2 border-dashed border-[var(--ff-line)] md:block" />
@@ -362,7 +384,7 @@ export function ReportPreviewFrame({
           </div>
         </div>
 
-        <div className="mt-4 text-base font-semibold">{getCopy(copy.workspace.report.clinicalNotes, locale)}</div>
+        <h3 className={`mt-4 ${previewSectionTitleClass}`}>{getCopy(copy.workspace.report.clinicalNotes, locale)}</h3>
         <div className="mt-2 flex gap-3">
           <div className="flex min-h-12 flex-1 items-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-4 text-sm text-[var(--ff-text-muted)]">
             {notePlaceholder}

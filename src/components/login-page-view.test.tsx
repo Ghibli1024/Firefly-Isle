@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 ./login-page-view 的 LoginPageView。
- * [OUTPUT]: 对外提供登录页主题壳层与认证弹层语义的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性与无伪控件边界。
+ * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 BackgroundAudioProvider 与 ./login-page-view 的 LoginPageView。
+ * [OUTPUT]: 对外提供登录页主题壳层、认证弹层语义与 Transitions.dev 弹层动效合同的回归测试。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效与无伪控件边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
+import { BackgroundAudioProvider } from '@/lib/background-audio'
 import { LocaleProvider } from '@/lib/locale'
 import { ThemeProvider } from '@/lib/theme'
 
@@ -18,10 +19,12 @@ function renderLogin(theme: LoginPageViewProps['theme'], overrides: Partial<Logi
   const props: LoginPageViewProps = {
     email: '',
     feedback: null,
+    authMethod: 'email',
     defaultAuthOpen: false,
     isSubmitting: false,
     mode: 'login',
     onAnonymousLogin: vi.fn(),
+    onAuthMethodChange: vi.fn(),
     onEmailChange: vi.fn(),
     onGoogleLogin: vi.fn(),
     onModeChange: vi.fn(),
@@ -36,9 +39,11 @@ function renderLogin(theme: LoginPageViewProps['theme'], overrides: Partial<Logi
   return renderToStaticMarkup(
     <ThemeProvider>
       <LocaleProvider>
-        <MemoryRouter>
-          <LoginPageView {...props} />
-        </MemoryRouter>
+        <BackgroundAudioProvider>
+          <MemoryRouter>
+            <LoginPageView {...props} />
+          </MemoryRouter>
+        </BackgroundAudioProvider>
       </LocaleProvider>
     </ThemeProvider>,
   )
@@ -106,6 +111,7 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('快捷登录')
     expect(markup).not.toContain('记住我')
     expect(markup).toContain('>主题</button>')
+    expect(markup).toContain('>音乐</span>')
     expect(markup).toContain('>语言</button>')
     expect(markup).toContain('>light_mode</span>')
     expect(markup).toContain('>g_translate</span>')
@@ -172,11 +178,17 @@ describe('LoginPageView theme shell', () => {
 
   it('uses one auth overlay instead of a desktop drawer branch', () => {
     const source = readLoginSource()
+    const markup = renderLogin('dark', { defaultAuthOpen: true })
 
     expect(source).toContain('function AuthOverlay')
     expect(source).toContain('data-testid="login-auth-overlay"')
     expect(source).toContain('fixed inset-0 z-[80]')
     expect(source).toContain('<AuthCard {...authCardProps} id="login-auth-card" />')
+    expect(source).toContain('requestClose')
+    expect(source).toContain('is-closing')
+    expect(source).toContain('window.setTimeout')
+    expect(markup).toContain('t-modal')
+    expect(markup).toContain('is-open')
     expect(source).not.toContain('function AuthDrawer')
     expect(source).not.toContain('desktopGridClass')
     expect(source).not.toContain('data-testid="login-auth-drawer"')
@@ -196,11 +208,14 @@ describe('LoginPageView theme shell', () => {
     expect(loginMarkup).toContain('aria-label="登录"')
     expect(loginMarkup).toContain('data-testid="login-auth-card-title"')
     expect(loginMarkup).toContain('>登录</h2>')
-    expect(loginMarkup).toContain('登录并进入工作区')
+    expect(loginMarkup).toContain('<span>登录</span>')
+    expect(loginMarkup).not.toContain('登录并进入工作区')
     expect(loginMarkup).not.toContain('创建账户并发送验证邮件')
     expect(signUpMarkup).toContain('aria-label="注册"')
     expect(signUpMarkup).toContain('>注册</h2>')
-    expect(signUpMarkup).toContain('创建账户并发送验证邮件')
+    expect(signUpMarkup).toContain('创建账户并登录')
+    expect(signUpMarkup).not.toContain('创建账户并发送验证邮件')
+    expect(signUpMarkup).not.toContain('邮箱验证策略')
     expect(signUpMarkup).not.toContain('aria-label="登录"')
   })
 
@@ -216,15 +231,68 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('data-testid="login-password-input"')
   })
 
-  it('does not render fake remember-me or disabled WeChat controls in the auth card', () => {
+  it('does not render fake remember-me or clickable WeChat controls in the auth card', () => {
     const markup = renderLogin('dark', { defaultAuthOpen: true, mode: 'login' })
 
     expect(markup).not.toContain('记住我')
-    expect(markup).not.toContain('微信')
+    expect(markup).toContain('data-testid="login-wechat-coming-soon"')
+    expect(markup).not.toContain('aria-label="微信"')
     expect(markup).not.toContain('disabled=""')
-    expect(markup).toContain('使用 Google 继续')
-    expect(markup).toContain('自动登录或注册')
+    expect(markup).toContain('aria-label="Google"')
+    expect(markup).not.toContain('使用 Google 继续')
+    expect(markup).not.toContain('自动登录或注册')
     expect(markup).toContain('忘记密码？')
+  })
+
+  it('renders phone auth as a coming-soon placeholder instead of a half-wired OTP flow', () => {
+    const markup = renderLogin('dark', {
+      authMethod: 'phone',
+      defaultAuthOpen: true,
+    })
+
+    expect(markup).toContain('data-testid="login-auth-method-tabs"')
+    expect(markup).toContain('data-testid="login-phone-coming-soon"')
+    expect(markup).toContain('敬请期待')
+    expect(markup).not.toContain('data-testid="login-phone-input"')
+    expect(markup).not.toContain('data-testid="login-phone-otp-input"')
+    expect(markup).not.toContain('data-testid="login-phone-code-button"')
+    expect(markup).not.toContain('进入工作区')
+    expect(markup).not.toContain('验证码已发送')
+    expect(markup).not.toContain('data-testid="login-password-input"')
+    expect(markup).not.toContain('访问密钥（区分大小写）')
+    expect(markup).not.toContain('忘记密码？')
+  })
+
+  it('keeps phone OTP cooldown and send states out while phone login is deferred', () => {
+    const markup = renderLogin('light', {
+      authMethod: 'phone',
+      defaultAuthOpen: true,
+    })
+
+    expect(markup).toContain('data-testid="login-phone-coming-soon"')
+    expect(markup).not.toContain('42 秒后重发')
+    expect(markup).not.toContain('验证码已发送')
+    expect(markup).not.toContain('data-testid="login-phone-code-button"')
+  })
+
+  it('renders WeChat as a coming-soon placeholder instead of a configured OAuth control', () => {
+    const markup = renderLogin('dark', { defaultAuthOpen: true })
+
+    expect(markup).toContain('aria-label="Google"')
+    expect(markup).toContain('data-testid="login-wechat-coming-soon"')
+    expect(markup).toContain('敬请期待')
+    expect(markup).not.toContain('aria-label="微信"')
+  })
+
+  it('keeps WeChat deferred even when the provider env is present', () => {
+    const markup = renderLogin('dark', { defaultAuthOpen: true })
+
+    expect(markup).toContain('aria-label="Google"')
+    expect(markup).toContain('data-testid="login-wechat-coming-soon"')
+    expect(markup).toContain('敬请期待')
+    expect(markup).not.toContain('aria-label="微信"')
+    expect(markup).not.toContain('使用 Google 继续')
+    expect(markup).not.toContain('自动登录或注册')
   })
 
   it('keeps the intro background clean without visible workflow waypoints', () => {
@@ -268,19 +336,23 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('max-w-[430px]')
   })
 
-  it('keeps theme and language controls on the intro page instead of the auth card', () => {
+  it('keeps theme, language and music controls fixed at the intro bottom-right', () => {
     const markup = renderLogin('light')
     const utilityIndex = markup.indexOf('data-testid="login-page-utility-controls"')
     const ctaIndex = markup.indexOf('data-testid="login-auth-cta"')
     const securityIndex = markup.indexOf('data-testid="login-security-status"')
     const themeLabelIndex = markup.indexOf('>主题</button>')
     const languageLabelIndex = markup.indexOf('>语言</button>')
+    const musicLabelIndex = markup.indexOf('>音乐</span>')
     const themeIconIndex = markup.indexOf('>dark_mode</span>')
     const languageIconIndex = markup.indexOf('>g_translate</span>')
+    const musicIconIndex = markup.indexOf('>volume_up</span>')
 
     expect(markup.indexOf('登录')).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(-1)
-    expect(ctaIndex).toBeGreaterThan(utilityIndex)
+    expect(utilityIndex).toBeGreaterThan(ctaIndex)
+    expect(markup).toContain('fixed bottom-4 left-4 right-4')
+    expect(markup).toContain('sm:bottom-6 sm:left-auto sm:right-6')
     expect(markup).not.toContain('data-testid="login-auth-overlay"')
     expect(markup).not.toContain('data-testid="login-auth-drawer"')
     expect(markup).not.toContain('data-testid="login-drawer-collapsed-tab"')
@@ -288,14 +360,19 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('data-testid="login-mobile-auth-card"')
     expect(markup).not.toContain('data-testid="login-mobile-auth-overlay"')
     expect(securityIndex).toBeGreaterThan(ctaIndex)
+    expect(utilityIndex).toBeGreaterThan(securityIndex)
     expect(themeIconIndex).toBeGreaterThan(utilityIndex)
     expect(languageIconIndex).toBeGreaterThan(utilityIndex)
+    expect(musicIconIndex).toBeGreaterThan(utilityIndex)
     expect(themeIconIndex).toBeLessThan(themeLabelIndex)
     expect(languageIconIndex).toBeLessThan(languageLabelIndex)
+    expect(musicIconIndex).toBeLessThan(musicLabelIndex)
     expect(themeLabelIndex).toBeGreaterThan(utilityIndex)
     expect(languageLabelIndex).toBeGreaterThan(utilityIndex)
-    expect(themeLabelIndex).toBeLessThan(ctaIndex)
-    expect(languageLabelIndex).toBeLessThan(ctaIndex)
+    expect(musicLabelIndex).toBeGreaterThan(utilityIndex)
+    expect(themeLabelIndex).toBeLessThan(languageLabelIndex)
+    expect(languageLabelIndex).toBeLessThan(musicLabelIndex)
+    expect(musicIconIndex).toBeGreaterThan(languageLabelIndex)
     expect(markup).not.toContain('>浅色</button>')
     expect(markup).not.toContain('>中文</button>')
   })

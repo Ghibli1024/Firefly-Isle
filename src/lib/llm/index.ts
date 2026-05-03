@@ -88,6 +88,8 @@ export async function chat(messages: Message[], options?: ChatOptions): Promise<
     body: JSON.stringify({
       messages,
       model: options?.model,
+      provider: options?.provider,
+      responseFormat: options?.responseFormat,
     }),
   })
 

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 ClinicalTopBar，依赖 @/components/system/surfaces 的 MainShell 与 PanelSurface，依赖 @/lib/privacy 的共享隐私条款真相源，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的 ClinicalTopBar，依赖 @/components/system/surfaces 的 MainShell 与 PanelSurface，依赖 @/lib/privacy 的共享隐私条款真相源，依赖 @/lib/theme 的 useTheme 与 03 Apple Editorial 标题字体合同。
  * [OUTPUT]: 对外提供 PrivacyPage 组件，对应 /privacy。
  * [POS]: routes 的独立隐私条款页，消费 V3 topbar、surface 与 typography 语言，并与隐私门控共享同一文案来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -25,7 +25,7 @@ export function PrivacyPage() {
       <MainShell className={`${topBarOffsetClass} min-h-screen px-4 py-6 md:px-8 md:py-10`} theme={theme}>
         <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6">
           <PanelSurface className="p-8 md:p-12" theme={theme} tone="panel">
-            <div className="mb-5 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-accent-primary)] px-3 py-1 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.18em] text-[var(--ff-accent-primary)]">
+            <div className="mb-5 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-accent-primary)] px-3 py-1 font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.18em] text-[var(--ff-accent-primary)]">
               Privacy Notice
             </div>
             <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-normal md:text-6xl">
@@ -53,7 +53,7 @@ export function PrivacyPage() {
           <section aria-label="隐私条款明细" className="grid gap-4 md:grid-cols-3">
             {PRIVACY_POLICY_ITEMS.map((item, index) => (
               <PanelSurface className="p-6 md:p-8" key={item.title} theme={theme} tone="panel">
-                <div className="font-['JetBrains_Mono'] text-[12px] text-[var(--ff-accent-primary)]">
+                <div className="font-[var(--ff-font-mono)] text-[12px] text-[var(--ff-accent-primary)]">
                   {String(index + 1).padStart(2, '0')}
                 </div>
                 <h2 className="mt-4 text-2xl font-bold tracking-normal">{item.title}</h2>
@@ -63,7 +63,7 @@ export function PrivacyPage() {
           </section>
 
           <PanelSurface className="p-8 md:p-10" theme={theme} tone="inset">
-            <h2 className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">
+            <h2 className="font-[var(--ff-font-display)] text-2xl font-bold tracking-normal text-[var(--ff-text-primary)]">
               Accessibility & Scope
             </h2>
             <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--ff-text-secondary)]">

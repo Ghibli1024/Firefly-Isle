@@ -1,12 +1,17 @@
 /**
  * [INPUT]: 依赖 vitest 的 Supabase auth mock，依赖 ./login-page.logic 的认证动作函数。
  * [OUTPUT]: 对外提供登录、注册、重置密码、匿名登录与 Google OAuth 的行为回归测试。
- * [POS]: routes 的登录逻辑测试文件，约束 /login 容器调用 Supabase Auth 时的参数、反馈文案、模式跳转与会话分支。
+ * [POS]: routes 的登录逻辑测试文件，约束 /login 容器调用 Supabase Auth 时的参数、反馈文案、模式跳转与 Google OAuth 分支。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import { startAnonymousAuth, startGoogleAuth, submitEmailAuth, type LoginAuthClient } from './login-page.logic'
+import {
+  startAnonymousAuth,
+  startGoogleAuth,
+  submitEmailAuth,
+  type LoginAuthClient,
+} from './login-page.logic'
 
 function createAuthClient(overrides: Partial<LoginAuthClient> = {}): LoginAuthClient {
   return {
@@ -57,7 +62,7 @@ describe('login page auth logic', () => {
     })
   })
 
-  it('keeps verified-email signup in login mode and asks the user to check mail', async () => {
+  it('requires email signup to return a session for direct workspace entry', async () => {
     const auth = createAuthClient({
       signUp: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     })
@@ -74,13 +79,11 @@ describe('login page auth logic', () => {
       password: 'clinical-key',
     })
     expect(result).toEqual({
-      clearPassword: true,
-      feedback: { message: '注册成功，请查收验证邮件。', tone: 'success' },
-      nextMode: 'login',
+      feedback: { message: '注册未返回有效会话，请先在 Supabase 关闭邮箱确认后再试。', tone: 'error' },
     })
   })
 
-  it('does not force a login-mode success message when signup returns an active session', async () => {
+  it('creates the account and enters the workspace when signup returns an active session', async () => {
     const auth = createAuthClient({
       signUp: vi.fn().mockResolvedValue({ data: { session: { access_token: 'token' } }, error: null }),
     })
@@ -176,4 +179,5 @@ describe('login page auth logic', () => {
       feedback: { message: '正在前往 Google 登录。', tone: 'neutral' },
     })
   })
+
 })

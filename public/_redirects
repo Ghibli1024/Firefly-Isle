@@ -1,4 +1,7 @@
-/*
-  Cloudflare Pages SPA fallback
-*/
-/*    /index.html   200
+# Cloudflare Pages SPA fallback
+/login / 200
+/auth/callback / 200
+/privacy / 200
+/app / 200
+/record/* / 200
+/brand-lockup-preview / 200

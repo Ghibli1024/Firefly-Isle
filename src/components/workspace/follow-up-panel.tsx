@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的 useState，依赖 @/components/system/surfaces 的 PanelSurface 承载追问容器。
+ * [INPUT]: 依赖 react 的 Effect 与 useState，依赖 @/components/system/surfaces 的 PanelSurface 承载追问容器，依赖 03 Apple Editorial 标题字体合同，依赖 transitions-dev.css 的 .t-panel-slide 动效合同。
  * [OUTPUT]: 对外提供 FollowUpPanel 组件，渲染追问文案、补充输入与提交动作。
  * [POS]: components/workspace 的追问补充区块，被 workspace-page 组合，用于把 follow-up 展示层从 route 移出。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -20,6 +20,13 @@ type FollowUpPanelProps = {
 export function FollowUpPanel({ currentQuestion, onSubmit, theme }: FollowUpPanelProps) {
   const { locale } = useLocale()
   const [value, setValue] = useState('')
+  const [open, setOpen] = useState(() => typeof document === 'undefined')
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setOpen(true))
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   const textareaClassName =
     theme === 'dark'
@@ -28,35 +35,39 @@ export function FollowUpPanel({ currentQuestion, onSubmit, theme }: FollowUpPane
 
   const buttonClassName =
     theme === 'dark'
-      ? "mt-4 border border-[var(--ff-accent-primary)] px-4 py-3 font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]"
-      : "mt-4 border-2 border-[var(--ff-border-default)] px-6 py-3 font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]"
+      ? "mt-4 border border-[var(--ff-accent-primary)] px-4 py-3 font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]"
+      : "mt-4 border-2 border-[var(--ff-border-default)] px-6 py-3 font-[var(--ff-font-ui)] text-xs font-bold uppercase tracking-[0.2em]"
 
   return (
-    <PanelSurface className={theme === 'dark' ? 'p-6' : 'ff-light-ink-shadow p-6'} theme={theme} tone="panel">
-      {theme === 'dark' ? (
-        <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[var(--ff-accent-primary)]">
+    <div className="t-panel-slide" data-open={open}>
+      <PanelSurface className={theme === 'dark' ? 'p-6' : 'ff-light-ink-shadow p-6'} theme={theme} tone="panel">
+        <h3
+          className={
+            theme === 'dark'
+              ? 'font-[var(--ff-font-display)] text-base font-bold tracking-normal text-[var(--ff-accent-primary)]'
+              : 'font-[var(--ff-font-display)] text-base font-bold tracking-normal text-[var(--ff-text-primary)]'
+          }
+        >
           {getCopy(copy.workspace.followUp.title, locale)}
-        </div>
-      ) : (
-        <h3 className="font-['Inter'] text-xs font-bold uppercase tracking-[0.2em]">{getCopy(copy.workspace.followUp.title, locale)}</h3>
-      )}
-      <p className="mt-3 text-sm leading-7 text-[var(--ff-text-subtle)]">{currentQuestion}</p>
-      <textarea
-        className={textareaClassName}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder={getCopy(copy.workspace.followUp.placeholder, locale)}
-        value={value}
-      />
-      <button
-        className={buttonClassName}
-        onClick={() => {
-          onSubmit(value)
-          setValue('')
-        }}
-        type="button"
-      >
-        {getCopy(copy.workspace.followUp.submit, locale)}
-      </button>
-    </PanelSurface>
+        </h3>
+        <p className="mt-3 text-sm leading-7 text-[var(--ff-text-subtle)]">{currentQuestion}</p>
+        <textarea
+          className={textareaClassName}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={getCopy(copy.workspace.followUp.placeholder, locale)}
+          value={value}
+        />
+        <button
+          className={buttonClassName}
+          onClick={() => {
+            onSubmit(value)
+            setValue('')
+          }}
+          type="button"
+        >
+          {getCopy(copy.workspace.followUp.submit, locale)}
+        </button>
+      </PanelSurface>
+    </div>
   )
 }

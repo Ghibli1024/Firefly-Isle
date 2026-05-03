@@ -73,7 +73,7 @@ function VariantCard({
       <button className="block w-full text-left" onClick={() => onSelect(variant)} type="button">
         <div className="flex min-h-[118px] items-start justify-between gap-4 border-b border-[var(--ff-border-default)] px-5 py-4">
           <div className="min-w-0">
-            <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
+            <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
               {meta.eyebrow}
             </div>
             <h2 className="mt-2 text-2xl font-black tracking-normal text-[var(--ff-text-primary)]">{meta.name}</h2>
@@ -81,7 +81,7 @@ function VariantCard({
           </div>
           <span
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ff-radius-full)] border font-["JetBrains_Mono"] text-[11px]',
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ff-radius-full)] border font-[var(--ff-font-mono)] text-[11px]',
               selected
                 ? 'border-[var(--ff-accent-primary)] bg-[var(--ff-accent-primary)] text-white'
                 : 'border-[var(--ff-border-default)] text-[var(--ff-text-muted)]',
@@ -96,7 +96,7 @@ function VariantCard({
         {(['light', 'dark'] as const).map((theme) => (
           <div className="bg-[var(--ff-surface-panel)] p-4" key={theme}>
             <div className="mb-3 flex items-center justify-between">
-              <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
+              <span className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
                 {toneLabels[theme]}
               </span>
               <span className="text-xs text-[var(--ff-text-muted)]">148 / 72</span>
@@ -117,7 +117,7 @@ function SelectedPanel({ variant }: { variant: BrandLockupVariant }) {
 
   return (
     <aside className="sticky top-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5">
-      <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
+      <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
         Current pick
       </div>
       <h2 className="mt-2 text-3xl font-black tracking-normal">{meta.title}</h2>
@@ -162,7 +162,7 @@ export function BrandLockupPreviewPage() {
           <div className="mb-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 md:p-6">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
-                <div className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-accent-primary)]">
+                <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-accent-primary)]">
                   Brand lockup preview
                 </div>
                 <h1 className="mt-3 text-4xl font-black tracking-normal md:text-5xl">侧栏品牌标识区</h1>
@@ -171,7 +171,7 @@ export function BrandLockupPreviewPage() {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 py-3">
-                <span className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-text-muted)]">Selected</span>
+                <span className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-text-muted)]">Selected</span>
                 <span className="text-2xl font-black text-[var(--ff-accent-primary)]">{String(selectedIndex).padStart(2, '0')}</span>
               </div>
             </div>
