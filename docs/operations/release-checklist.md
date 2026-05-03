@@ -87,6 +87,9 @@
 - `llm-proxy` 已部署且状态为 ACTIVE
 - `GEMINI_API_KEY` 已配置
 - `DEFAULT_GEMINI_MODEL` 已配置
+- `DEEPSEEK_API_KEY` 已配置，或明确记录当前发布环境暂不启用 DeepSeek
+- `DEFAULT_DEEPSEEK_MODEL=deepseek-v4-flash` 已配置
+- `DEFAULT_LLM_PROVIDER` 与本次发布策略一致；如切到 `deepseek`，必须先完成一次真实结构化提取验证
 - 当前部署方式若使用 `--no-verify-jwt`，必须确认函数内部 JWT 校验仍生效
 - 匿名 token 与邮箱用户 token 都可通过函数内部校验
 - 若 Cloudflare Pages Git 集成构建读取 `wrangler.jsonc`，需额外确认构建期依赖的 `VITE_SUPABASE_*` 值也存在于 `wrangler.jsonc > vars`，否则线上 bundle 可能在构建时拿不到 env，即使 Dashboard UI 已填写变量。

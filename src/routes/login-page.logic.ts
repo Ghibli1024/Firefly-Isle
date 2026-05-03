@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/components/login-page-view 的 AuthMode/AuthFeedback 类型，依赖 Supabase Auth 方法的结构化子集。
- * [OUTPUT]: 对外提供 submitEmailAuth、startAnonymousAuth、startGoogleAuth、getAuthRedirectTo 与 LoginAuthClient 类型，Google redirect 默认落公共 callback 并强制账号选择。
- * [POS]: routes 的登录页动作层，隔离 Supabase Auth 调用、反馈文案与模式跳转，让 login-page.tsx 只负责状态接线。
+ * [OUTPUT]: 对外提供 submitEmailAuth、startAnonymousAuth、startGoogleAuth、getAuthRedirectTo 与 LoginAuthClient 类型。
+ * [POS]: routes 的登录页动作层，隔离 Supabase Auth 调用、反馈文案、无邮箱确认注册会话要求与 Google OAuth 参数，让 login-page.tsx 只负责状态接线。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { AuthFeedback, AuthMode } from '@/components/login-page-view'
@@ -102,9 +102,7 @@ export async function submitEmailAuth({
   }
 
   return {
-    clearPassword: true,
-    feedback: { message: '注册成功，请查收验证邮件。', tone: 'success' },
-    nextMode: 'login',
+    feedback: { message: '注册未返回有效会话，请先在 Supabase 关闭邮箱确认后再试。', tone: 'error' },
   }
 }
 

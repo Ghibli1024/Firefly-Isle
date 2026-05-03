@@ -230,7 +230,7 @@ export async function extractPatientRecord(input: string, existingRecord?: Patie
     },
   ]
 
-  const response = await chat(messages)
+  const response = await chat(messages, { responseFormat: 'json_object' })
   const normalized = parsePatientRecordResponse(response)
 
   return existingRecord ? mergePatientRecord(existingRecord, normalized) : normalized

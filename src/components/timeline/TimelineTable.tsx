@@ -160,18 +160,18 @@ function getSectionClass(theme: Theme) {
 }
 
 function getLabelClass() {
-  return "font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.24em] text-[var(--ff-timeline-label)]"
+  return "font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.24em] text-[var(--ff-timeline-label)]"
 }
 
 function getValueClass(theme: Theme, filled: boolean, prominent: boolean) {
   if (theme === 'dark') {
     return prominent
-      ? `font-['Inter_Tight'] text-2xl font-black tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
+      ? `font-[var(--ff-font-display)] text-2xl font-black tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
       : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[var(--ff-timeline-text-body)]' : 'text-[var(--ff-timeline-text-muted)]'}`
   }
 
   return prominent
-    ? `font-['Newsreader'] text-[28px] font-bold tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
+    ? `font-[var(--ff-font-display)] text-[28px] font-bold tracking-tight ${filled ? 'text-[var(--ff-timeline-text-strong)]' : 'text-[var(--ff-timeline-text-muted)]'}`
     : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[var(--ff-timeline-text-body)]' : 'text-[var(--ff-timeline-text-muted)]'}`
 }
 
@@ -196,17 +196,17 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
     return (
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-baseline gap-4">
-          <span className="font-['JetBrains_Mono'] text-4xl font-black text-[var(--ff-timeline-order)]">{padOrder(order)}</span>
+          <span className="font-[var(--ff-font-mono)] text-4xl font-black text-[var(--ff-timeline-order)]">{padOrder(order)}</span>
           <div>
-            <h3 className="font-['Inter_Tight'] text-3xl font-black tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
+            <h3 className="font-[var(--ff-font-display)] text-3xl font-black tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
               {title}
             </h3>
-            <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
+            <p className="mt-2 font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
               {subtitle}
             </p>
           </div>
         </div>
-        <span className="min-w-[160px] self-start border border-[var(--ff-timeline-badge-border)] bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
+        <span className="min-w-[160px] self-start border border-[var(--ff-timeline-badge-border)] bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
           {badge ?? ' '}
         </span>
       </div>
@@ -216,19 +216,19 @@ function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderPr
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-baseline gap-4">
-        <span className="font-['Inter'] text-5xl font-bold text-[var(--ff-timeline-order)] sm:text-6xl">
+        <span className="font-[var(--ff-font-display)] text-5xl font-bold text-[var(--ff-timeline-order)] sm:text-6xl">
           {padOrder(order)}
         </span>
         <div>
-          <h3 className="border-b border-[var(--ff-timeline-section-border)] pb-2 font-['Inter'] text-3xl font-bold tracking-tight sm:text-4xl">
+          <h3 className="border-b border-[var(--ff-timeline-section-border)] pb-2 font-[var(--ff-font-display)] text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
           </h3>
-          <p className="mt-2 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
+          <p className="mt-2 font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-timeline-label)]">
             {subtitle}
           </p>
         </div>
       </div>
-      <span className="min-w-[160px] self-start bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
+      <span className="min-w-[160px] self-start bg-[var(--ff-timeline-badge-bg)] px-3 py-2 text-right font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-badge-text)] sm:self-auto">
         {badge ?? ' '}
       </span>
     </div>
@@ -361,12 +361,12 @@ export function BasicInfoBlock({
     <section className={getSectionClass(theme)}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="font-['Inter'] text-3xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
+          <h2 className="font-[var(--ff-font-display)] text-3xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
             {getCopy(copy.timeline.basicInfoTitle, locale)}
           </h2>
           <p className={`mt-2 ${getLabelClass()}`}>{getCopy(copy.timeline.basicInfoSubtitle, locale)}</p>
         </div>
-        <span className="font-['JetBrains_Mono'] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-accent)]">
+        <span className="font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[var(--ff-timeline-accent)]">
           {getCopy(copy.timeline.criticalFields, locale)}
         </span>
       </div>
@@ -609,8 +609,8 @@ function EmptyState({ theme }: { theme: Theme }) {
       <p
         className={
           theme === 'dark'
-            ? "mt-4 font-['Inter_Tight'] text-2xl font-bold"
-            : "mt-4 font-['Newsreader'] text-3xl font-bold"
+            ? "mt-4 font-[var(--ff-font-display)] text-2xl font-bold"
+            : "mt-4 font-[var(--ff-font-display)] text-3xl font-bold"
         }
       >
         {getCopy(copy.timeline.emptyTitle, locale)}
@@ -670,7 +670,7 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
             <div className={getLabelClass()}>{getCopy(copy.timeline.tableKey, locale)}</div>
             <h1
               className={
-                "mt-3 font-['Inter'] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
+                "mt-3 font-[var(--ff-font-display)] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
               }
             >
               {getCopy(copy.timeline.tableTitle, locale)}
@@ -680,7 +680,7 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
             <div className={getLabelClass()}>{getCopy(copy.timeline.archetypeKey, locale)}</div>
             <div
               className={
-                "mt-2 font-['JetBrains_Mono'] text-[12px] font-bold tracking-[0.18em] text-[var(--ff-timeline-accent)]"
+                "mt-2 font-[var(--ff-font-mono)] text-[12px] font-bold tracking-[0.18em] text-[var(--ff-timeline-accent)]"
               }
             >
               {getArchetypeLabel(archetype, locale)}

@@ -9,6 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The current baseline specs now live under `openspec/specs/`.
 - The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
 - The login intro/drawer refinement is archived at `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`.
+- The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
+- Background music work is currently active under `openspec/changes/add-background-music-toggle/` and `openspec/changes/add-local-background-playlist/` until those changes are archived into baseline specs.
 - Product context lives in `README.md` and `docs/products/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
@@ -43,9 +45,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/log/`
   - `index.md` — commit history 总入口
   - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
+  - `0023-auth-login-wechat-learning.md` — 认证学习专题复盘，记录邮箱/Google/Supabase/微信登录的原理、数据流、配置边界与排错路径
 - `openspec/specs/`
   - current baseline requirements merged from archived MVP and commit-history changes
   - `CLAUDE.md` maps each baseline spec file and records that main specs must use `## Purpose` + `## Requirements`
+- `openspec/changes/add-local-background-playlist/`
+  - active local playlist artifacts for the background music extension, defining manifest-backed local tracks, persisted selected track, compact previous/next controls and asset authorization boundary
 - `openspec/changes/archive/2026-04-13-mvp-core/`
   - archived MVP implementation artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-14-commit-history-log/`
@@ -58,10 +63,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived input/export ownership artifacts separating `/app` input/extraction from `/record/:id` formal PDF/PNG export
 - `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`
   - archived login-entry artifacts defining the dual-theme project intro page and CTA-opened unified login overlay
+- `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`
+  - archived LLM provider artifacts defining the Gemini / DeepSeek Edge Function proxy, JSON output mode, provider config and rollback boundary
 - `.github/`
   - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`
   - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
+- `wrangler.jsonc`
+  - Cloudflare Pages build config; public Vite vars include Supabase URL/anon key/Edge Function URL and a retained non-secret `custom:wechat` provider identifier for future WeChat work; server-side vars/bindings expose the WeChat OAuth adapter client id, callback URL, public base URL and short-lived KV namespace
+- `functions/`
+  - Cloudflare Pages Functions; currently contains WeChat OAuth2 adapter prework that can translate Supabase custom provider requests into WeChat Open Platform QR login, while the active login page keeps WeChat as `敬请期待`
 - `supabase/`
   - `migrations/*.sql` — schema, RLS, trigger, and storage-adjacent infrastructure migrations
 - Global Claude OpenSpec helpers
@@ -72,7 +83,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend:** Vite + React 18 + TypeScript SPA
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
-- **AI boundary:** frontend calls a Supabase Edge Function proxy; provider API keys stay server-side
+- **Edge adapter:** Cloudflare Pages Functions host WeChat OAuth2 adapter prework for future Supabase custom provider compatibility; current login UI keeps WeChat deferred
+- **AI boundary:** frontend calls a Supabase Edge Function proxy; Gemini / DeepSeek provider API keys stay server-side
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → PDF/PNG export
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
 - **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
@@ -116,8 +128,8 @@ When implementation starts, read these in roughly this order:
 The OpenSpec artifacts are aligned on these points:
 
 - MVP keeps a thin `chat(messages, options)` adapter boundary.
-- MVP uses Gemini through a Supabase Edge Function proxy.
-- MVP does **not** implement multi-provider routing or a provider settings UI.
+- The LLM proxy supports Gemini and DeepSeek through a Supabase Edge Function provider boundary.
+- The app does **not** implement a user-facing provider settings UI; default provider remains server-side configuration.
 - Data storage uses normalized `patients` + `treatment_lines` tables with RLS.
 
 ## Stitch note

@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 react 的表单事件类型、Effect 与本地弹层状态，依赖 react-router-dom 的 Link，依赖 FireflyMark、LoginTraceMap，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 public/login 的双主题 intro 背景、亮色花路灯塔卡片背景与夜航灯塔路径登录卡场景资产。
+ * [INPUT]: 依赖 react 的表单事件类型、Effect、Ref 与本地弹层状态，依赖 react-router-dom 的 Link，依赖 BackgroundMusicToggle、FireflyMark、LoginTraceMap，依赖 @/lib/privacy 的隐私页路由与摘要真相源，依赖 public/login 的双主题 intro 背景、亮色花路灯塔卡片背景与夜航灯塔路径登录卡场景资产，依赖 transitions-dev.css 的 .t-modal 动效合同。
  * [OUTPUT]: 对外提供 LoginPageView 组件，以及 AuthMode / AuthFeedback / LoginPageViewProps 类型。
- * [POS]: components 的登录页展示层，负责明暗主题全屏 intro、CTA 驱动的统一登录弹层、登录/注册/重置密码模式化表单、Google/匿名入口，不触碰 Supabase 认证状态机。
+ * [POS]: components 的登录页展示层，负责明暗主题全屏 intro、右下角主题/语言/音乐工具区、CTA 驱动的统一登录弹层、邮箱表单、手机/微信敬请期待占位、Google/匿名入口，不触碰 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
+import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { BackgroundMusicToggle } from '@/components/background-music-toggle'
 import { LoginTraceMap } from '@/components/login-trace-map'
 import { FireflyMark } from '@/components/system/firefly-mark'
 import { getCopy, copy } from '@/lib/copy'
@@ -15,6 +16,7 @@ import { PRIVACY_PAGE_HREF, PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
 import type { Theme } from '@/lib/theme'
 
 export type AuthMode = 'login' | 'sign-up' | 'password-reset'
+export type AuthMethod = 'email' | 'phone'
 export type FeedbackTone = 'error' | 'success' | 'neutral'
 
 export type AuthFeedback = {
@@ -23,6 +25,7 @@ export type AuthFeedback = {
 }
 
 export type LoginPageViewProps = {
+  authMethod: AuthMethod
   authError?: string | null
   defaultAuthOpen?: boolean
   email: string
@@ -30,6 +33,7 @@ export type LoginPageViewProps = {
   isSubmitting: boolean
   mode: AuthMode
   onAnonymousLogin: () => void
+  onAuthMethodChange: (method: AuthMethod) => void
   onEmailChange: (value: string) => void
   onGoogleLogin: () => void
   onModeChange: (mode: AuthMode) => void
@@ -114,7 +118,6 @@ type AuthCardSkin = {
   socialButton: string
   socialIcon: string
   socialLabel: string
-  socialSubLabel: string
   surface: string
   trailingIcon: string
 }
@@ -145,9 +148,8 @@ const authCardSkins: Record<Theme, AuthCardSkin> = {
     privacy: 'bg-white/[0.045] text-white/52',
     privacyLink: 'text-white/78',
     socialButton: 'border-[#353b3b] bg-[rgba(255,255,255,0.035)] text-[#d9d1c4] shadow-[inset_0_0_22px_rgba(255,255,255,0.018)] hover:border-[#6c665c] hover:bg-white/[0.055]',
-    socialIcon: 'text-[#b8ae9e] drop-shadow-[0_0_12px_rgba(184,174,158,0.16)]',
+    socialIcon: 'bg-white shadow-[0_0_18px_rgba(255,255,255,0.08)]',
     socialLabel: 'text-[#d8d0c4]',
-    socialSubLabel: 'text-[#8b867f]',
     surface: 'bg-[linear-gradient(180deg,rgba(5,11,14,0),#050b0e)]',
     trailingIcon: 'text-white/56',
   },
@@ -176,9 +178,8 @@ const authCardSkins: Record<Theme, AuthCardSkin> = {
     privacy: 'bg-[#f2f8f8] text-[#5d7471]',
     privacyLink: 'text-[#172522]',
     socialButton: 'border-[#d1dfe0] bg-white/82 text-[#334844] shadow-[0_12px_24px_rgba(98,124,129,0.08)] hover:border-[var(--ff-accent-primary)]/35 hover:bg-[#fffaf7]',
-    socialIcon: 'text-[#526966]',
+    socialIcon: 'bg-white shadow-[0_8px_18px_rgba(98,124,129,0.12)]',
     socialLabel: 'text-[#223530]',
-    socialSubLabel: 'text-[#7f918e]',
     surface: 'bg-[linear-gradient(180deg,rgba(255,255,255,0),#ffffff)]',
     trailingIcon: 'text-[#657b78]',
   },
@@ -259,7 +260,7 @@ function LoginPageUtilityControls({
 
   return (
     <div
-      className={`z-[60] flex w-fit max-w-full items-center justify-center gap-2 rounded-[14px] border px-3 py-3 text-sm font-semibold backdrop-blur-md sm:justify-start sm:gap-5 sm:px-6 sm:text-base 2xl:ml-auto ${skin.utilityShell}`}
+      className={`fixed bottom-4 left-4 right-4 z-[60] flex w-auto max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 rounded-[14px] border px-3 py-3 text-sm font-semibold backdrop-blur-md sm:bottom-6 sm:left-auto sm:right-6 sm:w-fit sm:flex-nowrap sm:justify-start sm:gap-5 sm:px-6 sm:text-base ${skin.utilityShell}`}
       data-testid="login-page-utility-controls"
     >
       <button className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={onToggleTheme} type="button">
@@ -271,6 +272,11 @@ function LoginPageUtilityControls({
         <span className="material-symbols-outlined shrink-0 text-[24px]">g_translate</span>
         {getCopy(copy.shell.nav.languageToggle, locale)}
       </button>
+      <span className={`h-5 w-px ${skin.utilityDivider}`} />
+      <BackgroundMusicToggle
+        className={`gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`}
+        showLabel
+      />
     </div>
   )
 }
@@ -301,7 +307,21 @@ type AuthModeCopy = {
   title: string
 }
 
-function getAuthModeCopy(mode: AuthMode, locale: 'zh' | 'en'): AuthModeCopy {
+function getAuthModeCopy(mode: AuthMode, locale: 'zh' | 'en', authMethod: AuthMethod = 'email'): AuthModeCopy {
+  if (authMethod === 'phone' && mode !== 'password-reset') {
+    return {
+      dialogLabel: locale === 'zh' ? '手机登录' : 'Phone login',
+      footerAction: getCopy(copy.login.auth.login, locale),
+      footerMode: 'login',
+      footerPrompt: '',
+      forgotPassword: locale === 'zh' ? '忘记密码？' : 'Forgot password?',
+      passwordPlaceholder: locale === 'zh' ? '短信验证码' : 'SMS code',
+      submitLabel: locale === 'zh' ? '进入工作区' : 'Enter workspace',
+      subtitle: locale === 'zh' ? '手机号入口准备中，当前请使用 Google 或邮箱。' : 'Phone access is being prepared. Use Google or email for now.',
+      title: locale === 'zh' ? '手机登录' : 'Phone login',
+    }
+  }
+
   if (mode === 'password-reset') {
     return {
       dialogLabel: locale === 'zh' ? '重置密码' : 'Reset password',
@@ -325,7 +345,7 @@ function getAuthModeCopy(mode: AuthMode, locale: 'zh' | 'en'): AuthModeCopy {
       forgotPassword: locale === 'zh' ? '忘记密码？' : 'Forgot password?',
       passwordPlaceholder: locale === 'zh' ? '创建访问密钥' : 'Create an access key',
       submitLabel: getCopy(copy.login.auth.submitSignup, locale),
-      subtitle: locale === 'zh' ? '创建账户后按邮箱验证策略进入工作区。' : 'Create an account and follow the email verification policy.',
+      subtitle: locale === 'zh' ? '创建账户后直接进入工作区。' : 'Create an account and enter the workspace directly.',
       title: getCopy(copy.login.auth.signup, locale),
     }
   }
@@ -337,7 +357,7 @@ function getAuthModeCopy(mode: AuthMode, locale: 'zh' | 'en'): AuthModeCopy {
     footerPrompt: locale === 'zh' ? '还没有账户？' : 'No account yet?',
     forgotPassword: locale === 'zh' ? '忘记密码？' : 'Forgot password?',
     passwordPlaceholder: locale === 'zh' ? '访问密钥（区分大小写）' : 'Access key (case sensitive)',
-    submitLabel: locale === 'zh' ? '登录并进入工作区' : 'Login and enter workspace',
+    submitLabel: getCopy(copy.login.auth.login, locale),
     subtitle: locale === 'zh' ? '此程虽艰，您永不踽踽独行。' : 'The road may be hard, but you never walk alone.',
     title: getCopy(copy.login.auth.login, locale),
   }
@@ -370,53 +390,134 @@ function AuthBeaconPreview({ subtitle, theme, title }: { subtitle: string; theme
 
 function SocialButton({
   disabled,
+  icon,
   label,
   onClick,
-  subLabel,
   theme,
 }: {
   disabled: boolean
+  icon: ReactNode
   label: string
   onClick: () => void
-  subLabel: string
   theme: Theme
 }) {
   const skin = authCardSkins[theme]
 
   return (
     <button
-      className={`flex min-h-[52px] min-w-0 flex-1 items-center justify-center gap-3 rounded-[10px] border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${skin.socialButton}`}
+      aria-label={label}
+      className={`flex h-12 min-w-0 flex-1 items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${skin.socialButton}`}
       disabled={disabled}
       onClick={onClick}
       type="button"
     >
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center ${skin.socialIcon}`}>
-        <GoogleWarmGlyph />
+      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${skin.socialIcon}`}>
+        {icon}
       </span>
-      <span className="flex flex-col items-start leading-none">
-        <span className={`text-sm font-semibold ${skin.socialLabel}`}>{label}</span>
-        <span className={`mt-1.5 text-[11px] font-semibold ${skin.socialSubLabel}`}>{subLabel}</span>
-      </span>
+      <span className={`text-sm font-semibold leading-none ${skin.socialLabel}`}>{label}</span>
     </button>
   )
 }
 
-function GoogleWarmGlyph() {
+function WeChatComingSoonPanel({ locale, theme }: { locale: 'zh' | 'en'; theme: Theme }) {
+  const skin = authCardSkins[theme]
+  const shellClass =
+    theme === 'dark'
+      ? 'border-[#353b3b] bg-[rgba(255,255,255,0.025)] text-[#d9d1c4]/74 shadow-[inset_0_0_18px_rgba(255,255,255,0.012)]'
+      : 'border-[#d1dfe0] bg-white/58 text-[#334844]/72 shadow-[0_10px_20px_rgba(98,124,129,0.06)]'
+  const comingSoonClass = theme === 'dark' ? 'text-white/44' : 'text-[#7b8f8c]'
+
   return (
-    <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 36 36">
-      <text
-        dominantBaseline="central"
-        fill="currentColor"
-        fontFamily="Inter, Arial, sans-serif"
-        fontSize="29"
-        fontWeight="800"
-        textAnchor="middle"
-        x="18"
-        y="18.8"
-      >
-        G
-      </text>
+    <div
+      aria-label={locale === 'zh' ? '微信敬请期待' : 'WeChat coming soon'}
+      className={`flex h-12 min-w-0 flex-1 cursor-default items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold ${shellClass}`}
+      data-testid="login-wechat-coming-soon"
+    >
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+        <WeChatGlyph />
+      </span>
+      <span className="flex min-w-0 items-baseline gap-1.5 leading-none">
+        <span className={`text-sm font-semibold ${skin.socialLabel}`}>{getCopy(copy.login.auth.wechat, locale)}</span>
+        <span className={`text-[11px] font-bold ${comingSoonClass}`}>
+          {locale === 'zh' ? '敬请期待' : 'Coming soon'}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+function GoogleBrandGlyph() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.15v2.84C3.96 20.53 7.68 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.15A10.97 10.97 0 0 0 1 12c0 1.77.42 3.44 1.15 4.94l3.69-2.84z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.37c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.68 1 3.96 3.47 2.15 7.06l3.69 2.84C6.71 7.3 9.14 5.37 12 5.37z"
+        fill="#EA4335"
+      />
     </svg>
+  )
+}
+
+function WeChatGlyph() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" fill="#07C160" r="11" />
+      <path
+        d="M9.1 8.1c-2.45 0-4.43 1.55-4.43 3.46 0 1.1.66 2.07 1.68 2.7l-.39 1.16 1.42-.69c.53.18 1.12.29 1.72.29 2.45 0 4.43-1.55 4.43-3.46S11.55 8.1 9.1 8.1Zm-1.46 2.77a.47.47 0 1 1 0-.94.47.47 0 0 1 0 .94Zm2.9 0a.47.47 0 1 1 0-.94.47.47 0 0 1 0 .94Z"
+        fill="#fff"
+      />
+      <path
+        d="M15.17 11.26c2.1 0 3.8 1.33 3.8 2.96 0 .94-.56 1.77-1.43 2.31l.34 1-1.22-.59c-.46.16-.96.24-1.49.24-2.1 0-3.8-1.33-3.8-2.96 0-1.64 1.7-2.96 3.8-2.96Zm-1.25 2.37a.4.4 0 1 0 0-.8.4.4 0 0 0 0 .8Zm2.49 0a.4.4 0 1 0 0-.8.4.4 0 0 0 0 .8Z"
+        fill="#fff"
+      />
+    </svg>
+  )
+}
+
+function AuthMethodTabs({
+  authMethod,
+  locale,
+  onAuthMethodChange,
+  theme,
+}: {
+  authMethod: AuthMethod
+  locale: 'zh' | 'en'
+  onAuthMethodChange: (method: AuthMethod) => void
+  theme: Theme
+}) {
+  const options: Array<{ label: string; method: AuthMethod }> = [
+    { label: locale === 'zh' ? '邮箱' : 'Email', method: 'email' },
+    { label: locale === 'zh' ? '手机' : 'Phone', method: 'phone' },
+  ]
+  const shellClass = theme === 'dark' ? 'border-white/10 bg-white/[0.035]' : 'border-[#d5e2e3] bg-[#eef6f6]'
+  const activeClass = theme === 'dark' ? 'bg-white/10 text-white' : 'bg-white text-[#172522] shadow-[0_6px_18px_rgba(98,124,129,0.12)]'
+  const inactiveClass = theme === 'dark' ? 'text-white/50 hover:text-white/82' : 'text-[#6b7d7a] hover:text-[#172522]'
+
+  return (
+    <div className={`grid grid-cols-2 rounded-[12px] border p-1 ${shellClass}`} data-testid="login-auth-method-tabs">
+      {options.map((option) => (
+        <button
+          aria-pressed={authMethod === option.method}
+          className={`min-h-[38px] rounded-[9px] text-sm font-bold transition-colors ${authMethod === option.method ? activeClass : inactiveClass}`}
+          key={option.method}
+          onClick={() => onAuthMethodChange(option.method)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -451,6 +552,26 @@ function CredentialField({
   )
 }
 
+function PhoneComingSoonPanel({ locale, theme }: { locale: 'zh' | 'en'; theme: Theme }) {
+  const skin = authCardSkins[theme]
+
+  return (
+    <div
+      className={`rounded-[14px] border px-4 py-5 text-center ${theme === 'dark' ? 'border-white/10 bg-white/[0.035]' : 'border-[#d5e2e3] bg-[#f8fbfb]'}`}
+      data-testid="login-phone-coming-soon"
+    >
+      <div className={`text-lg font-black ${skin.socialLabel}`}>
+        {locale === 'zh' ? '敬请期待' : 'Coming soon'}
+      </div>
+      <p className={`mt-2 text-sm font-semibold leading-6 ${skin.modeHint}`}>
+        {locale === 'zh'
+          ? '手机验证码会在完成短信服务与防刷策略后开放。现在请先使用 Google 或邮箱。'
+          : 'Phone codes will open after SMS delivery and abuse protection are configured. Use Google or email for now.'}
+      </p>
+    </div>
+  )
+}
+
 function LoginSubmitButton({
   isSubmitting,
   label,
@@ -473,9 +594,11 @@ function LoginSubmitButton({
 type AuthCardProps = Pick<
   V3LoginProps,
   | 'email'
+  | 'authMethod'
   | 'isSubmitting'
   | 'mode'
   | 'onAnonymousLogin'
+  | 'onAuthMethodChange'
   | 'onEmailChange'
   | 'onGoogleLogin'
   | 'onModeChange'
@@ -491,6 +614,7 @@ type AuthCardProps = Pick<
 }
 
 function AuthCard({
+  authMethod,
   currentFeedback,
   email,
   id,
@@ -498,6 +622,7 @@ function AuthCard({
   locale,
   mode,
   onAnonymousLogin,
+  onAuthMethodChange,
   onEmailChange,
   onGoogleLogin,
   onModeChange,
@@ -511,9 +636,13 @@ function AuthCard({
   const emailFieldId = `${fieldIdPrefix}-email`
   const passwordFieldId = `${fieldIdPrefix}-password`
   const skin = authCardSkins[theme]
-  const modeCopy = getAuthModeCopy(mode, locale)
-  const showPasswordField = mode !== 'password-reset'
+  const activeAuthMethod = mode === 'password-reset' ? 'email' : authMethod
+  const isPhoneAuth = activeAuthMethod === 'phone'
+  const modeCopy = getAuthModeCopy(mode, locale, activeAuthMethod)
+  const showPasswordField = !isPhoneAuth && mode !== 'password-reset'
+  const showEmailField = !isPhoneAuth
   const showSessionAlternatives = mode !== 'password-reset'
+  const showModeSwitch = !isPhoneAuth
   const submitLabel = isSubmitting ? getCopy(copy.workspace.composer.processing, locale) : modeCopy.submitLabel
 
   return (
@@ -527,19 +656,29 @@ function AuthCard({
         <form className="space-y-3" onSubmit={onSubmit}>
           <AuthFeedbackBlock feedback={currentFeedback} theme={theme} />
 
-          <CredentialField fieldId={emailFieldId} icon="mail" label={locale === 'zh' ? '邮箱' : 'Email'} theme={theme}>
-            <span className="sr-only">{getCopy(copy.login.auth.emailLabelLight, locale)}</span>
-            <input
-              autoComplete="email"
-              className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${skin.fieldInput}`}
-              id={emailFieldId}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder={locale === 'zh' ? '输入邮箱地址' : 'Enter email address'}
-              required
-              type="email"
-              value={email}
-            />
-          </CredentialField>
+          {mode !== 'password-reset' ? (
+            <AuthMethodTabs authMethod={activeAuthMethod} locale={locale} onAuthMethodChange={onAuthMethodChange} theme={theme} />
+          ) : null}
+
+          {showEmailField ? (
+            <CredentialField fieldId={emailFieldId} icon="mail" label={locale === 'zh' ? '邮箱' : 'Email'} theme={theme}>
+              <span className="sr-only">{getCopy(copy.login.auth.emailLabelLight, locale)}</span>
+              <input
+                autoComplete="email"
+                className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${skin.fieldInput}`}
+                id={emailFieldId}
+                onChange={(event) => onEmailChange(event.target.value)}
+                placeholder={locale === 'zh' ? '输入邮箱地址' : 'Enter email address'}
+                required
+                type="email"
+                value={email}
+              />
+            </CredentialField>
+          ) : null}
+
+          {isPhoneAuth ? (
+            <PhoneComingSoonPanel locale={locale} theme={theme} />
+          ) : null}
 
           {showPasswordField ? (
             <CredentialField
@@ -564,7 +703,7 @@ function AuthCard({
             </CredentialField>
           ) : null}
 
-          {mode === 'login' ? (
+          {mode === 'login' && !isPhoneAuth ? (
             <div className="flex justify-end text-sm font-semibold">
               <button
                 className={`shrink-0 ${skin.forgotLink}`}
@@ -576,19 +715,9 @@ function AuthCard({
             </div>
           ) : null}
 
-	          {showSessionAlternatives ? (
-	            <div className="grid grid-cols-1 gap-3">
-	              <SocialButton
-	                disabled={isSubmitting}
-	                label={getCopy(copy.login.auth.google, locale)}
-	                onClick={onGoogleLogin}
-	                subLabel={locale === 'zh' ? '自动登录或注册' : 'Sign in or create account'}
-	                theme={theme}
-	              />
-	            </div>
-	          ) : null}
-
-          <LoginSubmitButton isSubmitting={isSubmitting} label={submitLabel} />
+          {!isPhoneAuth ? (
+            <LoginSubmitButton isSubmitting={isSubmitting} label={submitLabel} />
+          ) : null}
 
           {showSessionAlternatives ? (
             <>
@@ -596,6 +725,17 @@ function AuthCard({
                 <span className={`h-px flex-1 ${skin.divider}`} />
                 <span className={`text-xs font-semibold ${skin.dividerText}`}>{locale === 'zh' ? '或' : 'or'}</span>
                 <span className={`h-px flex-1 ${skin.divider}`} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <SocialButton
+                  disabled={isSubmitting}
+                  icon={<GoogleBrandGlyph />}
+                  label={getCopy(copy.login.auth.google, locale)}
+                  onClick={onGoogleLogin}
+                  theme={theme}
+                />
+                <WeChatComingSoonPanel locale={locale} theme={theme} />
               </div>
 
               <button
@@ -624,6 +764,7 @@ function AuthCard({
             {getCopy(copy.login.footer.fullPrivacy, locale)}
           </Link>
         </p>
+        {showModeSwitch ? (
         <p className={`mt-3 text-center text-xs font-semibold ${skin.modeHint}`}>
           {modeCopy.footerPrompt}
           {' '}
@@ -635,6 +776,7 @@ function AuthCard({
             {modeCopy.footerAction}
           </button>
         </p>
+        ) : null}
       </div>
     </div>
   )
@@ -648,7 +790,43 @@ function AuthOverlay({ onClose, ...authCardProps }: AuthOverlayProps) {
   const { locale, theme } = authCardProps
   const skin = authCardSkins[theme]
   const overlayClass = theme === 'dark' ? 'bg-black/72' : 'bg-[#eff7f7]/78'
-  const modeCopy = getAuthModeCopy(authCardProps.mode, locale)
+  const modeCopy = getAuthModeCopy(authCardProps.mode, locale, authCardProps.authMethod)
+  const closeTimerRef = useRef<number | null>(null)
+  const closingRef = useRef(false)
+  const [motionState, setMotionState] = useState<'' | 'is-closing' | 'is-open'>(() =>
+    typeof document === 'undefined' ? 'is-open' : '',
+  )
+  const requestClose = useCallback(() => {
+    if (closingRef.current) {
+      return
+    }
+
+    closingRef.current = true
+    setMotionState('is-closing')
+    closeTimerRef.current = window.setTimeout(onClose, 150)
+  }, [onClose])
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setMotionState('is-open'))
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        requestClose()
+      }
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [requestClose])
 
   return (
     <div
@@ -656,19 +834,19 @@ function AuthOverlay({ onClose, ...authCardProps }: AuthOverlayProps) {
       aria-modal="true"
       className={`fixed inset-0 z-[80] overflow-y-auto px-4 py-5 backdrop-blur-sm ${overlayClass}`}
       data-testid="login-auth-overlay"
-      onClick={onClose}
+      onClick={requestClose}
       role="dialog"
     >
       <div
         className="mx-auto flex min-h-full w-full max-w-[520px] items-start py-2 sm:items-center"
         data-testid="login-auth-modal-card"
       >
-        <div className="relative w-full" onClick={(event) => event.stopPropagation()}>
+        <div className={`relative w-full t-modal ${motionState}`} onClick={(event) => event.stopPropagation()}>
           <button
             aria-label={locale === 'zh' ? `关闭${modeCopy.dialogLabel}` : `Close ${modeCopy.dialogLabel.toLowerCase()}`}
             className={`absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-full)] border transition-colors ${skin.closeButton}`}
             data-testid="login-auth-close"
-            onClick={onClose}
+            onClick={requestClose}
             type="button"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -681,6 +859,7 @@ function AuthOverlay({ onClose, ...authCardProps }: AuthOverlayProps) {
 }
 
 function V3LoginView({
+  authMethod,
   authError,
   defaultAuthOpen = false,
   email,
@@ -688,6 +867,7 @@ function V3LoginView({
   isSubmitting,
   mode,
   onAnonymousLogin,
+  onAuthMethodChange,
   onEmailChange,
   onGoogleLogin,
   onModeChange,
@@ -705,27 +885,15 @@ function V3LoginView({
       : 'By continuing, you agree to the privacy policy. Clinical text is used only for structured processing.'
   const [isAuthOpen, setIsAuthOpen] = useState(defaultAuthOpen)
   const skin = loginThemeSkins[theme]
-  useEffect(() => {
-    if (!isAuthOpen) {
-      return
-    }
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsAuthOpen(false)
-      }
-    }
-
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [isAuthOpen])
   const authCardProps: AuthCardProps = {
+    authMethod,
     currentFeedback,
     email,
     isSubmitting,
     locale,
     mode,
     onAnonymousLogin,
+    onAuthMethodChange,
     onEmailChange,
     onGoogleLogin,
     onModeChange,
@@ -737,7 +905,7 @@ function V3LoginView({
   }
 
   return (
-    <div className={`min-h-dvh w-full overflow-x-hidden font-['Inter'] ${skin.root}`}>
+    <div className={`min-h-dvh w-full overflow-x-hidden font-[var(--ff-font-ui)] ${skin.root}`}>
       <main className="grid min-h-dvh w-full xl:h-dvh xl:grid-cols-1">
         <section className={`relative min-w-0 overflow-hidden px-7 pb-8 pt-24 md:px-14 md:py-12 xl:overflow-hidden ${skin.section}`}>
           <LoginTraceMap locale={locale} theme={theme} />
@@ -746,18 +914,12 @@ function V3LoginView({
               <div className="flex min-w-0 items-center gap-4 md:gap-6">
                 <FireflyMark className="h-16 w-16 md:h-[72px] md:w-[72px]" />
                 <div className="min-w-0">
-                  <div className={`text-3xl font-bold tracking-normal md:text-[2.8rem] ${skin.brandTitle}`}>
+                  <div className={`font-[var(--ff-font-display)] text-3xl font-bold tracking-normal md:text-[2.8rem] ${skin.brandTitle}`}>
                     {getCopy(copy.shell.brand.lightTitle, locale)}
                   </div>
                   <div className={`mt-2 text-base font-semibold md:text-xl ${skin.brandSubtitle}`}>{getCopy(copy.shell.brand.lightSubtitle, locale)}</div>
                 </div>
               </div>
-              <LoginPageUtilityControls
-                locale={locale}
-                onToggleTheme={onToggleTheme}
-                theme={theme}
-                toggleLocale={toggleLocale}
-              />
             </div>
 
             <div className="mt-[12vh] w-full max-w-[calc(100vw-3.5rem)] md:mt-[16vh] md:max-w-[48rem]">
@@ -793,6 +955,12 @@ function V3LoginView({
               <IntroAccessCta isOpen={isAuthOpen} locale={locale} onOpen={() => setIsAuthOpen(true)} />
               <LoginSecurityStatus locale={locale} theme={theme} />
             </div>
+            <LoginPageUtilityControls
+              locale={locale}
+              onToggleTheme={onToggleTheme}
+              theme={theme}
+              toggleLocale={toggleLocale}
+            />
           </div>
         </section>
 

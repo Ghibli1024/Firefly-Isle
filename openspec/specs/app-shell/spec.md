@@ -70,11 +70,12 @@
 - **AND** 侧栏隐藏后，用户 SHALL 能点击左边缘窄浮标恢复侧栏，或从左边缘向右拖拽并随拖拽距离渐进拉出侧栏
 - **AND** 用户 SHALL 能通过拖拽同一个胶囊柄连续调整侧栏宽度，并在继续向左越过隐藏浮标宽度后完全隐藏侧栏
 - **AND** 当侧栏宽度低于 compact 阈值时，标签文字 SHALL 自动隐藏，仅保留图标和 tooltip
+- **AND** 匿名会话 SHALL 使用 `theater_comedy` 图标，非匿名认证会话 SHALL 使用 `person` 图标
 - **AND** 主题切换 SHALL NOT 改变侧栏响应语法
 
 #### Scenario: 顶部区域承担同一空间职责
 - **WHEN** 壳层渲染 Dark 或 Light 的顶部区域
-- **THEN** 顶部区域 SHALL 承担页面名、系统状态、帮助与设置入口的同一空间角色
+- **THEN** 顶部区域 SHALL 承担页面名、系统状态、帮助入口与设置敬请期待占位的同一空间角色
 - **AND** Light 主题 SHALL NOT 使用与 Dark 主题结构不同的独立 masthead 来改变主内容起始线
 
 #### Scenario: 分隔线语义可解释
@@ -152,3 +153,44 @@
 - **WHEN** 用户在登录入口内登录、注册、匿名进入、切换主题或切换语言
 - **THEN** 系统 SHALL 保持现有 Supabase Auth、匿名 session、主题偏好、语言偏好与错误反馈行为不变
 - **AND** 弹层展开或收起 SHALL NOT 触发认证请求
+
+### Requirement: 壳层暴露全局音乐控制
+系统 SHALL 在登录入口与已登录应用壳层中暴露同一个全局音乐控制能力，并保持现有路由职责、布局几何与业务边界不变。
+
+#### Scenario: 登录入口提供音乐控制
+- **WHEN** 用户访问 `/login`
+- **THEN** 登录介绍区域 SHALL 提供音乐控制
+- **AND** 音乐控制 SHALL 与现有主题切换、语言切换工具共享同一入口工具语法
+- **AND** 音乐控制 SHALL NOT 打开登录弹层、触发认证请求或改变已输入表单值
+
+#### Scenario: 已登录页面提供音乐控制
+- **WHEN** 用户访问 `/app` 或 `/record/:id`
+- **THEN** 应用壳层 SHALL 提供音乐控制
+- **AND** 音乐控制 SHALL 复用共享 shell action 语义，而不是在每个 route 文件中重复实现
+- **AND** 音乐控制 SHALL NOT 改变侧栏宽度、顶部区域职责、主内容起始线或主要操作位置
+
+#### Scenario: 主题和语言切换不重置音乐状态
+- **WHEN** 用户切换 dark/light 主题或 zh/en 语言
+- **THEN** 音乐控制 SHALL 保持当前音乐状态
+- **AND** 音乐控制 SHALL 使用当前主题 token 与当前语言标签重新渲染
+
+### Requirement: 音乐控制暴露简洁歌单操作
+系统 SHALL 在现有全局音乐控制中暴露当前曲目文本与上一首/下一首操作，并保持登录入口和已登录壳层的空间职责不变。
+
+#### Scenario: 登录入口展示当前曲目
+- **WHEN** 用户访问 `/login`
+- **THEN** 登录介绍区域的音乐控制 SHALL 展示当前曲目标题
+- **AND** 音乐控制 SHALL 提供上一首和下一首操作
+- **AND** 音乐控制 SHALL NOT 打开登录弹层、触发认证请求或改变已输入表单值
+
+#### Scenario: 已登录壳层展示紧凑歌单控制
+- **WHEN** 用户访问 `/app` 或 `/record/:id`
+- **THEN** 应用壳层 SHALL 在共享 shell action 区域展示音乐开关、当前曲目文本、上一首和下一首操作
+- **AND** 该控制 SHALL 复用共享音乐组件，而不是在 route 文件中重复实现
+- **AND** 该控制 SHALL NOT 改变侧栏宽度、主内容起始线或核心业务操作位置
+
+#### Scenario: 歌单控制具备可访问语义
+- **WHEN** 系统渲染上一首或下一首控制
+- **THEN** 控制 SHALL 暴露可访问标签
+- **AND** 控制 SHALL 支持键盘触发
+- **AND** 当前曲目标题 SHALL 作为可读文本呈现

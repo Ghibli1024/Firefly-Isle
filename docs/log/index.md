@@ -33,3 +33,4 @@
 20. [88ddc4a feat: add deployment baseline and privacy page](0020-88ddc4a-deployment-baseline-and-privacy-page.md)
 21. [3cc545a feat: add deployment baseline and privacy policy page](0021-3cc545a-deployment-baseline-and-privacy-policy-page.md)
 22. [fa28ed8 fix: align Pages build env with wrangler config](0022-fa28ed8-align-pages-build-env-with-wrangler-config.md)
+23. [认证学习专题：邮箱、Google、Supabase 与微信登录](0023-auth-login-wechat-learning.md) — 专题复盘，不对应单个 commit

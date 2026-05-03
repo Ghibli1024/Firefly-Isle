@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、login、workspace、record 的本地化文案字典。
+ * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
  * [POS]: lib 的文案真相源，集中管理页面可见文本，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -30,6 +30,21 @@ export const copy = {
   themeToggle: {
     dark: text('深色', 'Dark'),
     light: text('浅色', 'Light'),
+  },
+  backgroundAudio: {
+    control: text('音乐', 'Music'),
+    next: text('下一首背景音乐', 'Next background track'),
+    openControls: text('打开背景音乐控制', 'Open background music controls'),
+    previous: text('上一首背景音乐', 'Previous background track'),
+    track: text('当前曲目', 'Current track'),
+    aria: {
+      blocked: text('浏览器已阻止自动播放，点击播放背景音乐', 'Browser blocked autoplay. Click to play background music'),
+      idle: text('背景音乐已开启，点击关闭', 'Background music is on. Click to turn off'),
+      loading: text('背景音乐加载中，点击关闭', 'Background music is loading. Click to turn off'),
+      paused: text('背景音乐已关闭，点击开启', 'Background music is off. Click to turn on'),
+      playing: text('背景音乐播放中，点击关闭', 'Background music is playing. Click to turn off'),
+      unavailable: text('背景音乐不可用', 'Background music unavailable'),
+    },
   },
   shell: {
     brand: {
@@ -83,13 +98,13 @@ export const copy = {
       login: text('登录', 'Login'),
       signup: text('注册', 'Sign Up'),
       submitLogin: text('验证并进入控制台', 'Verify and enter console'),
-      submitSignup: text('创建账户并发送验证邮件', 'Create account and send verification email'),
+      submitSignup: text('创建账户并登录', 'Create account and log in'),
       submitLoginLight: text('验证并进入系统', 'Verify and enter system'),
       dividerLogin: text('或使用邮箱凭证', 'Or use email credentials'),
       dividerSignup: text('邮箱建档入口', 'Create account with email'),
       thirdPartyAuth: text('第三方鉴权', 'Third-party authentication'),
-      wechat: text('微信', 'WeChat Sign In'),
-      google: text('使用 Google 继续', 'Continue with Google'),
+      wechat: text('微信', 'WeChat'),
+      google: text('Google', 'Google'),
       emailLabel: text('注册邮箱', 'Registered Email'),
       emailLabelLight: text('电子邮箱', 'Electronic Mail'),
       emailPlaceholder: text('输入临床邮箱', 'Enter clinical email'),

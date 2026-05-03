@@ -2,8 +2,11 @@
 node_modules/
 dist/
 .playwright-mcp/
+.wrangler/
 output/
 /*.png
 /*-snapshot.md
 .env.local
 .env.*.local
+.dev.vars
+supabase/.temp/

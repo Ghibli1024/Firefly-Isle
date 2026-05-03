@@ -9,6 +9,6 @@
 
 成员清单
 CLAUDE.md: 说明 Edge Functions 目录的边界与同步规则，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-llm-proxy/: Gemini 代理函数模块，负责 JWT 校验、模型转发与统一错误响应
+llm-proxy/: Gemini / DeepSeek provider 代理函数模块，负责 JWT 校验、模型转发与统一错误响应，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
 法则: 函数只做安全边界与协议转换，不在这里堆业务状态机。

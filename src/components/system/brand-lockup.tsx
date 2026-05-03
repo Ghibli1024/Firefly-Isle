@@ -243,10 +243,10 @@ function Wordmark({ variant }: { variant: BrandLockupVariant }) {
   if (variant === 'ink-seal') {
     return (
       <span className="min-w-0">
-        <span className="block font-['Playfair_Display'] text-[20px] font-black leading-none tracking-normal text-[var(--ff-text-primary)]">
+        <span className="block font-[var(--ff-font-display)] text-[20px] font-black leading-none tracking-normal text-[var(--ff-text-primary)]">
           一页萤屿
         </span>
-        <span className="mt-1 block font-['JetBrains_Mono'] text-[8px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
+        <span className="mt-1 block font-[var(--ff-font-mono)] text-[8px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
           Ink Archive
         </span>
       </span>
@@ -257,7 +257,7 @@ function Wordmark({ variant }: { variant: BrandLockupVariant }) {
     return (
       <span className="min-w-0">
         <span className="block text-[18px] font-black leading-none tracking-normal text-[var(--ff-text-primary)]">一页萤屿</span>
-        <span className="mt-1 block font-['JetBrains_Mono'] text-[8px] uppercase tracking-[0.18em] text-[var(--ff-text-muted)]">
+        <span className="mt-1 block font-[var(--ff-font-mono)] text-[8px] uppercase tracking-[0.18em] text-[var(--ff-text-muted)]">
           {meta.eyebrow}
         </span>
       </span>
@@ -267,7 +267,7 @@ function Wordmark({ variant }: { variant: BrandLockupVariant }) {
   return (
     <span className="min-w-0">
       <span className="block text-[19px] font-black leading-none tracking-normal text-[var(--ff-text-primary)]">一页萤屿</span>
-      <span className="mt-1 block font-['JetBrains_Mono'] text-[8px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
+      <span className="mt-1 block font-[var(--ff-font-mono)] text-[8px] uppercase tracking-[0.2em] text-[var(--ff-text-muted)]">
         {meta.eyebrow}
       </span>
     </span>

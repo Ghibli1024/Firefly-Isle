@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 @/lib/export-record 的正式病历 PDF/PNG 导出工具，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 @/lib/export-record 的正式病历 PDF/PNG 导出工具，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams，接收当前会话身份标签。
  * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id。
  * [POS]: routes 的档案详情 orchestration 层，按宽幅响应式长卷病历复刻临床概要、纵向治疗时间线、右侧证据卡、正式导出入口与底部审计状态，不改变路由或认证出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -17,6 +17,7 @@ import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/
 type RecordPageProps = {
   isSigningOut?: boolean
   onSignOut?: () => void
+  userIsAnonymous?: boolean
   userLabel?: string
 }
 
@@ -364,7 +365,7 @@ function TimelineNode({ entry }: { entry: TimelineEntry }) {
     <article className="relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] 2xl:p-8">
       <div>
         <div className="mb-5 flex flex-wrap items-end gap-4">
-          <span className="font-['JetBrains_Mono'] text-5xl font-bold text-[var(--ff-accent-primary)]">{entry.index}</span>
+          <span className="font-[var(--ff-font-mono)] text-5xl font-bold text-[var(--ff-accent-primary)]">{entry.index}</span>
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-3xl font-bold tracking-normal">{entry.title}</h3>
@@ -375,7 +376,7 @@ function TimelineNode({ entry }: { entry: TimelineEntry }) {
                 </span>
               ) : null}
             </div>
-            <div className="mt-3 font-['JetBrains_Mono'] text-sm text-[var(--ff-text-secondary)]">{entry.timeframe}</div>
+            <div className="mt-3 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-secondary)]">{entry.timeframe}</div>
           </div>
         </div>
 
@@ -464,10 +465,10 @@ function RecordDossier({
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
-            <p className="mt-5 font-['JetBrains_Mono'] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">{text.headerSubtitle}</p>
+            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">{text.headerSubtitle}</p>
           </div>
           <div className="text-left md:text-right">
-            <div className="font-['JetBrains_Mono'] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
+            <div className="font-[var(--ff-font-mono)] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
             <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
               <span className="material-symbols-outlined text-base">lock</span>
               {text.access}
@@ -537,7 +538,7 @@ function RecordDossier({
                 : 'This dossier is automatically structured by clinical AI and cross-checked against pathology and imaging reports.'}
             </p>
           </div>
-          <div className="flex items-center gap-4 font-['JetBrains_Mono'] text-sm text-[var(--ff-text-muted)]">
+          <div className="flex items-center gap-4 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-muted)]">
             2024-05-20 12:08:00
             <button className="flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)]" type="button">
               <span className="material-symbols-outlined text-xl">edit</span>
@@ -574,7 +575,7 @@ function RecordDossier({
         </div>
       </section>
 
-      <footer className="mt-6 flex flex-col gap-2 border-t border-[var(--ff-border-default)] pt-5 font-['JetBrains_Mono'] text-xs text-[var(--ff-text-muted)] md:flex-row md:justify-between">
+      <footer className="mt-6 flex flex-col gap-2 border-t border-[var(--ff-border-default)] pt-5 font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-muted)] md:flex-row md:justify-between">
         <span>{text.footer}</span>
         <span>LAST_UPDATE: 2024.05.20 12:08:00</span>
       </footer>
@@ -582,7 +583,7 @@ function RecordDossier({
   )
 }
 
-export function RecordPage({ isSigningOut, onSignOut, userLabel }: RecordPageProps) {
+export function RecordPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel }: RecordPageProps) {
   const { id = 'demo' } = useParams()
   const { locale } = useLocale()
   const { theme } = useTheme()
@@ -631,7 +632,7 @@ export function RecordPage({ isSigningOut, onSignOut, userLabel }: RecordPagePro
   return (
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '病历详情' : 'Record Detail'} withRail />
-      <ArchiveSideNav dark={dark} isSigningOut={isSigningOut} onSignOut={onSignOut} userLabel={userLabel ?? id} />
+      <ArchiveSideNav dark={dark} isSigningOut={isSigningOut} onSignOut={onSignOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel ?? id} />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
         <div className={`${shellWideContentClass} mt-5 md:mt-6`} data-testid="record-responsive-canvas">
           <RecordDossier

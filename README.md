@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini Edge Function / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/app` 内 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini / DeepSeek Edge Function provider proxy / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/app` 内 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
 - 当前 MVP 的行为真相源是 `openspec/specs/`；实现真相源是 `src/`、`supabase/`、`.github/` 与 `public/`；`openspec/changes/archive/2026-04-13-mvp-core/` 与 `openspec/changes/archive/2026-04-14-commit-history-log/` 仅保留历史设计与决策证据。
 - 已实现路由：`/login`、`/privacy`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
 - 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。
@@ -37,12 +37,17 @@ cp .env.local.example .env.local
 
 - Email provider 已启用
 - Anonymous Sign-In 已启用（否则“无需登录，直接使用匿名会话”会返回 422）
-- 如需让验证邮件确认后回到当前本地 origin，再把该 origin 加入 Auth URL Configuration 的 Site URL / Additional Redirect URLs；当前注册流程默认不强依赖 `emailRedirectTo`
+- Email 的 Confirm email / 邮箱确认已关闭；当前注册流程要求 `signUp()` 直接返回 session，才能“创建账户并登录”
+- Site URL 指向有效回跳地址；如果后续重新启用验证邮件或显式传入 `emailRedirectTo`，再把当前 origin 加入 Additional Redirect URLs
 
 如果要跑 LLM adapter / Edge Function，还需要在 Supabase 项目里配置：
 
 - secret：`GEMINI_API_KEY`
 - function env：`DEFAULT_GEMINI_MODEL=gemini-2.5-flash`
+- secret：`DEEPSEEK_API_KEY`
+- function env：`DEFAULT_DEEPSEEK_MODEL=deepseek-v4-flash`
+- function env：`DEFAULT_LLM_PROVIDER=gemini`（保守默认；DeepSeek live 验证通过后再改为 `deepseek`）
+- 可选 function env：`DEEPSEEK_BASE_URL=https://api.deepseek.com`
 
 ### 3. 启动开发环境
 
@@ -52,10 +57,16 @@ npm run dev
 
 ### 4. 配置并部署 llm-proxy（5.x）
 
-在 Supabase 项目里先配置 secret 和默认模型：
+在 Supabase 项目里先配置 secret、默认 provider 和默认模型：
 
 ```bash
-supabase secrets set GEMINI_API_KEY="<your-gemini-api-key>" DEFAULT_GEMINI_MODEL="gemini-2.5-flash"
+supabase secrets set \
+  GEMINI_API_KEY="<your-gemini-api-key>" \
+  DEFAULT_GEMINI_MODEL="gemini-2.5-flash" \
+  DEEPSEEK_API_KEY="<your-deepseek-api-key>" \
+  DEFAULT_DEEPSEEK_MODEL="deepseek-v4-flash" \
+  DEFAULT_LLM_PROVIDER="gemini" \
+  DEEPSEEK_BASE_URL="https://api.deepseek.com"
 ```
 
 然后部署函数：
@@ -64,7 +75,7 @@ supabase secrets set GEMINI_API_KEY="<your-gemini-api-key>" DEFAULT_GEMINI_MODEL
 supabase functions deploy llm-proxy
 ```
 
-部署完成后，前端统一通过 `src/lib/llm/index.ts` 的 `chat(messages, options)` 调用该函数，不直接访问 Gemini。
+部署完成后，前端统一通过 `src/lib/llm/index.ts` 的 `chat(messages, options)` 调用该函数，不直接访问 Gemini 或 DeepSeek。回滚模型 provider 时只需把 `DEFAULT_LLM_PROVIDER` 改回 `gemini` 并重新部署/刷新函数配置。
 
 ### 5. 验证当前基线
 

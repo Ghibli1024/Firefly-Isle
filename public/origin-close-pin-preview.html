@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>关闭控件预览</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --accent: #e85d2a;
+        --ink: #352b22;
+        --paper: #fffaf0;
+        --paper-line: rgba(98, 79, 53, 0.12);
+        --bg: #d2d0ca;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #050c0d;
+        color: var(--ink);
+        font-family: "PingFang SC", "Hiragino Sans GB", -apple-system, BlinkMacSystemFont, sans-serif;
+        overflow-x: hidden;
+      }
+
+      .workspace {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 148px 1fr;
+      }
+
+      .rail {
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        background: #061010;
+      }
+
+      .stage {
+        min-width: 0;
+        background:
+          linear-gradient(rgba(226, 226, 222, 0.78), rgba(226, 226, 222, 0.78)),
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 8px);
+        padding: 48px;
+      }
+
+      .titlebar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin: 0 auto 28px;
+        max-width: 1100px;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Songti SC", "STSong", serif;
+        font-size: 24px;
+        line-height: 1.1;
+      }
+
+      .hint {
+        margin: 0;
+        max-width: 420px;
+        color: rgba(53, 43, 34, 0.54);
+        font-size: 12px;
+        line-height: 1.8;
+        text-align: right;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(320px, 1fr));
+        gap: 28px;
+        margin: 0 auto;
+        max-width: 1100px;
+      }
+
+      .preview {
+        position: relative;
+        min-width: 0;
+        min-height: 318px;
+        overflow: hidden;
+        border: 1px solid rgba(69, 53, 32, 0.09);
+        background: rgba(255, 255, 255, 0.22);
+      }
+
+      .preview::before {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(115deg, transparent 0 58%, rgba(255, 255, 255, 0.28) 58% 100%);
+        content: "";
+        pointer-events: none;
+      }
+
+      .label {
+        position: absolute;
+        left: 18px;
+        top: 16px;
+        color: rgba(53, 43, 34, 0.62);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .paper {
+        position: relative;
+        width: min(82%, 410px);
+        height: 230px;
+        margin: 64px auto 0;
+        background:
+          linear-gradient(90deg, transparent 0 62px, rgba(232, 93, 42, 0.54) 62px 65px, transparent 65px),
+          repeating-linear-gradient(0deg, transparent 0 39px, var(--paper-line) 40px 41px, transparent 42px 58px),
+          linear-gradient(135deg, #fffef9, var(--paper));
+        box-shadow: 10px 18px 0 rgba(50, 39, 24, 0.12);
+      }
+
+      .paper h2 {
+        margin: 34px 42px 0 84px;
+        font-family: "Songti SC", "STSong", serif;
+        font-size: 27px;
+        line-height: 1.05;
+      }
+
+      .paper p {
+        margin: 18px 42px 0 84px;
+        color: rgba(53, 43, 34, 0.5);
+        font-size: 14px;
+        line-height: 2.1;
+      }
+
+      .close-control {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .close-control::before,
+      .close-control::after {
+        position: absolute;
+        content: "";
+      }
+
+      .x,
+      .x::after {
+        position: absolute;
+        border-radius: 999px;
+        background: currentColor;
+        content: "";
+      }
+
+      .x {
+        transform: rotate(45deg);
+      }
+
+      .x::after {
+        inset: 0;
+        transform: rotate(90deg);
+      }
+
+      .close-01 {
+        right: 0;
+        top: 0;
+        width: 62px;
+        height: 62px;
+        color: rgba(117, 88, 58, 0.7);
+      }
+
+      .close-01::before {
+        right: 0;
+        top: 0;
+        width: 50px;
+        height: 50px;
+        border-left: 1px solid rgba(110, 86, 58, 0.12);
+        border-bottom: 1px solid rgba(110, 86, 58, 0.12);
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(234, 218, 190, 0.92)),
+          linear-gradient(45deg, transparent 0 50%, rgba(255, 255, 255, 0.54) 50% 100%);
+        clip-path: polygon(100% 0, 100% 100%, 0 0);
+        filter: drop-shadow(-4px 6px 5px rgba(62, 44, 25, 0.12));
+      }
+
+      .close-01::after {
+        right: 11px;
+        top: 11px;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: rgba(255, 250, 240, 0.52);
+      }
+
+      .close-01 .x {
+        right: 17px;
+        top: 22px;
+        width: 14px;
+        height: 1.8px;
+      }
+
+      .close-02 {
+        right: -16px;
+        top: 30px;
+        width: 56px;
+        height: 34px;
+        color: rgba(255, 250, 240, 0.9);
+      }
+
+      .close-02::before {
+        inset: 0;
+        border: 1px solid rgba(232, 93, 42, 0.18);
+        border-right: 0;
+        border-radius: 18px 0 0 18px;
+        background: rgba(232, 93, 42, 0.72);
+        box-shadow:
+          -6px 8px 16px rgba(80, 43, 20, 0.12),
+          inset 0 1px 1px rgba(255, 255, 255, 0.38);
+      }
+
+      .close-02::after {
+        left: 7px;
+        top: 50%;
+        width: 12px;
+        height: 1px;
+        background: rgba(255, 250, 240, 0.58);
+      }
+
+      .close-02 .x {
+        left: 18px;
+        top: 16px;
+        width: 13px;
+        height: 1.9px;
+      }
+
+      .close-03 {
+        right: 21px;
+        top: 20px;
+        width: 38px;
+        height: 38px;
+        color: rgba(93, 70, 45, 0.5);
+      }
+
+      .close-03::before {
+        inset: 0;
+        border: 1px solid rgba(93, 70, 45, 0.13);
+        border-radius: 50%;
+        background: rgba(255, 250, 240, 0.44);
+      }
+
+      .close-03::after {
+        inset: 6px;
+        border-radius: 50%;
+        background: rgba(232, 93, 42, 0.05);
+      }
+
+      .close-03 .x {
+        width: 15px;
+        height: 1.8px;
+      }
+
+      .close-04 {
+        right: 18px;
+        top: 18px;
+        width: 44px;
+        height: 44px;
+        color: rgba(255, 250, 240, 0.9);
+      }
+
+      .close-04::before {
+        inset: 4px;
+        border: 1px solid rgba(232, 93, 42, 0.2);
+        border-radius: 12px;
+        background: rgba(232, 93, 42, 0.68);
+        box-shadow:
+          0 8px 16px rgba(80, 43, 20, 0.12),
+          inset 0 1px 1px rgba(255, 255, 255, 0.34);
+      }
+
+      .close-04::after {
+        inset: 0;
+        border: 1px solid rgba(232, 93, 42, 0.16);
+        border-radius: 16px;
+      }
+
+      .close-04 .x {
+        width: 15px;
+        height: 2px;
+      }
+
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          display: none;
+        }
+
+        .stage {
+          padding: 24px;
+        }
+
+        .titlebar {
+          display: block;
+        }
+
+        .hint {
+          margin-top: 8px;
+          text-align: left;
+        }
+
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .preview {
+          min-height: 246px;
+        }
+
+        .paper {
+          width: min(84%, 280px);
+          height: 166px;
+          margin-top: 56px;
+        }
+
+        .paper h2 {
+          margin: 24px 28px 0 52px;
+          font-size: 17px;
+          white-space: nowrap;
+        }
+
+        .paper p {
+          margin: 12px 22px 0 52px;
+          font-size: 11px;
+          line-height: 1.9;
+        }
+
+        .close-01 {
+          right: -2px;
+          top: 0;
+        }
+
+        .close-02 {
+          right: -14px;
+          top: 14px;
+        }
+
+        .close-03 {
+          right: 8px;
+          top: 12px;
+        }
+
+        .close-04 {
+          right: 8px;
+          top: 12px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="workspace">
+      <aside class="rail" aria-hidden="true"></aside>
+      <section class="stage">
+        <div class="titlebar">
+          <h1>关闭控件预览</h1>
+          <p class="hint">去掉大头针隐喻，只保留“这里可以关闭”的语义。重点是轻、准、别抢正文。</p>
+        </div>
+        <div class="grid">
+          <article class="preview">
+            <span class="label">01 / 纸角折页</span>
+            <section class="paper">
+              <button class="close-control close-01" aria-label="关闭创作初衷"><span class="x"></span></button>
+              <h2>为什么做一页萤屿</h2>
+              <p>昨天我路过以前的家，2018年方法官确诊后我们就搬离了那里。小区马路对面是个六层的楼，以前是一家公司的办公楼。</p>
+            </section>
+          </article>
+          <article class="preview">
+            <span class="label">02 / 边缘拉签</span>
+            <section class="paper">
+              <button class="close-control close-02" aria-label="关闭创作初衷"><span class="x"></span></button>
+              <h2>为什么做一页萤屿</h2>
+              <p>昨天我路过以前的家，2018年方法官确诊后我们就搬离了那里。小区马路对面是个六层的楼，以前是一家公司的办公楼。</p>
+            </section>
+          </article>
+          <article class="preview">
+            <span class="label">03 / 淡印圆章</span>
+            <section class="paper">
+              <button class="close-control close-03" aria-label="关闭创作初衷"><span class="x"></span></button>
+              <h2>为什么做一页萤屿</h2>
+              <p>昨天我路过以前的家，2018年方法官确诊后我们就搬离了那里。小区马路对面是个六层的楼，以前是一家公司的办公楼。</p>
+            </section>
+          </article>
+          <article class="preview">
+            <span class="label">04 / 小型浮钮</span>
+            <section class="paper">
+              <button class="close-control close-04" aria-label="关闭创作初衷"><span class="x"></span></button>
+              <h2>为什么做一页萤屿</h2>
+              <p>昨天我路过以前的家，2018年方法官确诊后我们就搬离了那里。小区马路对面是个六层的楼，以前是一家公司的办公楼。</p>
+            </section>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
