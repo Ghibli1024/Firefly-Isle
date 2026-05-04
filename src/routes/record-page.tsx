@@ -4,14 +4,16 @@
  * [POS]: routes 的档案详情 orchestration 层，按宽幅响应式长卷病历复刻临床概要、纵向治疗时间线、右侧证据卡、正式导出入口与底部审计状态，不改变路由或认证出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { MainShell } from '@/components/system/surfaces'
 import { useLocale, type Locale } from '@/lib/locale'
+import { getSupabaseClient } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
+import type { PatientRecord, TreatmentLine } from '@/types/patient'
 
 type RecordPageProps = {
   isSigningOut?: boolean
@@ -26,6 +28,29 @@ type RecordExportState = {
   error: string | null
   format: ExportFormat | null
   isExporting: boolean
+}
+
+type RecordLoadState = {
+  error: string | null
+  isLoading: boolean
+  record: PatientRecord | null
+  recordId: string | null
+}
+
+type PatientRow = {
+  basic_info: PatientRecord['basicInfo'] | null
+  id: string
+  initial_onset: PatientRecord['initialOnset'] | null
+}
+
+type TreatmentLineRow = {
+  biopsy: string | null
+  end_date: string | null
+  genetic_test: string | null
+  immunohistochemistry: string | null
+  line_number: number
+  regimen: string | null
+  start_date: string | null
 }
 
 type Metric = {
@@ -60,6 +85,64 @@ type TimelineEntry = {
   treatment: string
 }
 
+function mapTreatmentLineRow(row: TreatmentLineRow): TreatmentLine {
+  return {
+    biopsy: row.biopsy ?? undefined,
+    endDate: row.end_date ?? undefined,
+    geneticTest: row.genetic_test ?? undefined,
+    immunohistochemistry: row.immunohistochemistry ?? undefined,
+    lineNumber: row.line_number,
+    regimen: row.regimen ?? undefined,
+    startDate: row.start_date ?? undefined,
+  }
+}
+
+function mapPatientRow(patient: PatientRow, lines: TreatmentLineRow[]): PatientRecord {
+  return {
+    basicInfo: patient.basic_info ?? undefined,
+    id: patient.id,
+    initialOnset: patient.initial_onset ?? undefined,
+    treatmentLines: lines.map(mapTreatmentLineRow).sort((left, right) => left.lineNumber - right.lineNumber),
+  }
+}
+
+async function loadPatientRecordById(recordId: string): Promise<PatientRecord | null> {
+  const supabase = getSupabaseClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !authData.user) {
+    throw authError ?? new Error('Missing authenticated user.')
+  }
+
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('id, basic_info, initial_onset')
+    .eq('id', recordId)
+    .eq('user_id', authData.user.id)
+    .maybeSingle<PatientRow>()
+
+  if (patientError) {
+    throw patientError
+  }
+
+  if (!patient) {
+    return null
+  }
+
+  const { data: lines, error: linesError } = await supabase
+    .from('treatment_lines')
+    .select('line_number, start_date, end_date, regimen, biopsy, immunohistochemistry, genetic_test')
+    .eq('patient_id', patient.id)
+    .order('line_number', { ascending: true })
+    .returns<TreatmentLineRow[]>()
+
+  if (linesError) {
+    throw linesError
+  }
+
+  return mapPatientRow(patient, lines ?? [])
+}
+
 const labels = {
   en: {
     access: 'Protected medical record / Authorized access only',
@@ -76,6 +159,9 @@ const labels = {
     exportPngLoading: 'Exporting PNG...',
     footer: 'Firefly Core System V3.1',
     headerSubtitle: 'Zhang San · NSCLC · EGFR L858R',
+    loadingRecord: 'Loading medical record...',
+    loadRecordError: 'Unable to load this medical record.',
+    missingRecord: 'No authorized medical record was found for this ID.',
     pageTitle: 'Clinical History Dossier',
     timeline: 'Treatment Timeline',
     verified: 'AI VERIFIED',
@@ -95,6 +181,9 @@ const labels = {
     exportPngLoading: '导出 PNG 中...',
     footer: '萤岛核心系统 V3.1',
     headerSubtitle: '张三 · NSCLC · EGFR L858R',
+    loadingRecord: '正在载入病历...',
+    loadRecordError: '无法载入这份病历。',
+    missingRecord: '没有找到当前账号可访问的病历。',
     pageTitle: '临床病史档案',
     timeline: '治疗时间线',
     verified: 'AI VERIFIED',
@@ -320,6 +409,190 @@ function getTimelineEntries(locale: Locale): TimelineEntry[] {
   ]
 }
 
+function hasValue(value: unknown) {
+  return typeof value === 'string' ? value.trim().length > 0 : value !== undefined && value !== null
+}
+
+function displayValue(value: unknown, fallback = '--') {
+  if (!hasValue(value)) {
+    return fallback
+  }
+
+  return typeof value === 'string' ? value.trim() : String(value)
+}
+
+function displayRecordAge(age: number | undefined, locale: Locale) {
+  if (!Number.isFinite(age)) {
+    return '--'
+  }
+
+  return locale === 'zh' ? `${age} 岁` : `${age} years`
+}
+
+function firstTreatmentLine(record: PatientRecord) {
+  return record.treatmentLines.find((line) => line.lineNumber === 1) ?? record.treatmentLines[0]
+}
+
+function getRecordGeneticTest(record: PatientRecord) {
+  return record.initialOnset?.geneticTest ?? firstTreatmentLine(record)?.geneticTest
+}
+
+function getRecordIhc(record: PatientRecord) {
+  return record.initialOnset?.immunohistochemistry ?? firstTreatmentLine(record)?.immunohistochemistry
+}
+
+function getCurrentRegimen(record: PatientRecord) {
+  const latestLine = [...record.treatmentLines].sort((left, right) => right.lineNumber - left.lineNumber)[0]
+  return latestLine?.regimen ?? record.initialOnset?.treatment
+}
+
+function getRecordSummaryMetrics(record: PatientRecord, locale: Locale): Metric[] {
+  const basicInfo = record.basicInfo
+
+  return locale === 'zh'
+    ? [
+        { label: '年龄', value: displayRecordAge(basicInfo?.age, locale) },
+        { label: '性别', value: displayValue(basicInfo?.gender) },
+        { label: '肿瘤分期', value: displayValue(basicInfo?.stage) },
+        { label: '随访状态', value: record.treatmentLines.length > 0 ? '治疗中' : '待补充' },
+        { label: '诊断日期', value: displayValue(basicInfo?.diagnosisDate) },
+        { label: '基因检测', value: displayValue(getRecordGeneticTest(record)) },
+        { label: '免疫组化', value: displayValue(getRecordIhc(record)) },
+        { label: '当前方案', value: displayValue(getCurrentRegimen(record)) },
+      ]
+    : [
+        { label: 'Age', value: displayRecordAge(basicInfo?.age, locale) },
+        { label: 'Gender', value: displayValue(basicInfo?.gender) },
+        { label: 'Tumor Stage', value: displayValue(basicInfo?.stage) },
+        { label: 'Follow-up Status', value: record.treatmentLines.length > 0 ? 'In treatment' : 'Missing' },
+        { label: 'Diagnosis Date', value: displayValue(basicInfo?.diagnosisDate) },
+        { label: 'Genetic Test', value: displayValue(getRecordGeneticTest(record)) },
+        { label: 'IHC', value: displayValue(getRecordIhc(record)) },
+        { label: 'Current Plan', value: displayValue(getCurrentRegimen(record)) },
+      ]
+}
+
+function getRecordHeaderSubtitle(record: PatientRecord, locale: Locale) {
+  const parts = [
+    record.basicInfo?.tumorType,
+    record.basicInfo?.stage,
+    getRecordGeneticTest(record),
+  ]
+    .filter(hasValue)
+    .map((part) => String(part).trim())
+
+  if (parts.length > 0) {
+    return parts.join(' · ')
+  }
+
+  return locale === 'zh' ? '已保存病历' : 'Saved medical record'
+}
+
+function getRecordTimelineEntries(record: PatientRecord, locale: Locale): TimelineEntry[] {
+  const entries: TimelineEntry[] = []
+
+  if (record.initialOnset) {
+    entries.push({
+      body: [
+        record.initialOnset.triggerDate
+          ? locale === 'zh'
+            ? `初发时间：${record.initialOnset.triggerDate}`
+            : `Initial onset: ${record.initialOnset.triggerDate}`
+          : locale === 'zh'
+            ? '初发信息已记录。'
+            : 'Initial onset information recorded.',
+        record.initialOnset.treatment
+          ? locale === 'zh'
+            ? `治疗方案：${record.initialOnset.treatment}`
+            : `Treatment: ${record.initialOnset.treatment}`
+          : locale === 'zh'
+            ? '初发治疗方案待补充。'
+            : 'Initial treatment plan missing.',
+      ],
+      cards: [
+        {
+          items: [
+            { label: locale === 'zh' ? '免疫组化' : 'IHC', value: displayValue(record.initialOnset.immunohistochemistry) },
+            { label: locale === 'zh' ? '基因检测' : 'Genetic Test', value: displayValue(record.initialOnset.geneticTest) },
+          ],
+          title: locale === 'zh' ? '初发检测' : 'Initial Testing',
+        },
+      ],
+      index: '01',
+      meta: [
+        { label: locale === 'zh' ? '诊断日期' : 'Diagnosis Date', value: displayValue(record.basicInfo?.diagnosisDate) },
+        { label: locale === 'zh' ? '分期' : 'Stage', value: displayValue(record.basicInfo?.stage) },
+        { label: locale === 'zh' ? '病理类型' : 'Pathology', value: displayValue(record.basicInfo?.tumorType) },
+        { label: locale === 'zh' ? '记录 ID' : 'Record ID', value: displayValue(record.id) },
+      ],
+      subtitle: locale === 'zh' ? '初发' : 'Initial',
+      timeframe: displayValue(record.initialOnset.triggerDate),
+      title: locale === 'zh' ? '初发诊断' : 'Initial Diagnosis',
+      treatment: displayValue(record.initialOnset.treatment, locale === 'zh' ? '初发治疗待补充' : 'Initial treatment missing'),
+    })
+  }
+
+  record.treatmentLines
+    .slice()
+    .sort((left, right) => left.lineNumber - right.lineNumber)
+    .forEach((line) => {
+      entries.push({
+        badge: locale === 'zh' ? '已保存' : 'Saved',
+        body: [
+          line.regimen
+            ? locale === 'zh'
+              ? `方案：${line.regimen}`
+              : `Regimen: ${line.regimen}`
+            : locale === 'zh'
+              ? '治疗方案待补充。'
+              : 'Treatment regimen missing.',
+          line.biopsy
+            ? locale === 'zh'
+              ? `活检：${line.biopsy}`
+              : `Biopsy: ${line.biopsy}`
+            : locale === 'zh'
+              ? '活检信息待补充。'
+              : 'Biopsy information missing.',
+        ],
+        cards: [
+          {
+            items: [
+              { label: locale === 'zh' ? '免疫组化' : 'IHC', value: displayValue(line.immunohistochemistry) },
+              { label: locale === 'zh' ? '基因检测' : 'Genetic Test', value: displayValue(line.geneticTest) },
+            ],
+            title: locale === 'zh' ? '治疗线检测' : 'Line Testing',
+          },
+        ],
+        index: String(entries.length + 1).padStart(2, '0'),
+        meta: [
+          { label: locale === 'zh' ? '开始日期' : 'Start Date', value: displayValue(line.startDate) },
+          { label: locale === 'zh' ? '结束日期' : 'End Date', value: displayValue(line.endDate) },
+        ],
+        subtitle: locale === 'zh' ? `治疗线 ${line.lineNumber}` : `Treatment Line ${line.lineNumber}`,
+        timeframe: [line.startDate, line.endDate].filter(hasValue).join(' - ') || '--',
+        title: locale === 'zh' ? `${line.lineNumber}L 治疗` : `Line ${line.lineNumber} Therapy`,
+        treatment: displayValue(line.regimen, locale === 'zh' ? '治疗方案待补充' : 'Regimen missing'),
+      })
+    })
+
+  if (entries.length > 0) {
+    return entries
+  }
+
+  return [
+    {
+      body: [locale === 'zh' ? '这份病历还没有治疗线信息。' : 'No treatment-line information has been saved yet.'],
+      cards: [],
+      index: '01',
+      meta: [{ label: locale === 'zh' ? '记录 ID' : 'Record ID', value: displayValue(record.id) }],
+      subtitle: locale === 'zh' ? '待补充' : 'Missing',
+      timeframe: '--',
+      title: locale === 'zh' ? '治疗时间线待补充' : 'Treatment Timeline Missing',
+      treatment: locale === 'zh' ? '请回到工作台补充结构化病历。' : 'Return to the workspace to complete this record.',
+    },
+  ]
+}
+
 function SummaryGrid({ metrics }: { metrics: Metric[] }) {
   return (
     <div className="grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-4">
@@ -442,6 +715,7 @@ function RecordDossier({
   isExporting,
   locale,
   onExport,
+  record,
   recordRef,
 }: {
   exportError: string | null
@@ -450,10 +724,13 @@ function RecordDossier({
   isExporting: boolean
   locale: Locale
   onExport: (format: ExportFormat) => void
+  record?: PatientRecord
   recordRef: RefObject<HTMLDivElement>
 }) {
   const text = labels[locale]
-  const entries = getTimelineEntries(locale)
+  const entries = record ? getRecordTimelineEntries(record, locale) : getTimelineEntries(locale)
+  const metrics = record ? getRecordSummaryMetrics(record, locale) : summaryMetrics[locale]
+  const headerSubtitle = record ? getRecordHeaderSubtitle(record, locale) : text.headerSubtitle
 
   return (
     <div
@@ -464,7 +741,7 @@ function RecordDossier({
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
-            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">{text.headerSubtitle}</p>
+            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">{headerSubtitle}</p>
           </div>
           <div className="text-left md:text-right">
             <div className="font-[var(--ff-font-mono)] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
@@ -508,7 +785,7 @@ function RecordDossier({
         </div>
       </header>
 
-      <SummaryGrid metrics={summaryMetrics[locale]} />
+      <SummaryGrid metrics={metrics} />
 
       <section className="mt-8">
         <div className="mb-6 flex items-center gap-3">
@@ -582,21 +859,155 @@ function RecordDossier({
   )
 }
 
+function RecordUnavailableDossier({
+  exportError,
+  exportFormat,
+  isExporting,
+  locale,
+  message,
+  onExport,
+}: {
+  exportError: string | null
+  exportFormat: ExportFormat | null
+  isExporting: boolean
+  locale: Locale
+  message: string
+  onExport: (format: ExportFormat) => void
+}) {
+  const text = labels[locale]
+
+  return (
+    <div className="w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 md:p-8 2xl:p-10">
+      <header className="mb-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
+            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">
+              {locale === 'zh' ? '真实病历载入中' : 'Loading saved medical record'}
+            </p>
+          </div>
+          <div className="text-left md:text-right">
+            <div className="font-[var(--ff-font-mono)] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
+            <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
+              <span className="material-symbols-outlined text-base">lock</span>
+              {text.access}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
+              <button
+                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                disabled
+                onClick={() => onExport('pdf')}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-xl">description</span>
+                {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
+              </button>
+              <button
+                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                disabled
+                onClick={() => onExport('png')}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-xl">image</span>
+                {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
+              </button>
+              <Link
+                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
+                to="/app"
+              >
+                <span className="material-symbols-outlined text-xl">arrow_back</span>
+                {text.back}
+              </Link>
+            </div>
+            {exportError ? (
+              <div className="mt-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
+                {exportError}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </header>
+
+      <div className="rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 py-8 text-base font-semibold text-[var(--ff-text-secondary)]">
+        {message}
+      </div>
+    </div>
+  )
+}
+
 export function RecordPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel }: RecordPageProps) {
   const { id = 'demo' } = useParams()
   const { locale } = useLocale()
   const { theme } = useTheme()
   const recordRef = useRef<HTMLDivElement>(null)
+  const demoRoute = id.trim() === 'demo'
+  const [recordLoadState, setRecordLoadState] = useState<RecordLoadState>(() => ({
+    error: null,
+    isLoading: !demoRoute,
+    record: null,
+    recordId: demoRoute ? null : id,
+  }))
   const [exportState, setExportState] = useState<RecordExportState>({
     error: null,
     format: null,
     isExporting: false,
   })
   const dark = theme === 'dark'
-  const isDemoRecord = id === 'demo'
+
+  useEffect(() => {
+    if (demoRoute) {
+      return undefined
+    }
+
+    let active = true
+
+    void loadPatientRecordById(id)
+      .then((record) => {
+        if (!active) {
+          return
+        }
+
+        setRecordLoadState({
+          error: null,
+          isLoading: false,
+          record,
+          recordId: id,
+        })
+      })
+      .catch(() => {
+        if (!active) {
+          return
+        }
+
+        setRecordLoadState({
+          error: labels[locale].loadRecordError,
+          isLoading: false,
+          record: null,
+          recordId: id,
+        })
+      })
+
+    return () => {
+      active = false
+    }
+  }, [demoRoute, id, locale])
+
+  const activeLoadedRecord = !demoRoute && recordLoadState.recordId === id ? recordLoadState.record : null
+  const activeRecordLoadState =
+    !demoRoute && recordLoadState.recordId === id
+      ? {
+          ...recordLoadState,
+          record: activeLoadedRecord,
+        }
+      : {
+          error: null,
+          isLoading: !demoRoute,
+          record: null,
+          recordId: demoRoute ? null : id,
+        }
 
   async function handleExport(format: ExportFormat) {
-    if (!recordRef.current || isDemoRecord || exportState.isExporting) {
+    if (!recordRef.current || demoRoute || !activeRecordLoadState.record || exportState.isExporting) {
       return
     }
 
@@ -630,21 +1041,45 @@ export function RecordPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     }
   }
 
+  const content = demoRoute ? (
+    <RecordDossier
+      exportError={exportState.error}
+      exportFormat={exportState.format}
+      isExportDisabled
+      isExporting={exportState.isExporting}
+      locale={locale}
+      onExport={(format) => void handleExport(format)}
+      recordRef={recordRef}
+    />
+  ) : activeRecordLoadState.record ? (
+    <RecordDossier
+      exportError={exportState.error}
+      exportFormat={exportState.format}
+      isExportDisabled={false}
+      isExporting={exportState.isExporting}
+      locale={locale}
+      onExport={(format) => void handleExport(format)}
+      record={activeRecordLoadState.record}
+      recordRef={recordRef}
+    />
+  ) : (
+    <RecordUnavailableDossier
+      exportError={exportState.error}
+      exportFormat={exportState.format}
+      isExporting={exportState.isExporting}
+      locale={locale}
+      message={activeRecordLoadState.isLoading ? labels[locale].loadingRecord : activeRecordLoadState.error ?? labels[locale].missingRecord}
+      onExport={(format) => void handleExport(format)}
+    />
+  )
+
   return (
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '病历详情' : 'Record Detail'} withRail />
       <ArchiveSideNav dark={dark} isSigningOut={isSigningOut} onSignOut={onSignOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel ?? id} />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
         <div className={`${shellWideContentClass} mt-5 md:mt-6`} data-testid="record-responsive-canvas">
-          <RecordDossier
-            exportError={exportState.error}
-            exportFormat={exportState.format}
-            isExportDisabled={isDemoRecord}
-            isExporting={exportState.isExporting}
-            locale={locale}
-            onExport={(format) => void handleExport(format)}
-            recordRef={recordRef}
-          />
+          {content}
         </div>
       </MainShell>
     </div>

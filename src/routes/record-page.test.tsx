@@ -4,6 +4,7 @@
  * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar 依赖与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -87,8 +88,6 @@ describe('RecordPage responsive dossier shell', () => {
 
     expect(markup).toContain('导出 PDF')
     expect(markup).toContain('导出 PNG')
-    expect(markup).toMatch(/<button(?![^>]*disabled="")[^>]*>[\s\S]*导出 PDF/)
-    expect(markup).toMatch(/<button(?![^>]*disabled="")[^>]*>[\s\S]*导出 PNG/)
   })
 
   it('does not allow demo fallback export before a real saved record is loaded', () => {
@@ -96,5 +95,23 @@ describe('RecordPage responsive dossier shell', () => {
 
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PDF/)
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PNG/)
+  })
+
+  it('does not show static demo patient content for arbitrary record ids before loading data', () => {
+    const markup = renderRecord('light', '/record/patient-42')
+
+    expect(markup).toContain('正在载入病历')
+    expect(markup).not.toContain('张三')
+    expect(markup).not.toContain('EGFR L858R')
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PDF/)
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PNG/)
+  })
+
+  it('routes real record ids through the Supabase record loader instead of the demo gate', () => {
+    const source = readFileSync(new URL('./record-page.tsx', import.meta.url), 'utf8')
+
+    expect(source).toContain('loadPatientRecordById(id)')
+    expect(source).toContain('recordLoadState.record')
+    expect(source).not.toContain("const isDemoRecord = id === 'demo'")
   })
 })

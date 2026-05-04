@@ -49,7 +49,10 @@ function createRequest(body: unknown) {
   })
 }
 
-function createFetchMock(upstreamResponse: Response | Error = deepSeekResponse('deepseek-v4-flash', 'ok')) {
+function createFetchMock(
+  upstreamResponse: Response | Error = deepSeekResponse('deepseek-v4-flash', 'ok'),
+  authUser: Record<string, unknown> = { id: 'auth-user' },
+) {
   const calls: FetchCall[] = []
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString()
@@ -58,7 +61,7 @@ function createFetchMock(upstreamResponse: Response | Error = deepSeekResponse('
     calls.push({ body, headers, url })
 
     if (url.includes('/auth/v1/user')) {
-      return new Response(JSON.stringify({ id: 'auth-user' }), { status: 200 })
+      return new Response(JSON.stringify(authUser), { status: 200 })
     }
 
     if (upstreamResponse instanceof Error) {
@@ -88,6 +91,18 @@ function deepSeekResponse(model: string, content: string | null) {
       status: 200,
     },
   )
+}
+
+function createRequestWithIp(body: unknown, ip: string) {
+  return new Request('https://edge.test/llm-proxy', {
+    body: JSON.stringify(body),
+    headers: {
+      Authorization: 'Bearer session-token',
+      'CF-Connecting-IP': ip,
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  })
 }
 
 async function json(response: Response) {
@@ -198,5 +213,25 @@ describe('llm-proxy provider handler', () => {
 
     expect(response.status).toBe(504)
     expect(payload.error?.name).toBe('LLMTimeoutError')
+  })
+
+  it('rate limits anonymous sessions before calling the upstream model', async () => {
+    const { calls, fetchMock } = createFetchMock(
+      deepSeekResponse('deepseek-v4-flash', 'deepseek text'),
+      { id: 'anon-user-1', is_anonymous: true },
+    )
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_ANONYMOUS_RATE_LIMIT_PER_WINDOW: '1' }),
+      fetch: fetchMock,
+    })
+
+    const first = await handler(createRequestWithIp({ messages, provider: 'deepseek' }, '203.0.113.10'))
+    const second = await handler(createRequestWithIp({ messages, provider: 'deepseek' }, '203.0.113.10'))
+    const secondPayload = await json(second)
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(429)
+    expect(secondPayload.error?.name).toBe('LLMRateLimitError')
+    expect(calls.filter((call) => call.url.includes('/chat/completions'))).toHaveLength(1)
   })
 })
