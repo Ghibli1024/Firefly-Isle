@@ -14,6 +14,9 @@ const DEFAULT_DEEPSEEK_MODEL = 'deepseek-v4-flash'
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
 const DEFAULT_LLM_PROVIDER: ChatProvider = 'gemini'
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000
+const DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_WINDOW = 60
+const DEFAULT_ANONYMOUS_RATE_LIMIT_PER_WINDOW = 10
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 
 export type RuntimeEnv = {
@@ -65,12 +68,15 @@ type SuccessResponse = {
 }
 
 type RuntimeConfig = {
+  anonymousRateLimitPerWindow: number
+  authenticatedRateLimitPerWindow: number
   deepseekApiKey: string
   deepseekBaseUrl: string
   defaultDeepseekModel: string
   defaultGeminiModel: string
   defaultLlmProvider: string
   geminiApiKey: string
+  rateLimitWindowMs: number
   supabaseAnonKey: string
   supabaseUrl: string
 }
@@ -110,16 +116,36 @@ type DeepSeekResponse = {
   }>
 }
 
+type SupabaseAuthUser = {
+  id?: string
+  is_anonymous?: boolean
+}
+
+type RateLimitBucket = {
+  count: number
+  windowStartedAt: number
+}
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>()
+
+function parsePositiveInteger(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
 function readConfig(env: RuntimeEnv): RuntimeConfig {
   const get = (name: string) => env.get(name)?.trim() ?? ''
 
   return {
+    anonymousRateLimitPerWindow: parsePositiveInteger(get('LLM_ANONYMOUS_RATE_LIMIT_PER_WINDOW'), DEFAULT_ANONYMOUS_RATE_LIMIT_PER_WINDOW),
+    authenticatedRateLimitPerWindow: parsePositiveInteger(get('LLM_AUTHENTICATED_RATE_LIMIT_PER_WINDOW'), DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_WINDOW),
     deepseekApiKey: get('DEEPSEEK_API_KEY'),
     deepseekBaseUrl: get('DEEPSEEK_BASE_URL') || DEEPSEEK_BASE_URL,
     defaultDeepseekModel: get('DEFAULT_DEEPSEEK_MODEL') || DEFAULT_DEEPSEEK_MODEL,
     defaultGeminiModel: get('DEFAULT_GEMINI_MODEL') || DEFAULT_GEMINI_MODEL,
     defaultLlmProvider: get('DEFAULT_LLM_PROVIDER') || DEFAULT_LLM_PROVIDER,
     geminiApiKey: get('GEMINI_API_KEY'),
+    rateLimitWindowMs: parsePositiveInteger(get('LLM_RATE_LIMIT_WINDOW_MS'), DEFAULT_RATE_LIMIT_WINDOW_MS),
     supabaseAnonKey: get('SUPABASE_ANON_KEY'),
     supabaseUrl: get('SUPABASE_URL'),
   }
@@ -175,6 +201,42 @@ async function verifyJwt(token: string, config: RuntimeConfig, runtimeFetch: Run
   }
 
   return response.json()
+}
+
+function isSupabaseAuthUser(value: unknown): value is SupabaseAuthUser {
+  return typeof (value as SupabaseAuthUser)?.id === 'string' && (value as SupabaseAuthUser).id?.trim().length > 0
+}
+
+function getRequestIp(request: Request) {
+  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  return request.headers.get('cf-connecting-ip')?.trim() || forwardedFor || 'unknown'
+}
+
+function checkRateLimit(bucketKey: string, limit: number, windowMs: number, now = Date.now()) {
+  const current = rateLimitBuckets.get(bucketKey)
+
+  if (!current || now - current.windowStartedAt >= windowMs) {
+    rateLimitBuckets.set(bucketKey, {
+      count: 1,
+      windowStartedAt: now,
+    })
+    return true
+  }
+
+  if (current.count >= limit) {
+    return false
+  }
+
+  current.count += 1
+  return true
+}
+
+function checkUserRateLimit(user: SupabaseAuthUser, request: Request, config: RuntimeConfig) {
+  const isAnonymous = user.is_anonymous === true
+  const limit = isAnonymous ? config.anonymousRateLimitPerWindow : config.authenticatedRateLimitPerWindow
+  const bucketKey = `${isAnonymous ? 'anonymous' : 'authenticated'}:${user.id}:${getRequestIp(request)}`
+
+  return checkRateLimit(bucketKey, limit, config.rateLimitWindowMs)
 }
 
 function validateMessages(messages: Message[] | undefined): messages is Message[] {
@@ -435,8 +497,12 @@ export function createLlmProxyHandler(options: HandlerOptions) {
     try {
       const user = await verifyJwt(token, config, runtimeFetch)
 
-      if (!user) {
+      if (!isSupabaseAuthUser(user)) {
         return errorResponse(401, 'AuthError', 'Invalid Supabase session.')
+      }
+
+      if (!checkUserRateLimit(user, request, config)) {
+        return errorResponse(429, 'LLMRateLimitError', 'LLM request rate limit exceeded.')
       }
     } catch {
       return errorResponse(500, 'ConfigurationError', 'Supabase auth verification failed.')
