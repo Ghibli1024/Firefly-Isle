@@ -3,7 +3,7 @@
 
 成员清单
 CLAUDE.md: 说明前端源码层级、模块边界与文档同步规则，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-App.tsx: 路由装配入口，负责 BrowserRouter、ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、匿名/非匿名身份标记、品牌锁定组合预览页、OAuth 公共回调/错误归一与四类产品页面路由拼接，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+App.tsx: 路由装配入口，负责 BrowserRouter、ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、匿名/非匿名身份标记、OAuth 公共回调/错误归一与 lazy 加载的品牌锁定组合预览页及四类产品页面路由拼接，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 main.tsx: React 挂载入口，只负责把 App 渲染到 DOM，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 index.css: 全局 token、主题变量与共享布局样式，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 components/: 页面骨架、设计系统壳层基元、主题开关与 UI 组件
