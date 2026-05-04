@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 @/lib/export-record 的正式病历 PDF/PNG 导出工具，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams，接收当前会话身份标签。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，点击正式导出时动态加载 @/lib/export-record，依赖 @/lib/theme 的响应式 shell 宽度合同与 locale 状态，依赖 react-router-dom 的 useParams，接收当前会话身份标签。
  * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id。
  * [POS]: routes 的档案详情 orchestration 层，按宽幅响应式长卷病历复刻临床概要、纵向治疗时间线、右侧证据卡、正式导出入口与底部审计状态，不改变路由或认证出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,7 +9,6 @@ import { Link, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { MainShell } from '@/components/system/surfaces'
-import { exportElementAsPdf, exportElementAsPng } from '@/lib/export-record'
 import { useLocale, type Locale } from '@/lib/locale'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
@@ -608,6 +607,8 @@ export function RecordPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     })
 
     try {
+      const { exportElementAsPdf, exportElementAsPng } = await import('@/lib/export-record')
+
       if (format === 'pdf') {
         await exportElementAsPdf(recordRef.current)
       } else {
