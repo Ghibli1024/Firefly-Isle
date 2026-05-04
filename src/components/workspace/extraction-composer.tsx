@@ -24,6 +24,12 @@ type ExtractionComposerProps = {
   theme: 'dark' | 'light'
 }
 
+const MAX_EXTRACTION_INPUT_LENGTH = 8000
+
+function getUnavailableTitle(feature: string, locale: 'zh' | 'en') {
+  return locale === 'zh' ? `${feature}暂未开放` : `${feature} is not available yet`
+}
+
 export function ExtractionComposer({
   error,
   extractionInput,
@@ -48,6 +54,10 @@ export function ExtractionComposer({
     : getCopy(copy.workspace.composer.extract, locale)
   const [visibleExtractLabel, setVisibleExtractLabel] = useState(extractLabel)
   const [textSwapState, setTextSwapState] = useState('')
+  const [toolMessage, setToolMessage] = useState<string | null>(null)
+  const inputTooLong = extractionInput.length > MAX_EXTRACTION_INPUT_LENGTH
+  const importUnavailableTitle = getUnavailableTitle(getCopy(copy.workspace.composer.importRecordFile, locale), locale)
+  const voiceUnavailableTitle = getUnavailableTitle(getCopy(copy.workspace.composer.voiceInput, locale), locale)
 
   useEffect(() => {
     if (extractLabel === visibleExtractLabel) {
@@ -91,6 +101,7 @@ export function ExtractionComposer({
         <textarea
           className="h-44 w-full resize-none rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-4 pb-16 text-base leading-7 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--ff-accent-primary)_18%,transparent)] sm:h-48"
           id="patient-history-input"
+          maxLength={MAX_EXTRACTION_INPUT_LENGTH}
           onChange={(event) => onInputChange(event.target.value)}
           placeholder={getCopy(copy.workspace.composer.inputPlaceholder, locale)}
           value={extractionInput}
@@ -99,7 +110,10 @@ export function ExtractionComposer({
           <button
             aria-label={getCopy(copy.workspace.composer.importRecordFile, locale)}
             className="pointer-events-auto inline-flex h-10 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 font-[var(--ff-font-ui)] text-xs font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            data-input-tool="import-record-file"
             disabled={disabled}
+            onClick={() => setToolMessage(importUnavailableTitle)}
+            title={importUnavailableTitle}
             type="button"
           >
             <span className="material-symbols-outlined text-lg">upload_file</span>
@@ -109,17 +123,26 @@ export function ExtractionComposer({
             <button
               aria-label={getCopy(copy.workspace.composer.voiceInput, locale)}
               className="flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              data-input-tool="voice-input"
               disabled={disabled}
+              onClick={() => setToolMessage(voiceUnavailableTitle)}
+              title={voiceUnavailableTitle}
               type="button"
             >
               <span className="material-symbols-outlined text-xl">mic</span>
             </button>
-            <span className="font-[var(--ff-font-mono)] text-[11px] text-[var(--ff-text-muted)]">
-              {extractionInput.length} / 8000
+            <span className={`font-[var(--ff-font-mono)] text-[11px] ${inputTooLong ? 'text-[var(--ff-accent-warning)]' : 'text-[var(--ff-text-muted)]'}`}>
+              {extractionInput.length} / {MAX_EXTRACTION_INPUT_LENGTH}
             </span>
           </div>
         </div>
       </div>
+
+      {toolMessage ? (
+        <div className="mt-3 text-sm font-semibold text-[var(--ff-text-secondary)]" role="status">
+          {toolMessage}
+        </div>
+      ) : null}
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {retryMode ? (
@@ -137,7 +160,7 @@ export function ExtractionComposer({
         )}
         <button
           className="inline-flex h-12 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 font-[var(--ff-font-ui)] text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
+          disabled={disabled || inputTooLong}
           onClick={onExtract}
           type="button"
         >

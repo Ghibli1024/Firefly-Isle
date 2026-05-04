@@ -73,7 +73,7 @@ function display(value: unknown, fallback = '--') {
 
 function displayAge(value: number | undefined, locale: Locale) {
   if (!Number.isFinite(value)) {
-    return locale === 'zh' ? '56 岁' : '56 years'
+    return '--'
   }
 
   return locale === 'zh' ? `${value} 岁` : `${value} years`
@@ -311,13 +311,13 @@ export function ReportPreviewFrame({
         <h3 className={`mb-2 ${previewSectionTitleClass}`}>{getCopy(copy.timeline.basicInfoTitle, locale)}</h3>
         <div className="grid gap-2 lg:grid-cols-[1.08fr_1fr]">
           <div className="grid gap-2 sm:grid-cols-3">
-            <DisplayCell label={locale === 'zh' ? '姓名' : 'Name'} value={locale === 'zh' ? '张三' : 'Zhang San'} />
+            <DisplayCell label={locale === 'zh' ? '姓名' : 'Name'} value="--" />
             <EditableCell
               disabled={disabled}
               label={getCopy(copy.timeline.gender, locale)}
               onCommitField={onCommitField}
               target={{ field: 'gender', section: 'basicInfo' }}
-              value={display(basicInfo?.gender, locale === 'zh' ? '女' : 'Female')}
+              value={display(basicInfo?.gender)}
             />
             <EditableCell
               disabled={disabled}

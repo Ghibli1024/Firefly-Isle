@@ -139,10 +139,20 @@ describe('WorkspacePage report shell', () => {
     const markup = renderWorkspace('light')
 
     expect(markup).toContain('id="patient-history-input"')
+    expect(markup).toContain('maxLength="8000"')
     expect(markup).toContain('导入病历文件')
     expect(markup).toContain('>mic</span>')
     expect(markup).toContain('0 / 8000')
     expect(markup).not.toContain('type="file"')
+  })
+
+  it('marks import and voice tools as coming-soon actions until those inputs exist', () => {
+    const markup = renderWorkspace('light')
+
+    expect(markup).toContain('data-input-tool="import-record-file"')
+    expect(markup).toContain('data-input-tool="voice-input"')
+    expect(markup).toContain('title="导入病历文件暂未开放"')
+    expect(markup).toContain('title="语音输入暂未开放"')
   })
 
   it('uses Transitions.dev motion for extraction status changes', () => {
@@ -217,6 +227,38 @@ describe('WorkspacePage report shell', () => {
     expect(markup).toContain('病历预览')
     expect(markup).not.toContain('href="/record/patient-42"')
     expect(markup).not.toContain('查看病历')
+  })
+
+  it('does not render demo demographic values as missing real patient fields', () => {
+    const record: PatientRecord = {
+      treatmentLines: [],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LocaleProvider>
+        <ReportPreviewFrame
+          isExtracting={false}
+          isSaving={false}
+          onCommitField={() => undefined}
+          record={record}
+          remainingMissing={[]}
+          setReportRef={() => undefined}
+          theme="light"
+        />
+      </LocaleProvider>,
+    )
+
+    expect(markup).not.toContain('张三')
+    expect(markup).not.toContain('56 岁')
+    expect(markup).not.toContain('>女<')
+  })
+
+  it('rolls back optimistic follow-up data when persistence fails', () => {
+    const source = readFileSync(new URL('./workspace-page.tsx', import.meta.url), 'utf8')
+
+    expect(source).toContain('const previousRecord = state.record')
+    expect(source).toContain('record: previousRecord')
+    expect(source).toContain('remainingMissing: getMissingCriticalFields(previousRecord)')
   })
 
   it('animates missing-field counts with Transitions.dev digit pop-in classes', () => {

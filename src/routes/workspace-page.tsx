@@ -378,6 +378,8 @@ function useExtractionState() {
       return
     }
 
+    const previousRecord = state.record
+
     setState((current) => ({
       ...current,
       error: null,
@@ -387,39 +389,37 @@ function useExtractionState() {
     }))
 
     try {
-      const nextRecord = await extractPatientRecord(answer, state.record)
-      const missingFields = getMissingCriticalFields(nextRecord)
-
-      setState((current) => {
-        const followUpAnswers = [...current.followUpAnswers, answer]
-
-        return {
-          ...current,
-          currentQuestion: getNextQuestion(missingFields, followUpAnswers.length),
-          followUpAnswers,
-          isExtracting: false,
-          record: nextRecord,
-          remainingMissing: missingFields,
-          retryAnswer: null,
-          retryMode: null,
-        }
-      })
+      const nextRecord = await extractPatientRecord(answer, previousRecord)
 
       try {
         const persistedRecord = await persistField(nextRecord)
         const nextMissing = getMissingCriticalFields(persistedRecord)
 
-        setState((current) => ({
-          ...current,
-          currentQuestion: getNextQuestion(nextMissing, current.followUpAnswers.length),
-          error: null,
-          record: persistedRecord,
-          remainingMissing: nextMissing,
-        }))
+        setState((current) => {
+          const followUpAnswers = [...current.followUpAnswers, answer]
+
+          return {
+            ...current,
+            currentQuestion: getNextQuestion(nextMissing, followUpAnswers.length),
+            error: null,
+            followUpAnswers,
+            isExtracting: false,
+            record: persistedRecord,
+            remainingMissing: nextMissing,
+            retryAnswer: null,
+            retryMode: null,
+          }
+        })
       } catch {
         setState((current) => ({
           ...current,
+          currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
           error: getCopy(copy.workspace.errors.savePatient, locale),
+          isExtracting: false,
+          record: previousRecord,
+          remainingMissing: getMissingCriticalFields(previousRecord),
+          retryAnswer: answer,
+          retryMode: 'follow-up',
         }))
       }
     } catch (error) {
