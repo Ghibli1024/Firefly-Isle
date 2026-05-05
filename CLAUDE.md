@@ -10,8 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
 - The login intro/drawer refinement is archived at `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`.
 - The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
-- Background music work is currently active under `openspec/changes/add-background-music-toggle/` and `openspec/changes/add-local-background-playlist/` until those changes are archived into baseline specs.
-- Product context lives in `README.md` and `docs/products/`.
+- Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
+- Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
 ## Common commands
@@ -38,10 +38,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `Image-2/` — image-model redesign batches, including V3 screenshot-derived design tokens and visual rules
   - `stitch/` — Stitch-origin design references and runtime screenshot evidence
 - `docs/products/`
-  - `prd.md` — product background, MVP scope, and future roadmap
-  - `spec.md` — implementation plan and architectural decisions
-  - `design-system.md` — design-system prompt/reference, not implemented code tokens
-  - `stitch-screen-mapping.md` — Stitch naming/source-of-truth rules for design screens
+  - `prd-implementation-status.md` — current PRD implementation status, preserving the implemented / partial / not implemented feature audit
+  - `product-priority-roadmap.md` — current product priority roadmap, ranking next work across core medical-document capture, treatment visualization, model-provider settings, auth, sharing, and platform expansion
+  - `archive/` — archived product snapshots: `prd.md`, `spec.md`, `design-system.md`, and `stitch-screen-mapping.md`; archived `design-system.md` is historical and must not override `DESIGN.md`
 - `docs/log/`
   - `index.md` — commit history 总入口
   - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
@@ -49,8 +48,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `openspec/specs/`
   - current baseline requirements merged from archived MVP and commit-history changes
   - `CLAUDE.md` maps each baseline spec file and records that main specs must use `## Purpose` + `## Requirements`
-- `openspec/changes/add-local-background-playlist/`
-  - active local playlist artifacts for the background music extension, defining manifest-backed local tracks, persisted selected track, compact previous/next controls and asset authorization boundary
+- `openspec/changes/archive/2026-05-03-add-background-music-toggle/`
+  - archived global background music toggle artifacts defining the app-level controller, shared UI entrypoint and autoplay boundary
+- `openspec/changes/archive/2026-05-03-add-local-background-playlist/`
+  - archived local playlist artifacts defining manifest-backed tracks, persisted selected track, compact previous/next controls and asset authorization boundary
 - `openspec/changes/archive/2026-04-13-mvp-core/`
   - archived MVP implementation artifacts (proposal/design/specs/tasks)
 - `openspec/changes/archive/2026-04-14-commit-history-log/`
@@ -116,12 +117,13 @@ Important domain rules from the specs:
 When implementation starts, read these in roughly this order:
 
 1. `README.md` — concise project purpose and current repo baseline
-2. `docs/products/prd.md` — user/problem framing and scope boundaries
+2. `docs/products/prd-implementation-status.md` — current PRD implementation status and pointers to archived product docs
 3. `DESIGN.md` — project-level visual-system entrypoint, linking to the active detailed design source
-4. `openspec/specs/**/*.md` — current baseline behavior requirements
-5. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
-6. `openspec/changes/<new-change>/proposal.md` + `tasks.md` — active scoped work, once a new change is created
-7. `openspec/changes/archive/**/design.md` — historical rationale only, when current behavior or past decisions need explanation
+4. `docs/products/archive/prd.md` — archived original user/problem framing and scope boundaries, when historical PRD context is needed
+5. `openspec/specs/**/*.md` — current baseline behavior requirements
+6. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
+7. `openspec/changes/<new-change>/proposal.md` + `tasks.md` — active scoped work, once a new change is created
+8. `openspec/changes/archive/**/design.md` — historical rationale only, when current behavior or past decisions need explanation
 
 ## Current architectural direction
 
@@ -134,7 +136,7 @@ The OpenSpec artifacts are aligned on these points:
 
 ## Stitch note
 
-If future work uses the Stitch artifacts in `docs/products/stitch-screen-mapping.md`, treat `screenInstances.label` as the authoritative page name. Do not use `project.title` or `list_screens.title` as the source of truth.
+If future work uses the archived Stitch artifacts in `docs/products/archive/stitch-screen-mapping.md`, treat `screenInstances.label` as the authoritative page name. Do not use `project.title` or `list_screens.title` as the source of truth.
 
 ## Working conventions already present
 

@@ -1,7 +1,8 @@
 # background-audio-playlist Specification
 
 ## Purpose
-TBD - created by archiving change add-local-background-playlist. Update Purpose after archive.
+定义本地授权背景歌单 manifest、曲目选择持久化、上一首/下一首、播放结束前进与 Apple Music 仅作来源标注的资源边界。
+
 ## Requirements
 ### Requirement: 本地背景歌单由显式曲目清单定义
 系统 SHALL 使用显式曲目清单定义本地授权背景音乐，每首曲目包含稳定 id、展示标题、来源链接与本地 public 音频路径。

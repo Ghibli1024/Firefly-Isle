@@ -462,7 +462,6 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 
 这不是阻塞，但下次排查时别被旧文档带偏：
 
-- `README.md` 仍有“数据库 schema 尚未实现”的旧描述
-- `docs/products/spec.md` 仍写 `001_initial_schema.sql`，真实文件是 `001_init.sql`
+- `docs/products/archive/spec.md` 仍写 `001_initial_schema.sql`，真实文件是 `001_init.sql`
 
 当这些旧文档和本手册冲突时，以迁移文件和实际目录为准。

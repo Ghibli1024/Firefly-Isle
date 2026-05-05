@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini / DeepSeek Edge Function provider proxy / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/app` 内 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
+- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini / DeepSeek Edge Function provider proxy / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/record/:id` 正式 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
 - 当前 MVP 的行为真相源是 `openspec/specs/`；实现真相源是 `src/`、`supabase/`、`.github/` 与 `public/`；`openspec/changes/archive/2026-04-13-mvp-core/` 与 `openspec/changes/archive/2026-04-14-commit-history-log/` 仅保留历史设计与决策证据。
 - 已实现路由：`/login`、`/privacy`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
 - 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。

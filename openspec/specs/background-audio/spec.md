@@ -1,7 +1,8 @@
 # background-audio Specification
 
 ## Purpose
-TBD - created by archiving change add-background-music-toggle. Update Purpose after archive.
+定义应用级背景音乐控制器的生命周期、播放/暂停偏好、自动播放拦截、路由切换稳定性与业务流程隔离边界。
+
 ## Requirements
 ### Requirement: 应用提供全局背景音乐控制器
 系统 SHALL 在应用级别维护一个背景音乐控制器，用于管理单一音频源、播放状态、用户开关偏好与浏览器自动播放结果。
