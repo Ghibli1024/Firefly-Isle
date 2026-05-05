@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
- * [POS]: lib 的文案真相源，集中管理页面可见文本，禁止组件继续内联双语字符串。
+ * [POS]: lib 的文案真相源，集中管理页面可见文本、OCR/编辑反馈与重试按钮文案，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -144,8 +144,10 @@ export const copy = {
       voiceInput: text('语音输入', 'Voice input'),
       extract: text('开始结构化提取', 'Start Structured Extraction'),
       extracting: text('提取中…', 'Extracting…'),
+      editSaved: text('病历修改已保存', 'Record edit saved'),
       retryInitial: text('重试提取', 'Retry Extraction'),
       retryFollowUp: text('重试这轮补充', 'Retry Follow-up'),
+      retryEdit: text('重试修改', 'Retry Edit'),
       exportPdf: text('导出 PDF', 'Export PDF'),
       exportPdfLoading: text('导出 PDF 中…', 'Exporting PDF…'),
       exportPng: text('导出 PNG', 'Export PNG'),

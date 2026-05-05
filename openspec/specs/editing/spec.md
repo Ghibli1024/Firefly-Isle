@@ -1,9 +1,7 @@
 ## Purpose
 
 定义时间线表格字段编辑、自动保存、空白高亮与布局稳定性规则。
-
 ## Requirements
-
 ### Requirement: 点击字段进入编辑模式
 系统 SHALL 支持用户点击表格中任意字段单元格，将其切换为可编辑的 input 或 textarea 控件。
 
@@ -39,3 +37,15 @@
 #### Scenario: 编辑时布局稳定
 - **WHEN** 单元格切换为 input 控件
 - **THEN** 该行的高度和该列的宽度 SHALL 保持与展示模式一致，误差不超过 2px
+
+### Requirement: 自然语言编辑复用字段编辑边界
+系统 SHALL 允许自然语言修改指令复用现有 PatientFieldTarget 字段编辑边界，并与逐格编辑保持一致的保存语义。
+
+#### Scenario: 自然语言修改进入同一字段边界
+- **WHEN** 用户用自然语言修改已有 PatientRecord 字段
+- **THEN** 系统 SHALL 将修改归一为 PatientFieldTarget 支持的字段目标
+- **AND** 系统 SHALL 使用与逐格编辑相同的字段归一化和持久化逻辑保存修改
+
+#### Scenario: 自然语言清空字段
+- **WHEN** 用户明确要求删除或清空某个支持的字段
+- **THEN** 系统 SHALL 将对应字段设为 undefined，而非保存空字符串

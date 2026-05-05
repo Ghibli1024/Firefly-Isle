@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/record-editing 的自然语言编辑边界，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
  * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -23,6 +23,7 @@ import {
 import { ChatError } from '@/lib/llm'
 import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
 import { loadLatestPatientRecord, persistPatientRecord } from '@/lib/patient-record-storage'
+import { applyPatientRecordEdit, applyPatientRecordEdits, extractPatientRecordEdits } from '@/lib/record-editing'
 import { useTheme } from '@/lib/theme'
 import { shellContentWidthClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 import type { PatientFieldTarget, PatientRecord } from '@/types/patient'
@@ -36,6 +37,7 @@ type WorkspacePageProps = {
 
 type ExtractionState = {
   currentQuestion: string | null
+  editFeedback: string | null
   error: string | null
   extractionInput: string
   followUpAnswers: string[]
@@ -45,7 +47,7 @@ type ExtractionState = {
   record: PatientRecord | null
   remainingMissing: string[]
   retryAnswer: string | null
-  retryMode: 'initial' | 'follow-up' | null
+  retryMode: 'initial' | 'follow-up' | 'edit' | null
 }
 
 type OcrState = {
@@ -56,70 +58,6 @@ type OcrState = {
 
 const EMPTY_RECORD: PatientRecord = {
   treatmentLines: [],
-}
-
-function parseNumericField(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return undefined
-  }
-  const normalized = Number(trimmed)
-  return Number.isFinite(normalized) ? normalized : undefined
-}
-
-function parseTextField(value: string) {
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
-
-function normalizeFieldValue(target: PatientFieldTarget, value: string) {
-  if (target.section === 'basicInfo' && ['age', 'height', 'weight'].includes(target.field)) {
-    return parseNumericField(value)
-  }
-  return parseTextField(value)
-}
-
-function ensurePatientShell(record: PatientRecord): PatientRecord {
-  return {
-    ...record,
-    basicInfo: record.basicInfo ?? {},
-    initialOnset: record.initialOnset,
-    treatmentLines: record.treatmentLines,
-  }
-}
-
-function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, rawValue: string): PatientRecord {
-  const baseRecord = ensurePatientShell(record)
-  const value = normalizeFieldValue(target, rawValue)
-  if (target.section === 'basicInfo') {
-    return {
-      ...baseRecord,
-      basicInfo: {
-        ...baseRecord.basicInfo,
-        [target.field]: value,
-      },
-    }
-  }
-  if (target.section === 'initialOnset') {
-    return {
-      ...baseRecord,
-      initialOnset: {
-        ...baseRecord.initialOnset,
-        [target.field]: value,
-      },
-    }
-  }
-  return {
-    ...baseRecord,
-    treatmentLines: baseRecord.treatmentLines.map((line) =>
-      line.lineNumber === target.lineNumber
-        ? {
-            ...line,
-            [target.field]: value,
-          }
-        : line,
-    ),
-  }
 }
 
 function getSaveErrorMessage(target: PatientFieldTarget, locale: 'zh' | 'en') {
@@ -141,6 +79,7 @@ function useExtractionState() {
   const { locale } = useLocale()
   const [state, setState] = useState<ExtractionState>({
     currentQuestion: null,
+    editFeedback: null,
     error: null,
     extractionInput: '',
     followUpAnswers: [],
@@ -167,6 +106,7 @@ function useExtractionState() {
         return {
           ...current,
           currentQuestion: null,
+          editFeedback: null,
           error: null,
           record: null,
           remainingMissing: [],
@@ -227,6 +167,7 @@ function useExtractionState() {
     setState((current) => ({
       ...current,
       currentQuestion: null,
+      editFeedback: null,
       error: null,
       followUpAnswers: [],
       isExtracting: true,
@@ -256,6 +197,7 @@ function useExtractionState() {
       setState((current) => ({
         ...current,
         currentQuestion: getNextQuestion(missingFields, 0),
+        editFeedback: null,
         error: persistenceError,
         followUpAnswers: [],
         isExtracting: false,
@@ -292,6 +234,7 @@ function useExtractionState() {
     setState((current) => ({
       ...current,
       error: null,
+      editFeedback: null,
       isExtracting: true,
       retryAnswer: null,
       retryMode: null,
@@ -310,6 +253,7 @@ function useExtractionState() {
           return {
             ...current,
             currentQuestion: getNextQuestion(nextMissing, followUpAnswers.length),
+            editFeedback: null,
             error: null,
             followUpAnswers,
             isExtracting: false,
@@ -323,6 +267,7 @@ function useExtractionState() {
         setState((current) => ({
           ...current,
           currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
+          editFeedback: null,
           error: getCopy(copy.workspace.errors.savePatient, locale),
           isExtracting: false,
           record: previousRecord,
@@ -334,6 +279,7 @@ function useExtractionState() {
     } catch (error) {
       setState((current) => ({
         ...current,
+        editFeedback: null,
         error:
           error instanceof ExtractionParseError
             ? '追问解析失败，请重试这轮补充。'
@@ -346,8 +292,81 @@ function useExtractionState() {
   }
 
   async function retryLastAction() {
+    if (state.retryMode === 'edit' && state.retryAnswer && state.record) {
+      await runConversationalEdit(state.retryAnswer)
+      return
+    }
+
     if (state.retryMode === 'follow-up' && state.retryAnswer) {
       await runFollowUpExtraction(state.retryAnswer)
+      return
+    }
+
+    await runInitialExtraction()
+  }
+
+  async function runConversationalEdit(inputOverride?: string) {
+    const editCommand = inputOverride ?? state.extractionInput
+    const previousRecord = state.record
+
+    if (!previousRecord) {
+      await runInitialExtraction(inputOverride)
+      return
+    }
+
+    if (!editCommand.trim()) {
+      setState((current) => ({
+        ...current,
+        editFeedback: null,
+        error: getCopy(copy.workspace.errors.missingInput, locale),
+        retryMode: null,
+      }))
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      editFeedback: null,
+      error: null,
+      isExtracting: true,
+      retryAnswer: null,
+      retryMode: null,
+    }))
+
+    try {
+      const edits = await extractPatientRecordEdits(editCommand, previousRecord)
+      const nextRecord = applyPatientRecordEdits(previousRecord, edits)
+      const persistedRecord = await persistField(nextRecord)
+      const nextMissing = getMissingCriticalFields(persistedRecord)
+
+      setState((current) => ({
+        ...current,
+        currentQuestion: getNextQuestion(nextMissing, current.followUpAnswers.length),
+        editFeedback: getCopy(copy.workspace.composer.editSaved, locale),
+        error: null,
+        extractionInput: '',
+        isExtracting: false,
+        record: persistedRecord,
+        remainingMissing: nextMissing,
+        retryAnswer: null,
+        retryMode: null,
+      }))
+    } catch {
+      setState((current) => ({
+        ...current,
+        editFeedback: null,
+        error: locale === 'zh' ? '修改解析或保存失败，请重试。' : 'Edit parsing or saving failed. Please retry.',
+        isExtracting: false,
+        record: previousRecord,
+        retryAnswer: editCommand,
+        retryMode: 'edit',
+      }))
+    }
+  }
+
+  async function submitComposerInput() {
+    if (state.record) {
+      await runConversationalEdit()
       return
     }
 
@@ -436,12 +455,13 @@ function useExtractionState() {
     }
 
     const previousRecord = state.record
-    const nextRecord = applyFieldUpdate(previousRecord, target, value)
+    const nextRecord = applyPatientRecordEdit(previousRecord, { target, value })
     const nextMissing = getMissingCriticalFields(nextRecord)
 
     setState((current) => ({
       ...current,
       currentQuestion: getNextQuestion(nextMissing, current.followUpAnswers.length),
+      editFeedback: null,
       error: null,
       isSaving: true,
       record: nextRecord,
@@ -455,6 +475,7 @@ function useExtractionState() {
 
       setState((current) => ({
         ...current,
+        editFeedback: null,
         isSaving: false,
         record: persistedRecord,
       }))
@@ -462,6 +483,7 @@ function useExtractionState() {
       setState((current) => ({
         ...current,
         currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
+        editFeedback: null,
         error: getSaveErrorMessage(target, locale),
         isSaving: false,
         record: previousRecord,
@@ -483,6 +505,7 @@ function useExtractionState() {
     retryLastAction,
     runFollowUpExtraction,
     runInitialExtraction,
+    submitComposerInput,
     setExtractionInput,
   }
 }
@@ -491,6 +514,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
   const { locale } = useLocale()
   const {
     currentQuestion,
+    editFeedback,
     error,
     extractionInput,
     confirmOcrText,
@@ -505,7 +529,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     retryLastAction,
     retryMode,
     runFollowUpExtraction,
-    runInitialExtraction,
+    submitComposerInput,
     setExtractionInput,
   } = useExtractionState()
   const displayRecord = record ?? EMPTY_RECORD
@@ -520,13 +544,14 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
           <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
+              feedback={editFeedback}
               extractionInput={extractionInput}
               isExtracting={isExtracting}
               isSaving={isSaving}
               ocrState={ocr}
               onConfirmOcrText={() => void confirmOcrText()}
               onDiscardOcrText={discardOcrText}
-              onExtract={() => void runInitialExtraction()}
+              onExtract={() => void submitComposerInput()}
               onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
@@ -563,6 +588,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
   const { locale } = useLocale()
   const {
     currentQuestion,
+    editFeedback,
     error,
     extractionInput,
     confirmOcrText,
@@ -578,7 +604,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
     retryLastAction,
     retryMode,
     runFollowUpExtraction,
-    runInitialExtraction,
+    submitComposerInput,
     setExtractionInput,
   } = useExtractionState()
   const displayRecord = record ?? EMPTY_RECORD
@@ -593,13 +619,14 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
           <div className={`${shellContentWidthClass} space-y-6`}>
             <ExtractionComposer
               error={error}
+              feedback={editFeedback}
               extractionInput={extractionInput}
               isExtracting={isExtracting}
               isSaving={isSaving}
               ocrState={ocr}
               onConfirmOcrText={() => void confirmOcrText()}
               onDiscardOcrText={discardOcrText}
-              onExtract={() => void runInitialExtraction()}
+              onExtract={() => void submitComposerInput()}
               onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}

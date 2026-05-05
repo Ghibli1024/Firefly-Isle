@@ -9,7 +9,7 @@ background-audio.test.ts: 背景音乐状态机回归测试，约束本地歌单
 app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.tsx: 全局 locale 状态中心，负责 zh / en 切换、持久化恢复与 useLocale 消费入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含背景音乐开关、简洁歌单控制、简洁社交认证与“创建账户并登录”按钮文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含背景音乐开关、简洁歌单控制、简洁社交认证、OCR/编辑反馈与“创建账户并登录”按钮文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.ts: 正式病历导出工具，复用 html2canvas 与 jsPDF 生成 PDF/PNG，供 /record/:id 独占消费，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.test.ts: 正式病历导出工具回归测试，约束 PDF/PNG 继续走共享截图、分页、下载链路，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 file-size-contract.test.ts: 结构债回归测试，递归约束 src、functions、supabase 下 .ts/.tsx/.sql 文件均不超过 800 行，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -27,6 +27,8 @@ medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图�
 patient-record-storage.ts: 患者记录持久化边界，统一 patients、treatment_lines、lab_results 的读取、映射与落库同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 patient-record-storage.test.ts: 患者记录持久化合同测试，约束 lab_results row 映射、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-editing.ts: 自然语言病历编辑边界，要求 LLM 返回 PatientFieldTarget 字段级 patch，并复用逐格编辑的归一化 merge 语义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-editing.test.ts: 自然语言病历编辑回归测试，约束 basicInfo、initialOnset、treatmentLine、清空字段、无效目标与提示词合同，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase.ts: Supabase 客户端初始化与环境变量边界，Auth 使用 PKCE + detectSessionInUrl，区分 Auth 所需 env、Edge Function env 与非敏感微信 custom provider id，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 utils.ts: 类名合并等无业务状态工具，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 

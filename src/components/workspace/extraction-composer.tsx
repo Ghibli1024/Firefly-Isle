@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap 与 .t-text-swap 动效合同。
- * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、语音工具、OCR 确认、错误提示、重试入口与唯一主提取动作。
+ * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、语音工具、OCR 确认、编辑反馈、错误提示、重试入口与唯一主提取动作。
  * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,6 +14,7 @@ import { ActionSurface, PanelSurface } from '@/components/system/surfaces'
 type ExtractionComposerProps = {
   error: string | null
   extractionInput: string
+  feedback?: string | null
   isExtracting: boolean
   isSaving: boolean
   ocrState?: OcrState
@@ -24,7 +25,7 @@ type ExtractionComposerProps = {
   onInputChange: (value: string) => void
   onRetry: () => void
   remainingMissingCount: number
-  retryMode: 'initial' | 'follow-up' | null
+  retryMode: 'initial' | 'follow-up' | 'edit' | null
   theme: 'dark' | 'light'
 }
 
@@ -47,6 +48,7 @@ function getUploadTitle(locale: 'zh' | 'en') {
 export function ExtractionComposer({
   error,
   extractionInput,
+  feedback = null,
   isExtracting,
   isSaving,
   ocrState = { error: null, isProcessing: false, text: null },
@@ -176,6 +178,12 @@ export function ExtractionComposer({
         </div>
       ) : null}
 
+      {feedback ? (
+        <div className="mt-3 text-sm font-semibold text-[var(--ff-accent-success)]" role="status">
+          {feedback}
+        </div>
+      ) : null}
+
       {ocrState.isProcessing || ocrState.error || ocrState.text ? (
         <ActionSurface className="mt-4 px-4 py-4 text-sm" theme={theme} tone={ocrState.error ? 'warning' : 'panel'}>
           {ocrState.isProcessing ? (
@@ -223,6 +231,8 @@ export function ExtractionComposer({
           >
             {retryMode === 'follow-up'
               ? getCopy(copy.workspace.composer.retryFollowUp, locale)
+              : retryMode === 'edit'
+                ? getCopy(copy.workspace.composer.retryEdit, locale)
               : getCopy(copy.workspace.composer.retryInitial, locale)}
           </button>
         ) : (
