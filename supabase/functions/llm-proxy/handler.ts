@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 Fetch API、Supabase JWT 校验端点、PostgREST、Web Crypto 与 provider-adapters。
- * [OUTPUT]: 对外提供 createLlmProxyHandler、RuntimeEnv 与 llm-proxy 统一 HTTP 协议。
- * [POS]: supabase/functions/llm-proxy 的可测试核心，把鉴权、设置加密持久化、provider 选择与错误协议收敛在一处。
+ * [OUTPUT]: 对外提供 createLlmProxyHandler、RuntimeEnv 与 llm-proxy 统一 HTTP 协议，支持用户 preset/custom provider 模型名持久化。
+ * [POS]: supabase/functions/llm-proxy 的可测试核心，把鉴权、设置加密持久化、provider/model 选择与错误协议收敛在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -339,15 +339,6 @@ function getServerProviderOptions(provider: ChatProvider, body: RequestBody, con
     : errorBody('ConfigurationError', 'DEEPSEEK_API_KEY is not configured.')
 }
 
-function getDefaultModel(provider: ChatProvider, config: RuntimeConfig) {
-  if (provider === 'gemini') return config.defaultGeminiModel
-  if (provider === 'claude') return config.defaultClaudeModel
-  if (provider === 'openai') return config.defaultOpenaiModel
-  if (provider === 'glm') return config.defaultGlmModel
-  if (provider === 'kimi') return config.defaultKimiModel
-  return config.defaultDeepseekModel
-}
-
 function getPresetBaseUrl(provider: ChatProvider, config: RuntimeConfig) {
   if (provider === 'gemini') return config.geminiBaseUrl
   if (provider === 'claude') return config.claudeBaseUrl
@@ -370,7 +361,7 @@ function toPublicSetting(row: ProviderSettingRow | null) {
     baseUrl: row.provider === 'custom_openai' ? row.base_url : undefined,
     keySet: true,
     mode: 'user',
-    model: row.provider === 'custom_openai' ? row.model : undefined,
+    model: row.model ?? undefined,
     provider: row.provider,
   }
 }
@@ -496,11 +487,13 @@ function validateSettingBody(body: SaveProviderSettingBody): SaveProviderSetting
   }
 
   if (isPresetProvider(provider)) {
-    if (body.baseUrl?.trim() || body.model?.trim()) {
-      return errorBody('LLMInvalidRequestError', 'Preset providers cannot override base URL or model.')
+    const model = body.model?.trim()
+
+    if (body.baseUrl?.trim() || !model) {
+      return errorBody('LLMInvalidRequestError', 'Preset providers require model and cannot override base URL.')
     }
 
-    return { apiKey, provider }
+    return { apiKey, model, provider }
   }
 
   const baseUrl = normalizeHttpsBaseUrl(body.baseUrl)
@@ -539,7 +532,7 @@ async function saveProviderSetting(
   const row = {
     ...encrypted,
     base_url: validBody.provider === 'custom_openai' ? validBody.baseUrl : null,
-    model: validBody.provider === 'custom_openai' ? validBody.model : null,
+    model: validBody.model ?? null,
     provider: validBody.provider,
     user_id: userId,
   }
@@ -589,7 +582,7 @@ async function getUserProviderOptions(row: ProviderSettingRow, config: RuntimeCo
 
   const apiKey = await decryptApiKey(row, config.providerSettingsEncryptionKey)
   const baseUrl = provider === 'custom_openai' ? row.base_url?.trim() : getPresetBaseUrl(provider, config)
-  const model = provider === 'custom_openai' ? row.model?.trim() : getDefaultModel(provider, config)
+  const model = row.model?.trim()
 
   if (!apiKey || !baseUrl || !model) {
     return errorBody('ConfigurationError', 'Saved LLM provider setting is incomplete.')

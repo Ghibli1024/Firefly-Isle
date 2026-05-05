@@ -22,16 +22,16 @@ The system SHALL provide a user-facing provider setting that chooses either syst
 - **THEN** the UI SHALL disclose that medical record content is sent to the selected third-party model provider
 
 ### Requirement: Preset provider registry
-The system SHALL provide preset configurations for Gemini, Claude, OpenAI, GLM, DeepSeek, and Kimi where base URL, protocol adapter, and default model are system-maintained.
+The system SHALL provide preset configurations for Gemini, Claude, OpenAI, GLM, DeepSeek, and Kimi where base URL and protocol adapter are system-maintained while model name is user-supplied.
 
 #### Scenario: Preset provider save
 - **WHEN** the user saves a preset provider setting
-- **THEN** the user SHALL only be required to provide provider choice and API key
+- **THEN** the user SHALL be required to provide provider choice, API key, and model name
 - **AND** the browser SHALL NOT send a preset base URL as user-editable configuration
 
 #### Scenario: Preset provider routing
 - **WHEN** a saved preset provider is active and the user sends a chat request
-- **THEN** `llm-proxy` SHALL route through that provider's server-maintained adapter and default model
+- **THEN** `llm-proxy` SHALL route through that provider's server-maintained adapter, server-maintained base URL, and saved model name
 
 ### Requirement: Custom OpenAI-style provider
 The system SHALL support a custom provider mode with minimal OpenAI-style `/chat/completions` compatibility.

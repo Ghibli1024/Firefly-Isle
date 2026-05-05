@@ -92,6 +92,7 @@
 - **THEN** base_url 与 model SHALL 为非空值
 - **WHEN** provider 为预设平台
 - **THEN** base_url SHALL 为空，由 Edge Function registry 维护
+- **AND** model SHALL 为非空值，由用户设置保存
 
 ### Requirement: llm_provider_settings RLS 行级安全策略
 系统 SHALL 对 `llm_provider_settings` 启用 RLS，确保每个用户只能读写自己的 provider 设置。

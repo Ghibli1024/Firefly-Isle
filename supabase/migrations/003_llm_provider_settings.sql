@@ -1,5 +1,5 @@
 -- [INPUT]: 依赖 Supabase auth.users、PostgreSQL RLS、pgcrypto uuid 与 public.set_patients_updated_at 同类触发器模式。
--- [OUTPUT]: 对外提供 llm_provider_settings 表、加密 key 字段、provider 约束、updated_at trigger 与所有者 RLS policy。
+-- [OUTPUT]: 对外提供 llm_provider_settings 表、加密 key 字段、provider/model 约束、updated_at trigger 与所有者 RLS policy。
 -- [POS]: supabase/migrations 的 LLM provider 设置迁移，为用户自带模型密钥提供数据库事实但不存明文。
 -- [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -- 用户自带 provider 只保存当前启用项；系统默认 DeepSeek 由无行状态表达。
@@ -29,6 +29,8 @@ create table if not exists public.llm_provider_settings (
     or (
       provider in ('gemini', 'claude', 'openai', 'glm', 'deepseek', 'kimi')
       and base_url is null
+      and model is not null
+      and length(trim(model)) > 0
     )
   )
 );

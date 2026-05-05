@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API 与 system ActionSurface。
- * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件，渲染可收起的系统内置 DeepSeekV4、API 自提供与自定义设置入口。
- * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑入口、展开表单与保存动作但不参与 chat 请求。
+ * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染可收起的系统内置 DeepSeekV4、API 自提供与自定义设置入口。
+ * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑入口、按模式展开字段与保存动作但不参与 chat 请求。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState } from 'react'
@@ -20,6 +20,15 @@ type LlmProviderSettingsPanelProps = {
   theme: 'dark' | 'light'
 }
 
+type LlmProviderMode = 'preset' | 'custom' | 'system'
+type LlmProviderField = 'apiKey' | 'baseUrl' | 'model' | 'provider'
+
+const visibleFieldsByMode = {
+  custom: ['baseUrl', 'apiKey', 'model'],
+  preset: ['provider', 'apiKey', 'model'],
+  system: [],
+} satisfies Record<LlmProviderMode, LlmProviderField[]>
+
 const presetProviders: Array<{ label: string; value: Exclude<LlmProviderId, 'custom_openai'> }> = [
   { label: 'Gemini', value: 'gemini' },
   { label: 'Claude', value: 'claude' },
@@ -29,10 +38,14 @@ const presetProviders: Array<{ label: string; value: Exclude<LlmProviderId, 'cus
   { label: 'Kimi', value: 'kimi' },
 ]
 
+export function getLlmProviderVisibleFields(mode: LlmProviderMode) {
+  return [...visibleFieldsByMode[mode]]
+}
+
 export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProviderSettingsPanelProps) {
   const { locale } = useLocale()
   const [expanded, setExpanded] = useState(false)
-  const [mode, setMode] = useState<'preset' | 'custom' | 'system'>('system')
+  const [mode, setMode] = useState<LlmProviderMode>('system')
   const [provider, setProvider] = useState<Exclude<LlmProviderId, 'custom_openai'>>('openai')
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
@@ -56,6 +69,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
 
         setMode('preset')
         setProvider(setting.provider)
+        setModel(setting.model ?? '')
       })
       .catch(() => undefined)
 
@@ -81,6 +95,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
       } else {
         await saveLlmProviderSetting({
           apiKey,
+          model,
           provider,
         })
       }
@@ -126,6 +141,66 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
   const providerLabel = presetProviders.find((option) => option.value === provider)?.label ?? provider
   const selectedModeLabel = mode === 'system' ? copy.system : mode === 'custom' ? copy.custom : `${copy.preset} · ${providerLabel}`
   const toggleLabel = expanded ? copy.collapse : copy.expand
+  const visibleFields = getLlmProviderVisibleFields(mode)
+  const fieldControls: Record<LlmProviderField, JSX.Element> = {
+    apiKey: (
+      <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
+        {copy.apiKey}
+        <input
+          autoComplete="off"
+          className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
+          disabled={disabled || saving}
+          name="llm-provider-api-key"
+          onChange={(event) => setApiKey(event.target.value)}
+          type="password"
+          value={apiKey}
+        />
+      </label>
+    ),
+    baseUrl: (
+      <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
+        {copy.baseUrl}
+        <input
+          className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
+          disabled={disabled || saving}
+          name="llm-provider-base-url"
+          onChange={(event) => setBaseUrl(event.target.value)}
+          placeholder="https://api.example.com/v1"
+          type="url"
+          value={baseUrl}
+        />
+      </label>
+    ),
+    model: (
+      <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
+        {copy.model}
+        <input
+          className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
+          disabled={disabled || saving}
+          name="llm-provider-model"
+          onChange={(event) => setModel(event.target.value)}
+          placeholder="model-name"
+          value={model}
+        />
+      </label>
+    ),
+    provider: (
+      <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
+        {copy.provider}
+        <select
+          className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
+          disabled={disabled || saving}
+          name="llm-provider-provider"
+          onChange={(event) => setProvider(event.target.value as Exclude<LlmProviderId, 'custom_openai'>)}
+          value={provider}
+        >
+          {presetProviders.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+    ),
+  }
 
   return (
     <div data-llm-provider-settings="true">
@@ -169,57 +244,11 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
               </label>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-4">
-              <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
-                {copy.provider}
-                <select
-                  className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
-                  disabled={disabled || saving || mode !== 'preset'}
-                  name="llm-provider-provider"
-                  onChange={(event) => setProvider(event.target.value as Exclude<LlmProviderId, 'custom_openai'>)}
-                  value={provider}
-                >
-                  {presetProviders.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
-                {copy.apiKey}
-                <input
-                  autoComplete="off"
-                  className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
-                  disabled={disabled || saving || mode === 'system'}
-                  name="llm-provider-api-key"
-                  onChange={(event) => setApiKey(event.target.value)}
-                  type="password"
-                  value={apiKey}
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
-                {copy.baseUrl}
-                <input
-                  className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
-                  disabled={disabled || saving || mode !== 'custom'}
-                  name="llm-provider-base-url"
-                  onChange={(event) => setBaseUrl(event.target.value)}
-                  placeholder="https://api.example.com/v1"
-                  type="url"
-                  value={baseUrl}
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-[var(--ff-text-muted)]">
-                {copy.model}
-                <input
-                  className="h-11 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 text-sm text-[var(--ff-text-primary)]"
-                  disabled={disabled || saving || mode !== 'custom'}
-                  name="llm-provider-model"
-                  onChange={(event) => setModel(event.target.value)}
-                  placeholder="model-name"
-                  value={model}
-                />
-              </label>
-            </div>
+            {visibleFields.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                {visibleFields.map((field) => <div key={field}>{fieldControls[field]}</div>)}
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold leading-5 text-[var(--ff-accent-warning)]">{copy.disclosure}</p>

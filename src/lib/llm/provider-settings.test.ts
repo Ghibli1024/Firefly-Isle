@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 vitest 的 Supabase session 与 fetch mock，依赖 provider-settings client 的设置请求封装。
- * [OUTPUT]: 对外提供 LLM provider settings 前端协议测试，约束保存/读取/重置与明文 key 不回读。
- * [POS]: src/lib/llm 的 provider 设置客户端测试，确保浏览器只通过 Edge Function 保存密钥。
+ * [OUTPUT]: 对外提供 LLM provider settings 前端协议测试，约束 provider/model 保存、读取、重置与明文 key 不回读。
+ * [POS]: src/lib/llm 的 provider 设置客户端测试，确保浏览器只通过 Edge Function 保存密钥与模型名。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -39,20 +39,22 @@ describe('llm provider settings client', () => {
     })
   })
 
-  it('saves preset providers without sending editable base URL or model values', async () => {
+  it('saves preset providers with model values and without editable base URL', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(jsonResponse({ keySet: true, mode: 'user', provider: 'openai' })),
+      vi.fn().mockResolvedValue(jsonResponse({ keySet: true, mode: 'user', model: 'gpt-4.1-mini', provider: 'openai' })),
     )
 
     await saveLlmProviderSetting({
       apiKey: 'openai-user-key',
+      model: 'gpt-4.1-mini',
       provider: 'openai',
     })
 
     expect(fetch).toHaveBeenCalledWith('https://edge.example.test/functions/v1/llm-proxy/settings', {
       body: JSON.stringify({
         apiKey: 'openai-user-key',
+        model: 'gpt-4.1-mini',
         provider: 'openai',
       }),
       headers: {

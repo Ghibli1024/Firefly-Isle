@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 vitest 的 fetch mock，依赖 ./handler.ts 的 createLlmProxyHandler。
- * [OUTPUT]: 对外提供 llm-proxy provider 选择、DeepSeek 请求与错误映射测试。
+ * [OUTPUT]: 对外提供 llm-proxy provider 选择、用户 provider/model 设置、DeepSeek 请求与错误映射测试。
  * [POS]: supabase/functions/llm-proxy 的协议测试，替代本机缺失 Deno 时的最近本地验证层。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -292,7 +292,7 @@ describe('llm-proxy provider handler', () => {
     expect(calls.filter((call) => call.url.includes('/chat/completions'))).toHaveLength(1)
   })
 
-  it('saves a preset user key encrypted, reads it for routing, and never returns plaintext', async () => {
+  it('saves a preset user key and model encrypted, reads them for routing, and never returns plaintext', async () => {
     const { calls, fetchMock, getSavedRows } = createSettingsFetchMock(
       new Response(JSON.stringify({ choices: [{ message: { content: 'openai text' } }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -306,6 +306,7 @@ describe('llm-proxy provider handler', () => {
 
     const saveResponse = await handler(createRequestWithMethod('/settings', 'PUT', {
       apiKey: 'openai-user-key',
+      model: 'gpt-4.1-mini',
       provider: 'openai',
     }))
     const savePayload = await json(saveResponse)
@@ -314,12 +315,13 @@ describe('llm-proxy provider handler', () => {
     const savedText = JSON.stringify(getSavedRows())
     const upstreamCall = findUpstreamCall(calls)
 
-    expect(savePayload).toMatchObject({ keySet: true, mode: 'user', provider: 'openai' })
+    expect(savePayload).toMatchObject({ keySet: true, mode: 'user', model: 'gpt-4.1-mini', provider: 'openai' })
     expect(savePayload).not.toHaveProperty('apiKey')
     expect(savedText).not.toContain('openai-user-key')
     expect(savedText).toContain('api_key_ciphertext')
     expect(upstreamCall?.url).toBe('https://api.openai.com/v1/chat/completions')
     expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer openai-user-key')
+    expect(upstreamCall?.body).toMatchObject({ model: 'gpt-4.1-mini' })
   })
 
   it('routes custom OpenAI-style settings through the stored HTTPS base URL and model', async () => {
@@ -379,6 +381,7 @@ describe('llm-proxy provider handler', () => {
 
     await handler(createRequestWithMethod('/settings', 'PUT', {
       apiKey: 'bad-openai-key',
+      model: 'gpt-4.1-mini',
       provider: 'openai',
     }))
     const response = await handler(createRequest({ messages }))

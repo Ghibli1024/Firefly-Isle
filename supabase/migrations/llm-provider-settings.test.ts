@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 读取 Supabase migration SQL。
- * [OUTPUT]: 对外提供 llm_provider_settings 迁移、RLS 与密钥字段合同测试。
- * [POS]: supabase/migrations 的 schema contract 测试，防止 provider key 明文列或越权 policy 漂移。
+ * [OUTPUT]: 对外提供 llm_provider_settings 迁移、provider/model 约束、RLS 与密钥字段合同测试。
+ * [POS]: supabase/migrations 的 schema contract 测试，防止 provider key 明文列、model 约束或越权 policy 漂移。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -18,14 +18,14 @@ describe('llm_provider_settings migration', () => {
     expect(migration).not.toContain('api_key_plaintext')
   })
 
-  it('constrains providers and requires custom base URL plus model', () => {
+  it('constrains providers, requires model for user providers, and requires custom base URL', () => {
     for (const provider of ['gemini', 'claude', 'openai', 'glm', 'deepseek', 'kimi', 'custom_openai']) {
       expect(migration).toContain(`'${provider}'`)
     }
 
     expect(migration).toContain("provider = 'custom_openai'")
     expect(migration).toContain('base_url is not null')
-    expect(migration).toContain('model is not null')
+    expect(migration.match(/model is not null/g)?.length).toBeGreaterThanOrEqual(2)
   })
 
   it('enables owner-scoped RLS for all write paths', () => {
