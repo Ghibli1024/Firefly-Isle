@@ -1,10 +1,10 @@
 /**
  * [INPUT]: 依赖 @/lib/background-audio 的全局歌单状态，依赖 @/lib/locale 与 @/lib/copy 的双语文案，依赖 @/lib/utils 的类名合并。
- * [OUTPUT]: 对外提供 BackgroundMusicToggle 组件，包含播放开关、当前曲目、上一首、下一首与顶部短侧舱布局。
- * [POS]: components 的共享背景音乐控件，被登录页工具区和 authenticated top bar 复用，不拥有 audio 实例。
+ * [OUTPUT]: 对外提供 BackgroundMusicToggle 组件，包含播放开关、当前曲目、上一首、下一首与离开收回的半透明弹出短侧舱布局。
+ * [POS]: components 的共享背景音乐控件，被登录页工具区和 authenticated top bar 复用，只表达播放、暂停与拦截状态，不拥有 audio 实例。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { getCopy, copy } from '@/lib/copy'
 import { useBackgroundAudio, type BackgroundAudioStatus } from '@/lib/background-audio'
@@ -19,16 +19,25 @@ type BackgroundMusicToggleProps = {
 }
 
 const iconByStatus: Record<BackgroundAudioStatus, string> = {
-  blocked: 'play_circle',
-  idle: 'volume_up',
+  blocked: 'play_arrow',
+  idle: 'pause',
   loading: 'progress_activity',
-  paused: 'volume_off',
-  playing: 'volume_up',
+  paused: 'play_arrow',
+  playing: 'pause',
   unavailable: 'music_off',
 }
 
 function isAudioPressed(status: BackgroundAudioStatus) {
   return status === 'idle' || status === 'loading' || status === 'playing'
+}
+
+function containsPointer(element: HTMLElement | null, event: PointerEvent) {
+  if (!element) {
+    return false
+  }
+
+  const rect = element.getBoundingClientRect()
+  return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom
 }
 
 export function BackgroundMusicToggle({
@@ -38,6 +47,8 @@ export function BackgroundMusicToggle({
   showLabel = false,
 }: BackgroundMusicToggleProps) {
   const panelId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const { locale } = useLocale()
   const { currentTrack, nextTrack, previousTrack, status, toggle, tracks } = useBackgroundAudio()
@@ -55,12 +66,30 @@ export function BackgroundMusicToggle({
     </span>
   )
 
+  useEffect(() => {
+    if (!isPanelOpen || layout !== 'short-dock') {
+      return
+    }
+
+    const closeWhenPointerLeavesDock = (event: PointerEvent) => {
+      const isInsideDock = containsPointer(rootRef.current, event) || containsPointer(panelRef.current, event)
+
+      if (!isInsideDock) {
+        setIsPanelOpen(false)
+      }
+    }
+
+    window.addEventListener('pointermove', closeWhenPointerLeavesDock)
+    return () => window.removeEventListener('pointermove', closeWhenPointerLeavesDock)
+  }, [isPanelOpen, layout])
+
   if (layout === 'short-dock') {
     return (
       <div
         className="relative inline-flex shrink-0"
         data-background-music-layout="short-dock"
         data-testid="background-music-control"
+        ref={rootRef}
       >
         <button
           aria-controls={panelId}
@@ -85,9 +114,10 @@ export function BackgroundMusicToggle({
         {isPanelOpen ? (
           <div
             aria-label={openControlsLabel}
-            className="fixed right-0 top-[68px] z-50 w-[min(19rem,calc(100vw-1rem))] border-b border-l border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-5 pb-5 pt-4 text-[var(--ff-text-primary)] shadow-[0_22px_55px_rgba(0,0,0,0.34)]"
+            className="t-audio-popover fixed right-0 top-[68px] z-50 w-[min(19rem,calc(100vw-1rem))] border-b border-l border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_54%,transparent)] px-5 pb-5 pt-4 text-[var(--ff-text-primary)] shadow-[0_22px_55px_rgba(0,0,0,0.34)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_44%,transparent)]"
             data-testid="background-music-short-dock"
             id={panelId}
+            ref={panelRef}
             role="dialog"
           >
             <div className="absolute left-0 top-0 h-16 w-[2px] bg-[var(--ff-accent-primary)]" />

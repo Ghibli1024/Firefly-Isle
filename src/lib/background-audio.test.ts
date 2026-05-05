@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 vitest 的断言与 mock，依赖 background-audio 的控制器、偏好读取、曲目清单与存储 key。
  * [OUTPUT]: 对外提供背景音乐控制器与本地歌单状态机回归测试。
- * [POS]: src/lib 的背景音乐行为合同测试，约束 Nagisa / Merry 双曲歌单默认值、曲目持久化、循环切歌、ended 前进、自动播放拦截与不可用状态。
+ * [POS]: src/lib 的背景音乐行为合同测试，约束 Nagisa / Merry 双曲歌单默认值、曲目持久化、循环切歌、ended 前进、播放/暂停意图刷新恢复、自动播放拦截与不可用状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { describe, expect, it, vi } from 'vitest'
@@ -72,7 +72,7 @@ describe('background audio controller', () => {
       'merry-christmas-mr-lawrence',
     ])
     expect(BACKGROUND_AUDIO_SRC).toBe('/audio/tracks/nagisa-sakano-shitano-wakare.mp3')
-    expect(readBackgroundAudioPreference(storage)).toBe('on')
+    expect(readBackgroundAudioPreference(storage)).toBe('playing')
     expect(readBackgroundAudioTrackId(storage)).toBe('nagisa-sakano-shitano-wakare')
   })
 
@@ -88,11 +88,11 @@ describe('background audio controller', () => {
     expect(audio.preload).toBe('auto')
     expect(audio.play).toHaveBeenCalledTimes(1)
     expect(controller.getSnapshot().status).toBe('playing')
-    expect(controller.getSnapshot().preference).toBe('on')
+    expect(controller.getSnapshot().preference).toBe('playing')
     expect(controller.getSnapshot().currentTrackId).toBe('nagisa-sakano-shitano-wakare')
   })
 
-  it('persists selected track separately from the on/off preference', async () => {
+  it('persists selected track separately from the playback preference', async () => {
     const storage = new MemoryStorage()
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
@@ -169,29 +169,56 @@ describe('background audio controller', () => {
     expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBeNull()
   })
 
-  it('persists off preference and skips the next automatic playback request', async () => {
+  it('persists paused preference and skips the next automatic playback request', async () => {
     const storage = new MemoryStorage()
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
 
-    controller.turnOff()
+    controller.pause()
     await controller.requestPlayback()
 
     expect(audio.pause).toHaveBeenCalledTimes(1)
     expect(audio.play).not.toHaveBeenCalled()
-    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBe('off')
+    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBe('paused')
+    expect(controller.getSnapshot().preference).toBe('paused')
     expect(controller.getSnapshot().status).toBe('paused')
   })
 
-  it('lets a user-triggered toggle restore playback after turning music off', async () => {
+  it('restores a paused refresh as paused without playing', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'paused')
+    const audio = createAudio()
+    const controller = createBackgroundAudioController({ audio, storage })
+
+    await controller.requestPlayback()
+
+    expect(audio.play).not.toHaveBeenCalled()
+    expect(controller.getSnapshot().preference).toBe('paused')
+    expect(controller.getSnapshot().status).toBe('paused')
+  })
+
+  it('restores a playing refresh by requesting playback', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
+    const audio = createAudio()
+    const controller = createBackgroundAudioController({ audio, storage })
+
+    await controller.requestPlayback()
+
+    expect(audio.play).toHaveBeenCalledTimes(1)
+    expect(controller.getSnapshot().preference).toBe('playing')
+    expect(controller.getSnapshot().status).toBe('playing')
+  })
+
+  it('lets a user-triggered toggle resume playback after pausing music', async () => {
     const storage = new MemoryStorage()
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
 
-    controller.turnOff()
+    controller.pause()
     await controller.toggle()
 
-    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBe('on')
+    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBe('playing')
     expect(audio.play).toHaveBeenCalledTimes(1)
     expect(controller.getSnapshot().status).toBe('playing')
   })

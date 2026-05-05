@@ -1,5 +1,11 @@
-/* Transitions.dev portable CSS utilities.
-   Source: https://transitions.dev/ */
+/**
+ * [INPUT]: 依赖 src/index.css 导入与全局 CSS 变量，承载 Transitions.dev 可移植动效工具。
+ * [OUTPUT]: 对外提供 badge、dropdown、panel、audio popover、resize、icon/text swap、modal、page 与 digit 动效类。
+ * [POS]: src/styles 的共享动效合同，被组件以 t-* class 组合复用，避免业务组件内联 keyframes。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ *
+ * Source: https://transitions.dev/
+ */
 
 :root {
   --badge-slide-dur: 260ms;
@@ -19,6 +25,10 @@
   --dropdown-pre-scale: 0.97;
   --dropdown-closing-scale: 0.99;
   --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --audio-pop-dur: 170ms;
+  --audio-pop-blur: 2px;
+  --audio-pop-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   --panel-open-dur: 400ms;
   --panel-close-dur: 350ms;
@@ -152,6 +162,32 @@
   transition:
     transform var(--dropdown-close-dur) var(--dropdown-ease),
     opacity var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+@keyframes t-audio-pop-in {
+  0% {
+    transform: translate3d(10px, -6px, 0) scale(0.94);
+    opacity: 0;
+    filter: blur(var(--audio-pop-blur));
+  }
+
+  72% {
+    transform: translate3d(0, 0, 0) scale(1.012);
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-audio-popover {
+  transform-origin: top right;
+  animation: t-audio-pop-in var(--audio-pop-dur) var(--audio-pop-ease) both;
+  will-change: transform, opacity, filter;
 }
 
 .t-panel-slide {
@@ -341,6 +377,7 @@
   .t-badge,
   .t-badge-dot,
   .t-dropdown,
+  .t-audio-popover,
   .t-panel-slide,
   .t-resize,
   .t-icon-swap .t-icon,

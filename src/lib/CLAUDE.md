@@ -4,12 +4,12 @@
 成员清单
 CLAUDE.md: 说明前端基础设施模块职责，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio-tracks.ts: 本地授权背景歌单 manifest，声明四首用户指定歌曲的稳定 id、标题、Apple Music 来源链接与 public 音频路径，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-background-audio.tsx: 全局背景音乐状态中心，管理单一 audio 实例、本地歌单、自动播放请求、浏览器拦截、关闭偏好、当前曲目持久化与共享 hook，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-background-audio.test.ts: 背景音乐状态机回归测试，约束本地歌单默认值、曲目持久化、循环切歌、ended 前进、自动播放拦截与不可用状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+background-audio.tsx: 全局背景音乐状态中心，管理单一 audio 实例、本地歌单、播放/暂停意图持久化、刷新恢复、浏览器拦截、当前曲目持久化与共享 hook，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+background-audio.test.ts: 背景音乐状态机回归测试，约束本地歌单默认值、曲目持久化、循环切歌、ended 前进、播放/暂停意图刷新恢复、自动播放拦截与不可用状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.tsx: 全局 locale 状态中心，负责 zh / en 切换、持久化恢复与 useLocale 消费入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含背景音乐开关、简洁歌单控制、简洁社交认证、OCR/编辑反馈与“创建账户并登录”按钮文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含背景音乐播放/暂停/拦截文案、简洁歌单控制、简洁社交认证、OCR/编辑反馈与“创建账户并登录”按钮文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.ts: 正式病历导出工具，复用 html2canvas 与 jsPDF 生成 PDF/PNG，供 /record/:id 独占消费，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.test.ts: 正式病历导出工具回归测试，约束 PDF/PNG 继续走共享截图、分页、下载链路，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 file-size-contract.test.ts: 结构债回归测试，递归约束 src、functions、supabase 下 .ts/.tsx/.sql 文件均不超过 800 行，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

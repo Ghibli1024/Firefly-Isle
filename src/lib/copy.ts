@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
- * [POS]: lib 的文案真相源，集中管理页面可见文本、OCR/编辑反馈与重试按钮文案，禁止组件继续内联双语字符串。
+ * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑反馈与重试按钮文案，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -39,10 +39,10 @@ export const copy = {
     track: text('当前曲目', 'Current track'),
     aria: {
       blocked: text('浏览器已阻止自动播放，点击播放背景音乐', 'Browser blocked autoplay. Click to play background music'),
-      idle: text('背景音乐已开启，点击关闭', 'Background music is on. Click to turn off'),
-      loading: text('背景音乐加载中，点击关闭', 'Background music is loading. Click to turn off'),
-      paused: text('背景音乐已关闭，点击开启', 'Background music is off. Click to turn on'),
-      playing: text('背景音乐播放中，点击关闭', 'Background music is playing. Click to turn off'),
+      idle: text('背景音乐已开启，点击暂停', 'Background music is on. Click to pause'),
+      loading: text('背景音乐加载中，点击暂停', 'Background music is loading. Click to pause'),
+      paused: text('背景音乐已暂停，点击继续播放', 'Background music is paused. Click to continue'),
+      playing: text('背景音乐播放中，点击暂停', 'Background music is playing. Click to pause'),
       unavailable: text('背景音乐不可用', 'Background music unavailable'),
     },
   },

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 Context、hooks，依赖 background-audio-tracks 的本地歌单 manifest，依赖浏览器 Audio 与 localStorage。
  * [OUTPUT]: 对外提供 BackgroundAudioProvider、useBackgroundAudio、背景音状态类型、曲目 API、静态音频路径与可测试控制器。
- * [POS]: lib 的全局背景音乐状态中心，独占单一 audio 实例、歌单曲目、播放状态、自动播放拦截与用户偏好。
+ * [POS]: lib 的全局背景音乐状态中心，独占单一 audio 实例、歌单曲目、播放/暂停意图、自动播放拦截与当前播放状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -23,7 +23,7 @@ import {
 
 export { BACKGROUND_AUDIO_TRACKS, type BackgroundAudioTrack } from '@/lib/background-audio-tracks'
 
-export type BackgroundAudioPreference = 'on' | 'off'
+export type BackgroundAudioPreference = 'playing' | 'paused'
 export type BackgroundAudioStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable'
 
 export type BackgroundAudioSnapshot = {
@@ -64,8 +64,8 @@ export type BackgroundAudioController = {
   selectTrack: (trackId: string) => Promise<BackgroundAudioSnapshot>
   subscribe: (listener: (snapshot: BackgroundAudioSnapshot) => void) => () => void
   toggle: () => Promise<BackgroundAudioSnapshot>
-  turnOff: () => BackgroundAudioSnapshot
-  turnOn: () => Promise<BackgroundAudioSnapshot>
+  pause: () => BackgroundAudioSnapshot
+  resume: () => Promise<BackgroundAudioSnapshot>
 }
 
 export type BackgroundAudioContextValue = BackgroundAudioSnapshot & {
@@ -76,8 +76,8 @@ export type BackgroundAudioContextValue = BackgroundAudioSnapshot & {
   selectTrack: (trackId: string) => Promise<BackgroundAudioSnapshot>
   toggle: () => Promise<BackgroundAudioSnapshot>
   tracks: BackgroundAudioTrack[]
-  turnOff: () => BackgroundAudioSnapshot
-  turnOn: () => Promise<BackgroundAudioSnapshot>
+  pause: () => BackgroundAudioSnapshot
+  resume: () => Promise<BackgroundAudioSnapshot>
 }
 
 export const BACKGROUND_AUDIO_SRC = BACKGROUND_AUDIO_TRACKS[0].fileUrl
@@ -104,7 +104,8 @@ function safeTracks(tracks: BackgroundAudioTrack[]) {
 }
 
 export function readBackgroundAudioPreference(storage: StorageLike | null = readBrowserStorage()): BackgroundAudioPreference {
-  return storage?.getItem(BACKGROUND_AUDIO_STORAGE_KEY) === 'off' ? 'off' : 'on'
+  const storedPreference = storage?.getItem(BACKGROUND_AUDIO_STORAGE_KEY)
+  return storedPreference === 'paused' || storedPreference === 'off' ? 'paused' : 'playing'
 }
 
 export function readBackgroundAudioTrackId(
@@ -131,7 +132,7 @@ function getInitialSnapshot(storage: StorageLike | null, tracks = BACKGROUND_AUD
   return {
     currentTrackId: readBackgroundAudioTrackId(storage, tracks),
     preference,
-    status: preference === 'off' ? 'paused' : 'idle',
+    status: preference === 'paused' ? 'paused' : 'idle',
   }
 }
 
@@ -196,7 +197,7 @@ export function createBackgroundAudioController({
       return snapshot
     }
 
-    if (snapshot.preference === 'off') {
+    if (snapshot.preference === 'paused') {
       setStatus('paused')
       return snapshot
     }
@@ -216,7 +217,7 @@ export function createBackgroundAudioController({
   const selectTrack = async (trackId: string) => {
     const nextTrack = findBackgroundAudioTrack(trackId, playlist)
     writeBackgroundAudioTrackId(storage, nextTrack.id)
-    publish({ ...snapshot, currentTrackId: nextTrack.id, status: snapshot.preference === 'off' ? 'paused' : 'idle' })
+    publish({ ...snapshot, currentTrackId: nextTrack.id, status: snapshot.preference === 'paused' ? 'paused' : 'idle' })
 
     if (!audio) {
       setStatus('unavailable')
@@ -224,30 +225,30 @@ export function createBackgroundAudioController({
     }
 
     configureAudio(audio, nextTrack, volume, shouldLoop)
-    return snapshot.preference === 'on' ? requestPlayback() : snapshot
+    return snapshot.preference === 'playing' ? requestPlayback() : snapshot
   }
 
   const nextTrack = () => selectTrack(getOffsetTrackId(playlist, snapshot.currentTrackId, 1))
   const previousTrack = () => selectTrack(getOffsetTrackId(playlist, snapshot.currentTrackId, -1))
 
-  const turnOff = () => {
-    setPreference('off')
+  const pause = () => {
+    setPreference('paused')
     audio?.pause()
     setStatus('paused')
     return snapshot
   }
 
-  const turnOn = async () => {
-    setPreference('on')
+  const resume = async () => {
+    setPreference('playing')
     return requestPlayback()
   }
 
   const toggle = async () => {
-    if (snapshot.preference === 'off' || snapshot.status === 'idle' || snapshot.status === 'paused' || snapshot.status === 'blocked' || snapshot.status === 'unavailable') {
-      return turnOn()
+    if (snapshot.status === 'idle' || snapshot.status === 'loading' || snapshot.status === 'playing') {
+      return pause()
     }
 
-    return turnOff()
+    return resume()
   }
 
   const markPlaying = () => setStatus('playing')
@@ -295,8 +296,8 @@ export function createBackgroundAudioController({
     selectTrack,
     subscribe,
     toggle,
-    turnOff,
-    turnOn,
+    pause,
+    resume,
   }
 }
 
@@ -321,7 +322,7 @@ export function BackgroundAudioProvider({ children }: PropsWithChildren) {
 
     controllerRef.current = controller
 
-    if (controller.getSnapshot().preference === 'on') {
+    if (controller.getSnapshot().preference === 'playing') {
       queueMicrotask(() => {
         if (controllerRef.current === controller) {
           void controller.requestPlayback()
@@ -336,8 +337,8 @@ export function BackgroundAudioProvider({ children }: PropsWithChildren) {
   }, [])
 
   const requestPlayback = useCallback(() => controllerRef.current?.requestPlayback() ?? Promise.resolve(snapshot), [snapshot])
-  const turnOff = useCallback(() => controllerRef.current?.turnOff() ?? snapshot, [snapshot])
-  const turnOn = useCallback(() => controllerRef.current?.turnOn() ?? Promise.resolve(snapshot), [snapshot])
+  const pause = useCallback(() => controllerRef.current?.pause() ?? snapshot, [snapshot])
+  const resume = useCallback(() => controllerRef.current?.resume() ?? Promise.resolve(snapshot), [snapshot])
   const toggle = useCallback(() => controllerRef.current?.toggle() ?? Promise.resolve(snapshot), [snapshot])
   const selectTrack = useCallback((trackId: string) => controllerRef.current?.selectTrack(trackId) ?? Promise.resolve(snapshot), [snapshot])
   const nextTrack = useCallback(() => controllerRef.current?.nextTrack() ?? Promise.resolve(snapshot), [snapshot])
@@ -354,10 +355,10 @@ export function BackgroundAudioProvider({ children }: PropsWithChildren) {
       selectTrack,
       toggle,
       tracks: BACKGROUND_AUDIO_TRACKS,
-      turnOff,
-      turnOn,
+      pause,
+      resume,
     }),
-    [currentTrack, nextTrack, previousTrack, requestPlayback, selectTrack, snapshot, toggle, turnOff, turnOn],
+    [currentTrack, nextTrack, pause, previousTrack, requestPlayback, resume, selectTrack, snapshot, toggle],
   )
 
   return <BackgroundAudioContext.Provider value={value}>{children}</BackgroundAudioContext.Provider>

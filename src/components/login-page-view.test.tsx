@@ -351,7 +351,7 @@ describe('LoginPageView theme shell', () => {
     const musicLabelIndex = markup.indexOf('>音乐</span>')
     const themeIconIndex = markup.indexOf('>dark_mode</span>')
     const languageIconIndex = markup.indexOf('>g_translate</span>')
-    const musicIconIndex = markup.indexOf('>volume_up</span>')
+    const musicIconIndex = markup.indexOf('>pause</span>')
 
     expect(markup.indexOf('登录')).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(-1)
