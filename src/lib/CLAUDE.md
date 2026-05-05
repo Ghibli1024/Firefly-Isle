@@ -12,6 +12,7 @@ locale.tsx: 全局 locale 状态中心，负责 zh / en 切换、持久化恢复
 copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含背景音乐开关、简洁歌单控制、简洁社交认证与“创建账户并登录”按钮文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.ts: 正式病历导出工具，复用 html2canvas 与 jsPDF 生成 PDF/PNG，供 /record/:id 独占消费，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.test.ts: 正式病历导出工具回归测试，约束 PDF/PNG 继续走共享截图、分页、下载链路，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+file-size-contract.test.ts: 结构债回归测试，递归约束 src、functions、supabase 下 .ts/.tsx/.sql 文件均不超过 800 行，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme/: 设计系统 token 目录，收敛 surface、text、border、accent 与 motion 真相源
 auth.tsx: Supabase session 恢复、URL callback 初始化、认证状态广播与 signOut 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 auth.test.tsx: Supabase URL callback 初始化、session 恢复、认证广播、订阅清理与 signOut 的源码合同测试，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

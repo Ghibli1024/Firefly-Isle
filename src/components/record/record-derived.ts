@@ -1,0 +1,194 @@
+/**
+ * [INPUT]: 依赖 @/types/patient 的 PatientRecord 与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供真实 PatientRecord 到 summary metrics、header subtitle 与 timeline entries 的派生函数。
+ * [POS]: components/record 的展示数据转换层，使 dossier JSX 不直接理解 PatientRecord 内部结构。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import type { Locale } from '@/lib/locale'
+import type { PatientRecord } from '@/types/patient'
+
+import type { Metric, TimelineEntry } from './types'
+
+function hasValue(value: unknown) {
+  return typeof value === 'string' ? value.trim().length > 0 : value !== undefined && value !== null
+}
+
+function displayValue(value: unknown, fallback = '--') {
+  if (!hasValue(value)) {
+    return fallback
+  }
+
+  return typeof value === 'string' ? value.trim() : String(value)
+}
+
+function displayRecordAge(age: number | undefined, locale: Locale) {
+  if (!Number.isFinite(age)) {
+    return '--'
+  }
+
+  return locale === 'zh' ? `${age} 岁` : `${age} years`
+}
+
+function firstTreatmentLine(record: PatientRecord) {
+  return record.treatmentLines.find((line) => line.lineNumber === 1) ?? record.treatmentLines[0]
+}
+
+function getRecordGeneticTest(record: PatientRecord) {
+  return record.initialOnset?.geneticTest ?? firstTreatmentLine(record)?.geneticTest
+}
+
+function getRecordIhc(record: PatientRecord) {
+  return record.initialOnset?.immunohistochemistry ?? firstTreatmentLine(record)?.immunohistochemistry
+}
+
+function getCurrentRegimen(record: PatientRecord) {
+  const latestLine = [...record.treatmentLines].sort((left, right) => right.lineNumber - left.lineNumber)[0]
+  return latestLine?.regimen ?? record.initialOnset?.treatment
+}
+
+export function getRecordSummaryMetrics(record: PatientRecord, locale: Locale): Metric[] {
+  const basicInfo = record.basicInfo
+
+  return locale === 'zh'
+    ? [
+        { label: '年龄', value: displayRecordAge(basicInfo?.age, locale) },
+        { label: '性别', value: displayValue(basicInfo?.gender) },
+        { label: '肿瘤分期', value: displayValue(basicInfo?.stage) },
+        { label: '随访状态', value: record.treatmentLines.length > 0 ? '治疗中' : '待补充' },
+        { label: '诊断日期', value: displayValue(basicInfo?.diagnosisDate) },
+        { label: '基因检测', value: displayValue(getRecordGeneticTest(record)) },
+        { label: '免疫组化', value: displayValue(getRecordIhc(record)) },
+        { label: '当前方案', value: displayValue(getCurrentRegimen(record)) },
+      ]
+    : [
+        { label: 'Age', value: displayRecordAge(basicInfo?.age, locale) },
+        { label: 'Gender', value: displayValue(basicInfo?.gender) },
+        { label: 'Tumor Stage', value: displayValue(basicInfo?.stage) },
+        { label: 'Follow-up Status', value: record.treatmentLines.length > 0 ? 'In treatment' : 'Missing' },
+        { label: 'Diagnosis Date', value: displayValue(basicInfo?.diagnosisDate) },
+        { label: 'Genetic Test', value: displayValue(getRecordGeneticTest(record)) },
+        { label: 'IHC', value: displayValue(getRecordIhc(record)) },
+        { label: 'Current Plan', value: displayValue(getCurrentRegimen(record)) },
+      ]
+}
+
+export function getRecordHeaderSubtitle(record: PatientRecord, locale: Locale) {
+  const parts = [
+    record.basicInfo?.tumorType,
+    record.basicInfo?.stage,
+    getRecordGeneticTest(record),
+  ]
+    .filter(hasValue)
+    .map((part) => String(part).trim())
+
+  if (parts.length > 0) {
+    return parts.join(' · ')
+  }
+
+  return locale === 'zh' ? '已保存病历' : 'Saved medical record'
+}
+
+export function getRecordTimelineEntries(record: PatientRecord, locale: Locale): TimelineEntry[] {
+  const entries: TimelineEntry[] = []
+
+  if (record.initialOnset) {
+    entries.push({
+      body: [
+        record.initialOnset.triggerDate
+          ? locale === 'zh'
+            ? `初发时间：${record.initialOnset.triggerDate}`
+            : `Initial onset: ${record.initialOnset.triggerDate}`
+          : locale === 'zh'
+            ? '初发信息已记录。'
+            : 'Initial onset information recorded.',
+        record.initialOnset.treatment
+          ? locale === 'zh'
+            ? `治疗方案：${record.initialOnset.treatment}`
+            : `Treatment: ${record.initialOnset.treatment}`
+          : locale === 'zh'
+            ? '初发治疗方案待补充。'
+            : 'Initial treatment plan missing.',
+      ],
+      cards: [
+        {
+          items: [
+            { label: locale === 'zh' ? '免疫组化' : 'IHC', value: displayValue(record.initialOnset.immunohistochemistry) },
+            { label: locale === 'zh' ? '基因检测' : 'Genetic Test', value: displayValue(record.initialOnset.geneticTest) },
+          ],
+          title: locale === 'zh' ? '初发检测' : 'Initial Testing',
+        },
+      ],
+      index: '01',
+      meta: [
+        { label: locale === 'zh' ? '诊断日期' : 'Diagnosis Date', value: displayValue(record.basicInfo?.diagnosisDate) },
+        { label: locale === 'zh' ? '分期' : 'Stage', value: displayValue(record.basicInfo?.stage) },
+        { label: locale === 'zh' ? '病理类型' : 'Pathology', value: displayValue(record.basicInfo?.tumorType) },
+        { label: locale === 'zh' ? '记录 ID' : 'Record ID', value: displayValue(record.id) },
+      ],
+      subtitle: locale === 'zh' ? '初发' : 'Initial',
+      timeframe: displayValue(record.initialOnset.triggerDate),
+      title: locale === 'zh' ? '初发诊断' : 'Initial Diagnosis',
+      treatment: displayValue(record.initialOnset.treatment, locale === 'zh' ? '初发治疗待补充' : 'Initial treatment missing'),
+    })
+  }
+
+  record.treatmentLines
+    .slice()
+    .sort((left, right) => left.lineNumber - right.lineNumber)
+    .forEach((line) => {
+      entries.push({
+        badge: locale === 'zh' ? '已保存' : 'Saved',
+        body: [
+          line.regimen
+            ? locale === 'zh'
+              ? `方案：${line.regimen}`
+              : `Regimen: ${line.regimen}`
+            : locale === 'zh'
+              ? '治疗方案待补充。'
+              : 'Treatment regimen missing.',
+          line.biopsy
+            ? locale === 'zh'
+              ? `活检：${line.biopsy}`
+              : `Biopsy: ${line.biopsy}`
+            : locale === 'zh'
+              ? '活检信息待补充。'
+              : 'Biopsy information missing.',
+        ],
+        cards: [
+          {
+            items: [
+              { label: locale === 'zh' ? '免疫组化' : 'IHC', value: displayValue(line.immunohistochemistry) },
+              { label: locale === 'zh' ? '基因检测' : 'Genetic Test', value: displayValue(line.geneticTest) },
+            ],
+            title: locale === 'zh' ? '治疗线检测' : 'Line Testing',
+          },
+        ],
+        index: String(entries.length + 1).padStart(2, '0'),
+        meta: [
+          { label: locale === 'zh' ? '开始日期' : 'Start Date', value: displayValue(line.startDate) },
+          { label: locale === 'zh' ? '结束日期' : 'End Date', value: displayValue(line.endDate) },
+        ],
+        subtitle: locale === 'zh' ? `治疗线 ${line.lineNumber}` : `Treatment Line ${line.lineNumber}`,
+        timeframe: [line.startDate, line.endDate].filter(hasValue).join(' - ') || '--',
+        title: locale === 'zh' ? `${line.lineNumber}L 治疗` : `Line ${line.lineNumber} Therapy`,
+        treatment: displayValue(line.regimen, locale === 'zh' ? '治疗方案待补充' : 'Regimen missing'),
+      })
+    })
+
+  if (entries.length > 0) {
+    return entries
+  }
+
+  return [
+    {
+      body: [locale === 'zh' ? '这份病历还没有治疗线信息。' : 'No treatment-line information has been saved yet.'],
+      cards: [],
+      index: '01',
+      meta: [{ label: locale === 'zh' ? '记录 ID' : 'Record ID', value: displayValue(record.id) }],
+      subtitle: locale === 'zh' ? '待补充' : 'Missing',
+      timeframe: '--',
+      title: locale === 'zh' ? '治疗时间线待补充' : 'Treatment Timeline Missing',
+      treatment: locale === 'zh' ? '请回到工作台补充结构化病历。' : 'Return to the workspace to complete this record.',
+    },
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/theme 的 Theme 类型，依赖 public/login/blue-tears-background-dark.png 与 public/login/wind-field-background-light.png 双主题扁平背景资产。
  * [OUTPUT]: 对外提供 LoginTraceMap 组件，渲染登录页干净的双主题海岸背景层。
- * [POS]: components 的登录页全屏视觉模块，作为 login-page-view 的明暗主题背景，不承载额外节点、tooltip 或业务操作。
+ * [POS]: components/login 的登录页全屏视觉模块，作为 login-entry-view 的明暗主题背景，不承载额外节点、tooltip 或业务操作。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Theme } from '@/lib/theme'

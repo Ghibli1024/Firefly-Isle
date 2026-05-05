@@ -1,0 +1,218 @@
+/**
+ * [INPUT]: 依赖 react 的 useState、BackgroundMusicToggle、FireflyMark、LoginTraceMap、AuthOverlay、locale/copy 与隐私摘要文案。
+ * [OUTPUT]: 对外提供 V3LoginView，渲染登录页全屏入口、工具区、安全状态与认证弹层入口。
+ * [POS]: components/login 的入口页编排层，被 login-page-view facade 消费，保持登录展示层对外 API 稳定。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import { useState } from 'react'
+
+import { BackgroundMusicToggle } from '@/components/background-music-toggle'
+import { FireflyMark } from '@/components/system/firefly-mark'
+import { copy, getCopy } from '@/lib/copy'
+import { useLocale } from '@/lib/locale'
+import { PRIVACY_POLICY_SUMMARY } from '@/lib/privacy'
+import type { Theme } from '@/lib/theme'
+
+import { AuthOverlay } from './auth-overlay'
+import type { AuthCardProps } from './auth-card'
+import { LoginTraceMap } from './login-trace-map'
+import { loginThemeSkins } from './skins'
+import type { V3LoginProps } from './types'
+
+function LoginCtaGlyph() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+      <path d="M10 7 15 12l-5 5M15 12H3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+      <path d="M13 4h5a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-5" stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" />
+    </svg>
+  )
+}
+
+function IntroAccessCta({
+  isOpen,
+  locale,
+  onOpen,
+}: {
+  isOpen: boolean
+  locale: 'zh' | 'en'
+  onOpen: () => void
+}) {
+  return (
+    <button
+      aria-controls="login-auth-card"
+      aria-expanded={isOpen}
+      className="inline-flex min-h-[52px] min-w-[156px] items-center justify-center gap-2.5 rounded-[12px] bg-[var(--ff-accent-primary)] px-6 text-base font-bold text-white shadow-[0_10px_18px_rgba(5,9,11,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)]"
+      data-testid="login-auth-cta"
+      onClick={onOpen}
+      type="button"
+    >
+      <LoginCtaGlyph />
+      <span className="whitespace-nowrap">
+        {locale === 'zh' ? '登录' : 'Login'}
+      </span>
+    </button>
+  )
+}
+
+function LoginPageUtilityControls({
+  locale,
+  onToggleTheme,
+  theme,
+  toggleLocale,
+}: {
+  locale: 'zh' | 'en'
+  onToggleTheme: () => void
+  theme: Theme
+  toggleLocale: () => void
+}) {
+  const isDark = theme === 'dark'
+  const skin = loginThemeSkins[theme]
+
+  return (
+    <div
+      className={`fixed bottom-4 left-4 right-4 z-[60] flex w-auto max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 rounded-[14px] border px-3 py-3 text-sm font-semibold backdrop-blur-md sm:bottom-6 sm:left-auto sm:right-6 sm:w-fit sm:flex-nowrap sm:justify-start sm:gap-5 sm:px-6 sm:text-base ${skin.utilityShell}`}
+      data-testid="login-page-utility-controls"
+    >
+      <button className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={onToggleTheme} type="button">
+        <span className="material-symbols-outlined shrink-0 text-[24px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
+        {getCopy(copy.shell.nav.themeToggle, locale)}
+      </button>
+      <span className={`h-5 w-px ${skin.utilityDivider}`} />
+      <button className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={toggleLocale} type="button">
+        <span className="material-symbols-outlined shrink-0 text-[24px]">g_translate</span>
+        {getCopy(copy.shell.nav.languageToggle, locale)}
+      </button>
+      <span className={`h-5 w-px ${skin.utilityDivider}`} />
+      <BackgroundMusicToggle
+        className={`gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`}
+        showLabel
+      />
+    </div>
+  )
+}
+
+function LoginSecurityStatus({ locale, theme }: { locale: 'zh' | 'en'; theme: Theme }) {
+  const skin = loginThemeSkins[theme]
+
+  return (
+    <div
+      className={`inline-flex min-h-[46px] items-center gap-3 rounded-[14px] border px-4 text-sm font-bold backdrop-blur-md ${theme === 'dark' ? 'border-white/10 bg-white/[0.045]' : 'border-[#a9c3c5]/42 bg-white/62'} ${skin.security}`}
+      data-testid="login-security-status"
+    >
+      <span className="h-2 w-2 rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-success)] shadow-[0_0_12px_rgba(90,169,116,0.44)]" />
+      <span>{locale === 'zh' ? '安全访问路径已加密' : 'Secure access path encrypted'}</span>
+    </div>
+  )
+}
+
+export function V3LoginView({
+  authMethod,
+  authError,
+  defaultAuthOpen = false,
+  email,
+  feedback,
+  isSubmitting,
+  mode,
+  onAnonymousLogin,
+  onAuthMethodChange,
+  onEmailChange,
+  onGoogleLogin,
+  onModeChange,
+  onPasswordChange,
+  onSubmit,
+  onToggleTheme,
+  password,
+  theme,
+}: V3LoginProps) {
+  const { locale, toggleLocale } = useLocale()
+  const currentFeedback = feedback ?? (authError ? { message: authError, tone: 'error' as const } : null)
+  const privacySummary =
+    locale === 'zh'
+      ? PRIVACY_POLICY_SUMMARY
+      : 'By continuing, you agree to the privacy policy. Clinical text is used only for structured processing.'
+  const [isAuthOpen, setIsAuthOpen] = useState(defaultAuthOpen)
+  const skin = loginThemeSkins[theme]
+  const authCardProps: AuthCardProps = {
+    authMethod,
+    currentFeedback,
+    email,
+    isSubmitting,
+    locale,
+    mode,
+    onAnonymousLogin,
+    onAuthMethodChange,
+    onEmailChange,
+    onGoogleLogin,
+    onModeChange,
+    onPasswordChange,
+    onSubmit,
+    password,
+    privacySummary,
+    theme,
+  }
+
+  return (
+    <div className={`min-h-dvh w-full overflow-x-hidden font-[var(--ff-font-ui)] ${skin.root}`}>
+      <main className="grid min-h-dvh w-full xl:h-dvh xl:grid-cols-1">
+        <section className={`relative min-w-0 overflow-hidden px-7 pb-8 pt-24 md:px-14 md:py-12 xl:overflow-hidden ${skin.section}`}>
+          <LoginTraceMap locale={locale} theme={theme} />
+          <div className="relative z-10 flex min-h-full flex-col">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start">
+              <div className="flex min-w-0 items-center gap-4 md:gap-6">
+                <FireflyMark className="h-16 w-16 md:h-[72px] md:w-[72px]" />
+                <div className="min-w-0">
+                  <div className={`font-[var(--ff-font-display)] text-3xl font-bold tracking-normal md:text-[2.8rem] ${skin.brandTitle}`}>
+                    {getCopy(copy.shell.brand.lightTitle, locale)}
+                  </div>
+                  <div className={`mt-2 text-base font-semibold md:text-xl ${skin.brandSubtitle}`}>{getCopy(copy.shell.brand.lightSubtitle, locale)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-[12vh] w-full max-w-[calc(100vw-3.5rem)] md:mt-[16vh] md:max-w-[48rem]">
+              <div
+                className={`mb-5 inline-flex items-center gap-3 text-xs font-extrabold uppercase tracking-[0.18em] md:text-sm ${theme === 'dark' ? 'text-white/44' : 'text-[#455c58]/62'}`}
+                data-testid="login-intro-eyebrow"
+              >
+                <span className="h-0.5 w-10 bg-[var(--ff-accent-primary)]" />
+                <span>{locale === 'zh' ? 'Clinical timeline workspace' : 'Clinical timeline workspace'}</span>
+              </div>
+              <h1 className={`max-w-[calc(100vw-3.5rem)] break-words text-[clamp(2.5rem,4vw,3.5rem)] font-black leading-[1.08] tracking-normal md:max-w-[48rem] ${skin.heading}`}>
+                {locale === 'zh' ? (
+                  <>
+                    <span className="md:hidden">
+                      临床治疗
+                      <br />
+                      时间线工作台
+                    </span>
+                    <span className="hidden md:inline">临床治疗时间线工作台</span>
+                  </>
+                ) : (
+                  'Clinical Treatment Timeline Workspace'
+                )}
+              </h1>
+              <p className={`mt-7 max-w-[40rem] text-xl font-semibold leading-8 md:text-[1.35rem] ${skin.bodyCopy}`}>
+                {locale === 'zh'
+                  ? '把复杂治疗史整理为可追溯的结构化病历。'
+                  : 'Transform complex treatment history into an auditable structured clinical record.'}
+              </p>
+            </div>
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <IntroAccessCta isOpen={isAuthOpen} locale={locale} onOpen={() => setIsAuthOpen(true)} />
+              <LoginSecurityStatus locale={locale} theme={theme} />
+            </div>
+            <LoginPageUtilityControls
+              locale={locale}
+              onToggleTheme={onToggleTheme}
+              theme={theme}
+              toggleLocale={toggleLocale}
+            />
+          </div>
+        </section>
+
+        {isAuthOpen ? <AuthOverlay {...authCardProps} onClose={() => setIsAuthOpen(false)} /> : null}
+      </main>
+    </div>
+  )
+}

@@ -50,11 +50,16 @@ function renderLogin(theme: LoginPageViewProps['theme'], overrides: Partial<Logi
 }
 
 function readLoginSource() {
-  return readFileSync(new URL('./login-page-view.tsx', import.meta.url), 'utf8')
+  return [
+    './login-page-view.tsx',
+    './login/auth-overlay.tsx',
+    './login/auth-card.tsx',
+    './login/login-entry-view.tsx',
+  ].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n')
 }
 
 function readTraceMapSource() {
-  return readFileSync(new URL('./login-trace-map.tsx', import.meta.url), 'utf8')
+  return readFileSync(new URL('./login/login-trace-map.tsx', import.meta.url), 'utf8')
 }
 
 describe('LoginPageView theme shell', () => {

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 node:fs 读取 src/index.css，依赖 vitest，依赖 ./tokens 的 V3 主题合同。
+ * [INPUT]: 依赖 node:fs 读取 src/index.css 与页面/组件源码，依赖 vitest，依赖 ./tokens 的 V3 主题合同。
  * [OUTPUT]: 对外提供主题 token、CSS 全局约束与字体系统回归测试。
  * [POS]: src/lib/theme 的测试文件，阻止 action 色、light 侧栏 shell 归属、紧凑响应式侧栏、宽幅 shell、圆角合同与 03 Apple Editorial 字体系统回退到旧双主题漂移。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -29,7 +29,7 @@ const reportPreviewFrameSource = readFileSync(new URL('../../components/workspac
 const timelineTableSource = readFileSync(new URL('../../components/timeline/TimelineTable.tsx', import.meta.url), 'utf8')
 const topbarSource = readFileSync(new URL('../../components/system/topbar.tsx', import.meta.url), 'utf8')
 const followUpPanelSource = readFileSync(new URL('../../components/workspace/follow-up-panel.tsx', import.meta.url), 'utf8')
-const loginPageViewSource = readFileSync(new URL('../../components/login-page-view.tsx', import.meta.url), 'utf8')
+const loginEntryViewSource = readFileSync(new URL('../../components/login/login-entry-view.tsx', import.meta.url), 'utf8')
 const originStoryPaperSource = readFileSync(new URL('../../components/system/origin-story-paper.tsx', import.meta.url), 'utf8')
 const privacyGateSource = readFileSync(new URL('../../components/privacy-gate.tsx', import.meta.url), 'utf8')
 const privacyPageSource = readFileSync(new URL('../../routes/privacy-page.tsx', import.meta.url), 'utf8')
@@ -95,11 +95,11 @@ describe('V3 theme token contract', () => {
     expect(reportPreviewFrameSource).toContain('className={`mt-4 ${previewSectionTitleClass}`}')
     expect(reportPreviewFrameSource).toContain('className="block font-[var(--ff-font-display)] text-lg font-bold')
     expect(privacyGateSource).toContain('className="mt-3 font-[var(--ff-font-display)] text-lg font-bold tracking-normal"')
-    expect(loginPageViewSource).toContain('font-[var(--ff-font-display)] text-3xl font-bold')
+    expect(loginEntryViewSource).toContain('font-[var(--ff-font-display)] text-3xl font-bold')
 
     for (const source of [
       followUpPanelSource,
-      loginPageViewSource,
+      loginEntryViewSource,
       originStoryPaperSource,
       privacyPageSource,
       recordPageSource,
