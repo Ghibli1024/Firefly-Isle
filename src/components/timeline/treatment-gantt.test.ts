@@ -1,52 +1,90 @@
 /**
- * [INPUT]: 依赖 vitest 的 describe/it/expect，依赖 ./treatment-gantt 的 buildTreatmentGanttRows。
- * [OUTPUT]: 对外提供治疗线甘特数据归一化回归测试。
- * [POS]: components/timeline 的纯逻辑测试，约束治疗线排序、缺失日期、持续时间 bar 与当前治疗线判定。
+ * [INPUT]: 依赖 vitest 的 describe/it/expect，依赖 PatientRecord 与 ./treatment-gantt 的 buildTreatmentGanttProjection。
+ * [OUTPUT]: 对外提供治疗方案甘特数据归一化回归测试。
+ * [POS]: components/timeline 的纯逻辑测试，约束初发+治疗线排序、PFS、间隔、时间轴比例与开放当前线判定。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { describe, expect, it } from 'vitest'
 
-import type { TreatmentLine } from '@/types/patient'
+import type { PatientRecord } from '@/types/patient'
 
-import { buildTreatmentGanttRows } from './treatment-gantt'
+import { buildTreatmentGanttProjection } from './treatment-gantt'
 
-describe('buildTreatmentGanttRows', () => {
-  it('orders treatment lines and maps complete date ranges to proportional bars', () => {
-    const rows = buildTreatmentGanttRows([
-      { endDate: '2024-02', lineNumber: 2, regimen: 'Docetaxel', startDate: '2023-11' },
-      { endDate: '2023-10', lineNumber: 1, regimen: 'Osimertinib', startDate: '2023-05' },
-      { lineNumber: 3, regimen: 'Clinical trial', startDate: '2024-03' },
+const breastCancerRecord: PatientRecord = {
+  initialOnset: {
+    triggerDate: '2021.07',
+    treatment: 'AC方案4次 / 放疗25+5 / 依西美坦 + 亮丙',
+  },
+  treatmentLines: [
+    { endDate: '2023.05', lineNumber: 1, regimen: '阿贝西利 + 氟维司群 + 亮丙瑞林 + 地舒单抗', startDate: '2022.10' },
+    { endDate: '2023.10', lineNumber: 2, regimen: '哌柏西利 + 氟维司群 + 亮丙瑞林 + 地舒单抗', startDate: '2023.05' },
+    { endDate: '2023.11', lineNumber: 3, regimen: '瑞波西利 + 来曲唑片；氟维司群 + 亮丙瑞林 + 地舒单抗', startDate: '2023.10' },
+    { endDate: '2024.02', lineNumber: 4, regimen: '紫杉醇脂质体 + 卡培他滨', startDate: '2023.12' },
+    { endDate: '2024.07', lineNumber: 5, regimen: '戈沙妥珠单抗', startDate: '2024.03' },
+    { endDate: '2024.09', lineNumber: 6, regimen: '吉西他滨 + 卡铂', startDate: '2024.08' },
+    { endDate: '2025.03', lineNumber: 7, regimen: '艾立布林 + 特瑞普利 + 安罗替尼', startDate: '2024.10' },
+    { endDate: '2025.09.25', lineNumber: 8, regimen: '白紫 + 依维莫司 + 托瑞米芬 + 安罗替尼', startDate: '2025.04' },
+    { lineNumber: 9, regimen: '氟唑帕利 + 哌柏西利 + 托瑞米芬', startDate: '2025.10.01 起' },
+  ],
+}
+
+describe('buildTreatmentGanttProjection', () => {
+  it('builds the demo case as one baseline row plus nine treatment rows', () => {
+    const projection = buildTreatmentGanttProjection(breastCancerRecord, 'zh')
+
+    expect(projection.rows.map((row) => row.marker)).toEqual(['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'])
+    expect(projection.rows.map((row) => row.pfsLabel)).toEqual([
+      'PFS=15个月',
+      'PFS=7个月',
+      'PFS=5个月',
+      'PFS=1个月',
+      'PFS=2个月',
+      'PFS=4个月',
+      'PFS=1个月',
+      'PFS=5个月',
+      'PFS=约5.8个月',
+      'PFS=进行中',
     ])
-
-    expect(rows.map((row) => row.lineNumber)).toEqual([1, 2, 3])
-    expect(rows[0]).toMatchObject({
-      bar: {
-        leftPercent: 0,
-      },
-      isCurrent: false,
+    expect(projection.rows[0]).toMatchObject({
+      isBaseline: true,
+      plan: 'AC方案4次 / 放疗25+5 / 依西美坦 + 亮丙',
+      rangeLabel: '2021.07-2022.10',
       status: 'complete',
     })
-    expect(rows[1].bar?.leftPercent).toBeGreaterThan(rows[0].bar?.leftPercent ?? 0)
-    expect(rows[1].bar?.widthPercent).toBeGreaterThan(0)
-    expect(rows[2]).toMatchObject({
-      bar: null,
+    expect(projection.rows[9]).toMatchObject({
       isCurrent: true,
-      status: 'pending',
+      plan: '氟唑帕利 + 哌柏西利 + 托瑞米芬',
+      rangeLabel: '2025.10.01 起',
+      status: 'ongoing',
     })
   })
 
-  it('does not create fake bars for missing start or end dates', () => {
-    const rows = buildTreatmentGanttRows([
-      { endDate: '2023-10', lineNumber: 1, regimen: 'Missing start' },
-      { lineNumber: 2, regimen: 'Missing end', startDate: '2023-11' },
-    ])
+  it('computes dashed gaps and year ticks for the scrollable axis', () => {
+    const projection = buildTreatmentGanttProjection(breastCancerRecord, 'zh')
 
-    expect(rows).toHaveLength(2)
-    expect(rows.every((row) => row.status === 'pending')).toBe(true)
-    expect(rows.every((row) => row.bar === null)).toBe(true)
+    expect(projection.axisTicks.map((tick) => tick.label)).toEqual(['2021 H2', '2022', '2023', '2024', '2025', '2025 Q4'])
+    expect(projection.rows[4].gap?.widthPercent).toBeGreaterThan(0)
+    expect(projection.rows[5].gap?.widthPercent).toBeGreaterThan(0)
+    expect(projection.rows[9].continueFromPercent).toBeGreaterThan(projection.rows[9].bar?.leftPercent ?? 0)
   })
 
-  it('handles empty treatment lines without synthetic rows', () => {
-    expect(buildTreatmentGanttRows([] satisfies TreatmentLine[])).toEqual([])
+  it('keeps rows without usable dates pending instead of drawing fake bars', () => {
+    const projection = buildTreatmentGanttProjection(
+      {
+        treatmentLines: [
+          { endDate: '2023-10', lineNumber: 1, regimen: 'Missing start' },
+          { lineNumber: 2, regimen: 'Invalid start', startDate: '待定' },
+        ],
+      },
+      'zh',
+    )
+
+    expect(projection.rows).toHaveLength(2)
+    expect(projection.rows.every((row) => row.status === 'pending')).toBe(true)
+    expect(projection.rows.every((row) => row.bar === null)).toBe(true)
+  })
+
+  it('handles empty records without synthetic rows', () => {
+    expect(buildTreatmentGanttProjection({ treatmentLines: [] }, 'zh').rows).toEqual([])
   })
 })

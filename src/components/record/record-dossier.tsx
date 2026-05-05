@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties/RefObject、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
  * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入和时间线 rail draw-in 的档案视图。
- * [POS]: components/record 的主展示层，承载宽幅病历档案、指标、时间线、证据卡、导出按钮与不可用态，不参与路由加载状态。
+ * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、按需实验室趋势、时间线、证据卡、导出按钮与不可用态，不再在页头、标题或补充资料行重复已表达信息。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { CSSProperties, RefObject } from 'react'
@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import type { Locale } from '@/lib/locale'
 import type { PatientRecord } from '@/types/patient'
 
-import { getRecordHeaderSubtitle, getRecordSummaryMetrics, getRecordTimelineEntries } from './record-derived'
+import { getRecordSummaryMetrics, getRecordTimelineEntries } from './record-derived'
 import { LabTrendsTable } from './LabTrendsTable'
 import { getTimelineEntries, labels, summaryMetrics } from './record-copy'
 import type { EvidenceCard, ExportFormat, Metric, TimelineEntry } from './types'
@@ -18,19 +18,12 @@ import type { EvidenceCard, ExportFormat, Metric, TimelineEntry } from './types'
 function SummaryGrid({ metrics }: { metrics: Metric[] }) {
   return (
     <div
-      className="t-stagger grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-4"
+      className="t-stagger grid overflow-hidden rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-3"
       style={{ '--t-order': 1 } as CSSProperties}
     >
-      {metrics.map((metric, index) => (
+      {metrics.map((metric) => (
         <div
-          className={[
-            'min-h-[100px] border-[var(--ff-border-default)] p-6',
-            index < metrics.length - 1 ? 'border-b' : '',
-            index % 2 === 0 ? 'sm:border-r' : '',
-            index < metrics.length - 2 ? 'sm:border-b' : 'sm:border-b-0',
-            index % 4 !== 3 ? 'lg:border-r' : 'lg:border-r-0',
-            index < 4 ? 'lg:border-b' : 'lg:border-b-0',
-          ].join(' ')}
+          className="-mb-px -mr-px min-h-[100px] border-b border-r border-[var(--ff-border-default)] p-6"
           key={metric.label}
         >
           <div className="text-sm text-[var(--ff-text-muted)]">{metric.label}</div>
@@ -50,9 +43,9 @@ function EvidenceCardView({ card, order }: { card: EvidenceCard; order: number }
       <h4 className="mb-4 font-bold text-[var(--ff-accent-primary)]">{card.title}</h4>
       <div className="space-y-3">
         {card.items.map((item) => (
-          <div className="flex justify-between gap-6 border-b border-[var(--ff-border-muted)] pb-2 text-sm" key={item.label}>
-            <span className="text-[var(--ff-text-secondary)]">{item.label}</span>
-            <span className="text-right font-medium text-[var(--ff-text-primary)]">{item.value}</span>
+          <div className="flex justify-between gap-6 border-b border-[var(--ff-border-muted)] pb-2 text-sm" key={`${item.label}:${item.value}`}>
+            {item.label ? <span className="text-[var(--ff-text-secondary)]">{item.label}</span> : null}
+            <span className={`${item.label ? 'text-right' : ''} font-medium text-[var(--ff-text-primary)]`}>{item.value}</span>
           </div>
         ))}
       </div>
@@ -61,9 +54,16 @@ function EvidenceCardView({ card, order }: { card: EvidenceCard; order: number }
 }
 
 function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number }) {
+  const hasCards = entry.cards.length > 0
+
   return (
     <article
-      className="t-stagger relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] 2xl:p-8"
+      className={[
+        't-stagger relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 2xl:p-8',
+        hasCards
+          ? 'lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]'
+          : '',
+      ].join(' ')}
       style={{ '--t-order': order } as CSSProperties}
     >
       <div>
@@ -72,7 +72,7 @@ function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number })
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-3xl font-bold tracking-normal">{entry.title}</h3>
-              <span className="text-sm text-[var(--ff-text-muted)]">/ {entry.subtitle}</span>
+              {entry.subtitle ? <span className="text-sm text-[var(--ff-text-muted)]">/ {entry.subtitle}</span> : null}
               {entry.badge ? (
                 <span className="rounded-[var(--ff-radius-full)] border border-[color:color-mix(in_srgb,var(--ff-accent-success)_42%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_10%,var(--ff-surface-panel))] px-3 py-1 text-sm text-[var(--ff-accent-success)]">
                   {entry.badge}
@@ -84,11 +84,13 @@ function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number })
         </div>
 
         <h4 className="mb-4 text-2xl font-semibold">{entry.treatment}</h4>
-        <div className="space-y-2 text-base leading-8 text-[var(--ff-text-secondary)]">
-          {entry.body.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </div>
+        {entry.body.length > 0 ? (
+          <div className="space-y-2 text-base leading-8 text-[var(--ff-text-secondary)]">
+            {entry.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        ) : null}
 
         {entry.meta.length > 0 ? (
           <div className="mt-10 grid border-t border-[var(--ff-border-default)] pt-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -130,11 +132,13 @@ function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number })
         ) : null}
       </div>
 
-      <div className="space-y-4 border-[var(--ff-border-default)] md:border-l md:pl-6">
-        {entry.cards.map((card, cardIndex) => (
-          <EvidenceCardView card={card} key={card.title} order={order + cardIndex + 1} />
-        ))}
-      </div>
+      {hasCards ? (
+        <div className="space-y-4 border-[var(--ff-border-default)] md:border-l md:pl-6">
+          {entry.cards.map((card, cardIndex) => (
+            <EvidenceCardView card={card} key={card.title} order={order + cardIndex + 1} />
+          ))}
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -161,7 +165,7 @@ export function RecordDossier({
   const text = labels[locale]
   const entries = record ? getRecordTimelineEntries(record, locale) : getTimelineEntries(locale)
   const metrics = record ? getRecordSummaryMetrics(record, locale) : summaryMetrics[locale]
-  const headerSubtitle = record ? getRecordHeaderSubtitle(record, locale) : text.headerSubtitle
+  const labTrendRecord = (record?.labResults?.length ?? 0) > 0 ? record : undefined
 
   return (
     <div
@@ -172,10 +176,8 @@ export function RecordDossier({
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
-            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">{headerSubtitle}</p>
           </div>
           <div className="text-left md:text-right">
-            <div className="font-[var(--ff-font-mono)] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
             <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
               <span className="material-symbols-outlined text-base">lock</span>
               {text.access}
@@ -218,9 +220,11 @@ export function RecordDossier({
 
       <SummaryGrid metrics={metrics} />
 
-      <div className="t-stagger" style={{ '--t-order': 2 } as CSSProperties}>
-        <LabTrendsTable locale={locale} record={record ?? { treatmentLines: [] }} />
-      </div>
+      {labTrendRecord ? (
+        <div className="t-stagger" style={{ '--t-order': 2 } as CSSProperties}>
+          <LabTrendsTable locale={locale} record={labTrendRecord} />
+        </div>
+      ) : null}
 
       <section className="mt-8">
         <div className="mb-6 flex items-center gap-3">
@@ -322,7 +326,6 @@ export function RecordUnavailableDossier({
             </p>
           </div>
           <div className="text-left md:text-right">
-            <div className="font-[var(--ff-font-mono)] text-sm uppercase tracking-[0.14em] text-[var(--ff-accent-primary)]">{text.dossier}</div>
             <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
               <span className="material-symbols-outlined text-base">lock</span>
               {text.access}

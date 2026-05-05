@@ -16,7 +16,7 @@ workspace-page.tsx: 临床工作区实现，对应 /app，在统一 system shell
 workspace-page.test.tsx: 工作区报告区、真实治疗线预览、OCR 文件导入、OCR 文本确认、LLM provider 设置入口、自然语言编辑入口、单主按钮、输入 composer 工具行、全站动效合同、背景音 provider 壳层依赖、移除侧栏状态卡、统计敬请期待按钮、主题/语言顺序、active 导航、病历/语言切换图标、匿名/非匿名身份图标、隐藏恢复胶囊、左缘渐进拉出、拖拽到隐藏、紧凑默认弹出宽度、locale 与 user.id 持久化回归测试，约束 dark/light 都不再渲染正式导出按钮、多余总标题壳、废弃控制块、装饰性运行状态卡、统计路由跳转、active 卡片高亮、边缘亮条、folder 病历图标、泛化语言图标、下拉误导箭头、过宽隐藏恢复按钮、旧侧栏宽度缓存污染、双语漂移或按 email/phone/provider 持久化病历，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-page.logic.ts: 病例详情 route 逻辑层，复用 patient-record-storage 的 patients/treatment_lines/lab_results 读取，并保留 active load-state 归一，不导出 React 组件，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-page.tsx: 档案详情 route 编排层，对应 /record/:id，只负责 params、locale/theme、加载状态、视图状态、导出状态、route/stagger 动效、shell 与 record-page.view 组合，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-record-page.view.tsx: 档案详情内容组合层，隔离 dossier/Gantt 视图切换、tab/record-view 动效、demoPatientRecord 甘特数据、不可用态与导出目标边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-record-page.test.tsx: 病例详情页响应式版心、背景音 provider 壳层依赖、loader 源码合同、dossier/Gantt 切换、全站动效与导出职责回归测试，约束 /record/:id 使用共享宽幅 shell、真实记录 PDF/PNG 可导出、demo fallback 禁用态、Gantt 不劫持导出且禁止回退到 980px 固定画布，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-page.view.tsx: 档案详情内容组合层，隔离 dossier/Gantt 视图切换、tab/record-view 动效、demo-record 默认病例、demo-only 甘特补充资料、不可用态与导出目标边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-page.test.tsx: 病例详情页响应式版心、背景音 provider 壳层依赖、loader 源码合同、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、中文线别、时间线编号/标题/补充资料去重、全站动效与导出职责回归测试，约束 /record/:id 使用共享宽幅 shell、真实记录 PDF/PNG 可导出、demo fallback 禁用态、默认乳腺癌病例、Gantt 不劫持导出且禁止回退到 980px 固定画布，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
 法则: 路由页负责组合页面块；认证动作可局部抽离为同目录逻辑层，但不能绕过 Supabase Auth 或复制全局 session 状态机；OAuth 回调必须先落公共页恢复 session。

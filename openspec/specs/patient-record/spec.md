@@ -22,7 +22,7 @@
 - **WHEN** 已保存病历的 basicInfo、initialOnset 或 treatmentLines 可读取
 - **AND** labResults 为空或 lab_results 可选存储暂不可用
 - **THEN** 系统 SHALL 继续渲染主病历与治疗线
-- **AND** 实验室趋势 SHALL 显示空态，不得让病历详情页整体载入失败
+- **AND** 病历详情页 SHALL 不渲染空的实验室趋势占位，也不得让整体载入失败
 
 ### Requirement: TreatmentLine 治疗线数据结构
 系统 SHALL 定义 TreatmentLine 接口，`lineNumber` 为必填数字（1=一线，2=二线，以此类推）；`regimen` 在完整治疗线中应被支持，但在提取中间态或缺失字段待补全时可暂时缺失。

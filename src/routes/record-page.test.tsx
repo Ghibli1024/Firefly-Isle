@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、档案/Gantt 动效与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、中文线别、时间线编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、中文治疗线别、档案/Gantt 动效与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -167,9 +167,14 @@ describe('RecordPage responsive dossier shell', () => {
       viewMode: 'gantt',
     })
 
-    expect(markup).toContain('治疗线甘特图')
-    expect(markup).toContain('奥希替尼')
-    expect(markup).toContain('当前治疗线')
+    expect(markup).toContain('治疗方案')
+    expect(markup).toContain('氟唑帕利 + 哌柏西利 + 托瑞米芬')
+    expect(markup).toContain('PFS=约5.8个月')
+    expect(markup).toContain('PTEN 拷贝数缺失')
+    expect(markup).not.toContain('张三')
+    expect(markup).not.toContain('NSCLC')
+    expect(markup).not.toContain('奥希替尼')
+    expect(markup).not.toContain('当前治疗线')
     expect(markup).toContain('t-record-view')
   })
 
@@ -208,6 +213,162 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('持续增高')
   })
 
+  it('uses the same compact detail format for persisted treatment lines', () => {
+    const markup = renderRecordContent({
+      record: {
+        id: 'patient-42',
+        treatmentLines: [
+          {
+            biopsy: '2024.01 肝转',
+            endDate: '2024.03',
+            geneticTest: 'PTEN 缺失',
+            immunohistochemistry: 'ER-，PR-，HER2 0',
+            lineNumber: 1,
+            regimen: '真实治疗方案',
+            startDate: '2024.01',
+          },
+        ],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('2024.01 - 2024.03')
+    expect(markup).toContain('真实治疗方案')
+    expect(markup).toContain('/ 一线治疗')
+    expect(markup).toContain('免疫组化')
+    expect(markup).toContain('基因检测')
+    expect(markup).toContain('补充资料')
+    expect(markup).toContain('2024.01 肝转')
+    expect(markup).not.toContain('开始日期')
+    expect(markup).not.toContain('结束日期')
+    expect(markup).not.toContain('活检：')
+    expect(markup).not.toContain('1L 治疗')
+    expect(markup).not.toContain('/ 治疗线 1')
+    expect(markup).not.toContain('>补充资料</span><span')
+  })
+
+  it('does not render an empty lab trend placeholder for the demo dossier', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+
+    expect(markup).not.toContain('实验室趋势')
+    expect(markup).not.toContain('暂无实验室趋势')
+  })
+
+  it('renders every demo treatment as its own dossier timeline entry', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('初发治疗')
+    expect(markup).toContain('>00</span>')
+    expect(markup).toContain('>01</span>')
+    expect(markup).toContain('>09</span>')
+    expect(markup).toContain('/ 基线')
+    expect(markup).toContain('/ 一线治疗')
+    expect(markup).toContain('/ 二线治疗')
+    expect(markup).toContain('/ 三线治疗')
+    expect(markup).toContain('/ 九线治疗')
+    expect(markup).toContain('Luminal B；ER / PR 90%+ / 90%+；HER2 0；Ki67 60%')
+    expect(markup).toContain('阿贝西利 + 氟维司群 + 亮丙瑞林 + 地舒单抗')
+    expect(markup).toContain('氟唑帕利 + 哌柏西利 + 托瑞米芬')
+    expect(markup).not.toContain('初发免疫组化')
+    expect(markup).not.toContain('1L 治疗')
+    expect(markup).not.toContain('2L 治疗')
+    expect(markup).not.toContain('3L 治疗')
+    expect(markup).not.toContain('4L 治疗')
+    expect(markup).not.toContain('5L 治疗')
+    expect(markup).not.toContain('6L 治疗')
+    expect(markup).not.toContain('7L 治疗')
+    expect(markup).not.toContain('8L 治疗')
+    expect(markup).not.toContain('9L 治疗')
+    expect(markup).not.toContain('/ 治疗线')
+    expect(markup).not.toContain('治疗线 1-6')
+    expect(markup).not.toContain('治疗线 7-9')
+    expect(markup).not.toContain('开始时间')
+    expect(markup).not.toContain('结束时间')
+    expect(markup).not.toContain('<p>补充资料：')
+    expect(markup).not.toContain('>补充资料</span><span')
+    expect(markup).not.toContain('<p>该治疗线原始资料')
+    expect(markup).not.toContain('补充资料：2023.11 血液 NGS')
+    expect(markup).not.toContain('原始资料未记录额外补充信息')
+    expect(markup).toContain('2023.10 肝转单发')
+    expect(markup).toContain('2023.11 血液 NGS：PTEN 拷贝数缺失')
+  })
+
+  it('moves the demo cancer type into the summary metrics instead of the header subtitle', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('癌种')
+    expect(markup).toContain('乳腺癌')
+    expect(markup).not.toContain('乳腺癌 · 复发/晚期 · PTEN / FGFR1')
+    expect(markup).not.toContain('CLINICAL HISTORY DOSSIER')
+  })
+
+  it('does not repeat demo summary facts inside the initial timeline meta grid', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+
+    expect(markup.match(/诊断日期/g)).toHaveLength(1)
+    expect(markup).not.toContain('临床状态')
+    expect(markup).not.toContain('病理类型')
+    expect(markup).not.toContain('生物标本状态')
+    expect(markup).not.toContain('<p>患者于 2021 年 7 月进入初发治疗阶段。</p>')
+    expect(markup).not.toContain('<p>基线治疗包括 AC 方案 4 次、放疗 25+5、依西美坦联合亮丙瑞林。</p>')
+  })
+
+  it('derives the persisted record cancer type from basic info summary metrics only', () => {
+    const markup = renderRecordContent({
+      record: {
+        basicInfo: {
+          stage: 'IV期',
+          tumorType: '黑色素瘤',
+        },
+        id: 'patient-42',
+        treatmentLines: [{ lineNumber: 1, regimen: '真实治疗方案', startDate: '2024.01' }],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('癌种')
+    expect(markup).toContain('黑色素瘤')
+    expect(markup).not.toContain('黑色素瘤 · IV期')
+  })
+
+  it('does not repeat persisted basic info inside the initial timeline meta grid', () => {
+    const markup = renderRecordContent({
+      record: {
+        basicInfo: {
+          diagnosisDate: '2024.01',
+          stage: 'IV期',
+          tumorType: '黑色素瘤',
+        },
+        id: 'patient-42',
+        initialOnset: {
+          triggerDate: '2024.01',
+          treatment: '初发治疗方案',
+        },
+        treatmentLines: [],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup.match(/诊断日期/g)).toHaveLength(1)
+    expect(markup).not.toContain('病理类型')
+    expect(markup).not.toContain('记录 ID')
+    expect(markup).not.toContain('patient-42')
+    expect(markup).not.toContain('初发时间：2024.01')
+    expect(markup).not.toContain('治疗方案：初发治疗方案')
+  })
+
   it('keeps export actions scoped to the dossier view instead of the active Gantt view', () => {
     const record: PatientRecord = {
       id: 'patient-42',
@@ -218,7 +379,7 @@ describe('RecordPage responsive dossier shell', () => {
 
     expect(dossierMarkup).toContain('导出 PDF')
     expect(dossierMarkup).toContain('导出 PNG')
-    expect(ganttMarkup).toContain('治疗线甘特图')
+    expect(ganttMarkup).toContain('治疗方案')
     expect(ganttMarkup).not.toContain('导出 PDF')
     expect(ganttMarkup).not.toContain('导出 PNG')
   })
@@ -246,5 +407,13 @@ describe('RecordPage responsive dossier shell', () => {
     expect(source).toContain('loadPatientRecordById(id)')
     expect(source).toContain('recordLoadState.record')
     expect(source).not.toContain("const isDemoRecord = id === 'demo'")
+  })
+
+  it('keeps the bulky demo record fixture outside record-copy copywriting', () => {
+    const source = readFileSync(new URL('../components/record/record-copy.ts', import.meta.url), 'utf8')
+
+    expect(source).not.toContain('export const demoPatientRecord')
+    expect(source).not.toContain('export const demoTreatmentGanttSupplementNotes')
+    expect(source).toContain("from './demo-record'")
   })
 })

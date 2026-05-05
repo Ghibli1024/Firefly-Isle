@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 读取 src/index.css 与页面/组件/共享品牌字标源码，依赖 vitest，依赖 ./tokens 的 V3 主题合同。
- * [OUTPUT]: 对外提供主题 token、CSS 全局约束与字体系统回归测试。
- * [POS]: src/lib/theme 的测试文件，阻止 action 色、light 侧栏 shell 归属、紧凑响应式侧栏、宽幅 shell、圆角合同与 03 Apple Editorial 字体系统回退到旧双主题漂移。
+ * [OUTPUT]: 对外提供主题 token、CSS 全局约束、移动端满宽顶栏与字体系统回归测试。
+ * [POS]: src/lib/theme 的测试文件，阻止 action 色、light 侧栏 shell 归属、紧凑响应式侧栏、移动端满宽顶栏、宽幅 shell、圆角合同与 03 Apple Editorial 字体系统回退到旧双主题漂移。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 /// <reference types="node" />
@@ -57,7 +57,7 @@ describe('V3 theme token contract', () => {
     expect(sidebarLabelHideWidth).toBe(148)
     expect(sidebarWidthClass).toBe('w-[var(--ff-sidebar-width)]')
     expect(sidebarOffsetClass).toBe('md:ml-[var(--ff-sidebar-offset)]')
-    expect(shellViewportOffsetClass).toBe('md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]')
+    expect(shellViewportOffsetClass).toBe('left-0 w-screen md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]')
     expect(shellWideContentClass).toBe('mx-auto w-full max-w-[1760px]')
   })
 

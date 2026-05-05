@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、@/components/timeline 的 TreatmentGanttView、record-copy 的 demoPatientRecord、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
+ * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、demo-record 的默认病例、record-copy 的 labels、@/components/timeline 的 TreatmentGanttView、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
  * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode 与 RecordExportState，并统一档案/Gantt 切换动效锚点。
  * [POS]: routes 的档案详情内容组合层，隔离 dossier/gantt 视图切换与 crossfade 入场，让 record-page.tsx 保持路由与副作用编排。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { RefObject } from 'react'
 
-import { labels, demoPatientRecord } from '@/components/record/record-copy'
+import { demoPatientRecord, demoTreatmentGanttSupplementNotes } from '@/components/record/demo-record'
+import { labels } from '@/components/record/record-copy'
 import { RecordDossier, RecordUnavailableDossier } from '@/components/record/record-dossier'
 import type { ExportFormat } from '@/components/record/types'
 import { TreatmentGanttView } from '@/components/timeline/TreatmentGanttView'
@@ -108,7 +109,7 @@ export function RecordPageContent({
       <>
         {switchNode}
         <div className="t-record-view" data-active-page="gantt">
-          <TreatmentGanttView locale={locale} record={ganttRecord} />
+          <TreatmentGanttView locale={locale} record={ganttRecord} supplementNotes={demoRoute ? demoTreatmentGanttSupplementNotes : undefined} />
         </div>
       </>
     )

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 无运行时外部依赖，承载 Firefly-Isle 主题 token 真相源。
- * [OUTPUT]: 对外提供 themeNames、ThemeName、themeTokens、紧凑默认侧栏几何常量、shell 内容宽度合同与过渡类常量。
- * [POS]: src/lib/theme 的 token 定义文件，统一 dark/light 的颜色、surface、文字、边框、状态、紧凑响应式侧栏与宽幅内容几何合同。
+ * [OUTPUT]: 对外提供 themeNames、ThemeName、themeTokens、紧凑默认侧栏几何常量、移动端满宽顶栏、shell 内容宽度合同与过渡类常量。
+ * [POS]: src/lib/theme 的 token 定义文件，统一 dark/light 的颜色、surface、文字、边框、状态、紧凑响应式侧栏、移动端满宽顶栏与宽幅内容几何合同。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export const themeNames = ['dark', 'light'] as const
@@ -14,7 +14,7 @@ export const sidebarMaxWidth = 296
 export const sidebarLabelHideWidth = 148
 export const sidebarWidthClass = 'w-[var(--ff-sidebar-width)]'
 export const sidebarOffsetClass = 'md:ml-[var(--ff-sidebar-offset)]'
-export const shellViewportOffsetClass = 'md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]'
+export const shellViewportOffsetClass = 'left-0 w-screen md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]'
 export const shellContentWidthClass = 'w-full'
 export const shellWideContentClass = 'mx-auto w-full max-w-[1760px]'
 export const topBarHeightClass = 'h-[68px]'

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 MemoryRouter、ThemeProvider、LocaleProvider、BackgroundAudioProvider、LoginPageView 与 ClinicalTopBar。
- * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、短侧舱收回交互、透明材质与弹出动效回归测试。
- * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、当前曲目、上一首/下一首入口、暂停文案、离开收回与半透明弹出短侧舱。
+ * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、移动端满宽顶栏、短侧舱收回交互、透明材质与弹出动效回归测试。
+ * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、移动端满宽顶栏、当前曲目、上一首/下一首入口、暂停文案、离开收回与半透明弹出短侧舱。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -106,6 +106,7 @@ describe('BackgroundMusicToggle shell placement', () => {
   it('renders in the authenticated top bar as a collapsed short dock trigger', () => {
     const markup = withProviders(<ClinicalTopBar theme="light" title="病程整理台" withRail />)
 
+    expect(markup).toContain('left-0 w-screen md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]')
     expect(markup).toContain('data-testid="background-music-toggle"')
     expect(markup).toContain('aria-label="打开背景音乐控制"')
     expect(markup).toContain('aria-haspopup="dialog"')
