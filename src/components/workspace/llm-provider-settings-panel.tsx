@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API、system ActionSurface 与 transitions-dev.css 的 accordion/control/tab 动效合同。
- * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染整块可点击收起的系统内置 deepseek-v4-flash、API 自提供与自定义设置入口。
- * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑头部展开、按模式展开字段与保存动作但不参与 chat 请求。
+ * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API 与 DeepSeek 连通性测试、system ActionSurface 与 transitions-dev.css 的 accordion/control/tab 动效合同。
+ * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染整块可点击收起的系统内置 deepseek-v4-flash、API 自提供、自定义设置与 DeepSeek 服务测试入口。
+ * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑头部展开、按模式展开字段、测试系统模型连通性与保存动作但不参与正式 chat 请求。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState } from 'react'
@@ -12,6 +12,7 @@ import {
   getLlmProviderSetting,
   resetLlmProviderSetting,
   saveLlmProviderSetting,
+  testLlmProviderConnection,
   type LlmProviderId,
 } from '@/lib/llm/provider-settings'
 
@@ -52,6 +53,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
   const [model, setModel] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -109,6 +111,20 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
     }
   }
 
+  async function testProviderConnection() {
+    setTesting(true)
+    setMessage(null)
+
+    try {
+      const result = await testLlmProviderConnection()
+      setMessage(locale === 'zh' ? `DeepSeek 服务已接通：${result.model}` : `DeepSeek service connected: ${result.model}`)
+    } catch {
+      setMessage(locale === 'zh' ? 'DeepSeek 服务未接通，请稍后重试或切换 API 自提供。' : 'DeepSeek service is not reachable. Retry later or bring your own API.')
+    } finally {
+      setTesting(false)
+    }
+  }
+
   const copy = locale === 'zh'
     ? {
         apiKey: 'API Key',
@@ -122,6 +138,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
         provider: 'Provider',
         save: saving ? '保存中...' : '保存模型设置',
         system: '系统内置（deepseek-v4-flash）',
+        test: testing ? '测试中...' : '测试 DeepSeek 服务',
         title: '模型设置',
       }
     : {
@@ -136,6 +153,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
         provider: 'Provider',
         save: saving ? 'Saving...' : 'Save Provider Settings',
         system: 'Built-in system (deepseek-v4-flash)',
+        test: testing ? 'Testing...' : 'Test DeepSeek Service',
         title: 'Model Settings',
       }
   const providerLabel = presetProviders.find((option) => option.value === provider)?.label ?? provider
@@ -252,14 +270,25 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold leading-5 text-[var(--ff-accent-warning)]">{copy.disclosure}</p>
-              <button
-                className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={disabled || saving}
-                onClick={() => void saveSetting()}
-                type="button"
-              >
-                {copy.save}
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button
+                  className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  data-llm-provider-test="true"
+                  disabled={disabled || saving || testing}
+                  onClick={() => void testProviderConnection()}
+                  type="button"
+                >
+                  {copy.test}
+                </button>
+                <button
+                  className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={disabled || saving || testing}
+                  onClick={() => void saveSetting()}
+                  type="button"
+                >
+                  {copy.save}
+                </button>
+              </div>
             </div>
 
             {message ? <div className="text-sm font-semibold text-[var(--ff-text-secondary)]" role="status">{message}</div> : null}

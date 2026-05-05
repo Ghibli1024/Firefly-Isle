@@ -18,6 +18,12 @@ The system SHALL provide a user-facing provider setting that chooses either syst
 - **THEN** the system SHALL use the project DeepSeek provider without requiring a user API key
 - **AND** any saved user-owned provider setting SHALL no longer affect chat routing
 
+#### Scenario: System DeepSeek connectivity test
+- **WHEN** the user clicks the provider settings test action
+- **THEN** the browser SHALL call `llm-proxy` with Supabase JWT and a short DeepSeek test prompt
+- **AND** the browser SHALL NOT call DeepSeek directly or include provider API keys
+- **AND** the UI SHALL show whether the system DeepSeek service is reachable
+
 #### Scenario: User-owned provider disclosure
 - **WHEN** the user enables any user-owned preset or custom provider
 - **THEN** the UI SHALL disclose that medical record content is sent to the selected third-party model provider

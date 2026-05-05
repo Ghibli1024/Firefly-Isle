@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 vitest 的 Supabase session 与 fetch mock，依赖 provider-settings client 的设置请求封装。
- * [OUTPUT]: 对外提供 LLM provider settings 前端协议测试，约束 provider/model 保存、读取、重置与明文 key 不回读。
+ * [OUTPUT]: 对外提供 LLM provider settings 前端协议测试，约束 provider/model 保存、读取、重置、DeepSeek 连通性测试与明文 key 不回读。
  * [POS]: src/lib/llm 的 provider 设置客户端测试，确保浏览器只通过 Edge Function 保存密钥与模型名。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -25,6 +25,7 @@ import {
   getLlmProviderSetting,
   resetLlmProviderSetting,
   saveLlmProviderSetting,
+  testLlmProviderConnection,
 } from './provider-settings'
 
 describe('llm provider settings client', () => {
@@ -117,6 +118,36 @@ describe('llm provider settings client', () => {
         Authorization: 'Bearer session-token',
       },
       method: 'DELETE',
+    })
+  })
+
+  it('tests system DeepSeek connectivity through llm-proxy without exposing provider keys', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ model: 'deepseek-v4-flash', text: 'OK' })),
+    )
+
+    await expect(testLlmProviderConnection()).resolves.toEqual({
+      model: 'deepseek-v4-flash',
+      ok: true,
+    })
+
+    expect(fetch).toHaveBeenCalledWith('https://edge.example.test/functions/v1/llm-proxy', {
+      body: JSON.stringify({
+        messages: [
+          {
+            content: '请只回复 OK，用于测试模型服务连通性。',
+            role: 'user',
+          },
+        ],
+        model: 'deepseek-v4-flash',
+        provider: 'deepseek',
+      }),
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
     })
   })
 })
