@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark 与 SidebarShell，依赖 @/lib/theme、locale 与紧凑可拖拽侧栏 token。
+ * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、独立品牌 mark/中文行楷与英文 Snell Roundhand 手写艺术字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 图标与文字同色、统计占位提示、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、独立品牌 mark/中文行楷与英文 Snell Roundhand 手写艺术字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 图标与文字同色、统计占位提示、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
+import { FireflyBrandWordmark } from '@/components/system/firefly-brand-wordmark'
 import { FireflyMark } from '@/components/system/firefly-mark'
 import { SidebarShell } from '@/components/system/surfaces'
 import { getCopy, copy } from '@/lib/copy'
@@ -24,50 +25,6 @@ import { cn } from '@/lib/utils'
 
 export const AVATAR_PLACEHOLDER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBkHYctOEhI9aqSSxbv-d8PP9dV4BClO1EwGd1OO2l69w9lThnnTLBoPBO8-Sp8GPx2ofiKOO9Rz4nJnWoYww9EvtQG4C_rkiLkEWq7mNrJA_kORudcZdPtTopsy8pz_pftXyqmsyYtOis4v5ZX7Kr6gaaWBVJvDrIoF6lQjiiiZTh8-p0cqSHkt-xkOoxKbgYH3PdgjKekdaoxQ0aBX7vgNmykPGaT4I8qqoehbA7cEzWKbIAt8uypCq6CEkAWaxaePc4BZA0Se3Ej'
-
-const navItems = [
-  { icon: 'my_location', href: '/app', labelKey: 'extract' },
-  { icon: 'clinical_notes', href: '/record/demo', labelKey: 'record' },
-  { action: 'comingSoon', icon: 'bar_chart', labelKey: 'analytics' },
-] as const
-
-const chineseBrandWordmarkStyle = {
-  fontFamily: '"STXingkai SC", "Xingkai SC", "STKaiti", "Kaiti SC", "Kai", serif',
-  lineHeight: '0.96',
-  transform: 'scaleX(0.86)',
-  transformOrigin: 'left center',
-} satisfies CSSProperties
-
-const englishBrandWordmarkStyle = {
-  fontFamily: '"Snell Roundhand", "Savoye LET", "Apple Chancery", cursive',
-  fontWeight: 700,
-  lineHeight: '1.08',
-  paddingBottom: '0.18em',
-  transform: 'translateY(2px)',
-} satisfies CSSProperties
-
-const illuminatedBrandTextStyle = {
-  color: 'var(--ff-accent-primary)',
-  textShadow: '.35px 0 var(--ff-accent-primary), 0 0 12px rgba(232,93,42,0.28)',
-} satisfies CSSProperties
-
-const fireflyGlyphStyle = {
-  ...illuminatedBrandTextStyle,
-  display: 'inline-block',
-  isolation: 'isolate',
-  position: 'relative',
-} satisfies CSSProperties
-
-const fireflyGlyphAuraStyle = {
-  background: 'radial-gradient(circle at 58% 50%, color-mix(in srgb, var(--ff-accent-primary) 44%, transparent) 0%, rgba(255,201,116,0.2) 34%, transparent 68%)',
-  borderRadius: '999px',
-  filter: 'blur(4px)',
-  inset: '-0.12em -0.08em -0.08em -0.1em',
-  opacity: 0.62,
-  position: 'absolute',
-  transform: 'translateX(0.03em)',
-  zIndex: -1,
-} satisfies CSSProperties
 
 const SIDEBAR_EXPANDED_WIDTH_STORAGE_KEY = 'firefly-sidebar-expanded-width-v5'
 const POINTER_DRAG_THRESHOLD = 4
@@ -123,19 +80,20 @@ export type ArchiveSideNavProps = {
   dark: boolean
   isSigningOut?: boolean
   onSignOut?: () => void
+  recordHref?: string
   userIsAnonymous?: boolean
   userLabel?: string
 }
 
 function isActive(pathname: string, href: string) {
-  if (href === '/record/demo') {
+  if (href.startsWith('/record/')) {
     return pathname.startsWith('/record')
   }
 
   return pathname === href
 }
 
-export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
+export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
   const { locale, toggleLocale } = useLocale()
   const { toggleTheme } = useTheme()
@@ -151,6 +109,15 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userIsAn
   const themeName = dark ? 'dark' : 'light'
   const compact = width <= sidebarLabelHideWidth
   const sidebarStyle = useMemo(() => ({ width: `${width}px` }), [width])
+  const navItems = useMemo(
+    () =>
+      [
+        { icon: 'my_location', href: '/app', labelKey: 'extract' },
+        { icon: 'clinical_notes', href: recordHref ?? '/record/demo', labelKey: 'record' },
+        { action: 'comingSoon', icon: 'bar_chart', labelKey: 'analytics' },
+      ] as const,
+    [recordHref],
+  )
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-sidebar-width', `${width}px`)
@@ -433,47 +400,7 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, userIsAn
 
   const renderLabel = (label: string, className?: string) =>
     compact ? null : <span className={`${cn('truncate tracking-normal', className)} font-[var(--ff-font-display)]`}>{label}</span>
-  const renderBrandTitle = () => {
-    if (compact) {
-      return null
-    }
-
-    const isChinese = locale === 'zh'
-
-    return (
-      <span className="relative min-w-0 pl-1" data-brand-art-wordmark="true" data-brand-wordmark="true">
-        <span
-          className={cn(
-            'block max-w-full text-[var(--ff-text-primary)]',
-            isChinese
-              ? 'truncate leading-none text-[34px] font-light tracking-[0.06em]'
-              : 'overflow-visible whitespace-nowrap text-[29px] font-bold tracking-normal',
-          )}
-          style={isChinese ? chineseBrandWordmarkStyle : englishBrandWordmarkStyle}
-        >
-          {isChinese ? (
-            <>
-              一页
-              <span data-brand-firefly-glow="true" style={fireflyGlyphStyle}>
-                <span aria-hidden="true" style={fireflyGlyphAuraStyle} />
-                萤
-              </span>
-              屿
-            </>
-          ) : (
-            <>
-              <span data-brand-firefly-glow="true" style={fireflyGlyphStyle}>
-                <span aria-hidden="true" style={fireflyGlyphAuraStyle} />
-                Firefly
-              </span>{' '}
-              Isle
-            </>
-          )}
-        </span>
-        <span className="mt-1.5 block h-px w-32 max-w-full bg-[linear-gradient(90deg,var(--ff-accent-primary),transparent)]" />
-      </span>
-    )
-  }
+  const renderBrandTitle = () => (compact ? null : <FireflyBrandWordmark locale={locale} />)
 
   const iconOnlyTooltip = (label: string) =>
     compact ? (

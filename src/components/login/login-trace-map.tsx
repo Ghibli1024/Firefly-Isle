@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 @/lib/theme 的 Theme 类型，依赖 public/login/blue-tears-background-dark.png 与 public/login/wind-field-background-light.png 双主题扁平背景资产。
- * [OUTPUT]: 对外提供 LoginTraceMap 组件，渲染登录页干净的双主题海岸背景层。
+ * [INPUT]: 依赖 @/lib/theme 的 Theme 类型，依赖 public/login/blue-tears-background-dark.png 与 public/login/wind-field-background-light.png 双主题扁平背景资产，依赖 transitions-dev.css 的 .t-login-backdrop 慢呼吸动效合同。
+ * [OUTPUT]: 对外提供 LoginTraceMap 组件，渲染登录页干净的双主题海岸背景层与极慢场景呼吸。
  * [POS]: components/login 的登录页全屏视觉模块，作为 login-entry-view 的明暗主题背景，不承载额外节点、tooltip 或业务操作。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -40,7 +40,7 @@ export function LoginTraceMap({ locale, theme }: { locale: Locale; theme: Theme 
     >
       <img
         alt=""
-        className="absolute inset-0 h-full w-full object-cover object-center opacity-100"
+        className="t-login-backdrop absolute inset-0 h-full w-full object-cover object-center opacity-100"
         draggable={false}
         src={traceBackgroundByTheme[theme]}
       />

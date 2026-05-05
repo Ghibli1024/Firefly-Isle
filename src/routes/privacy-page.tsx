@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 ClinicalTopBar，依赖 @/components/system/surfaces 的 MainShell 与 PanelSurface，依赖 @/lib/privacy 的共享隐私条款真相源，依赖 @/lib/theme 的 useTheme 与 03 Apple Editorial 标题字体合同。
- * [OUTPUT]: 对外提供 PrivacyPage 组件，对应 /privacy。
- * [POS]: routes 的独立隐私条款页，消费 V3 topbar、surface 与 typography 语言，并与隐私门控共享同一文案来源。
+ * [INPUT]: 依赖 react 的 CSSProperties、@/components/app-shell 的 ClinicalTopBar、@/components/system/surfaces 的 MainShell 与 PanelSurface、@/lib/privacy 的共享隐私条款真相源、@/lib/theme 的 useTheme、03 Apple Editorial 标题字体合同与 transitions-dev.css 的 route/stagger/control 动效合同。
+ * [OUTPUT]: 对外提供 PrivacyPage 组件，对应 /privacy，并以克制顺序进入呈现隐私条款。
+ * [POS]: routes 的独立隐私条款页，消费 V3 topbar、surface、motion 与 typography 语言，并与隐私门控共享同一文案来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ClinicalTopBar } from '@/components/app-shell'
@@ -23,8 +24,13 @@ export function PrivacyPage() {
     <div className="min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]">
       <ClinicalTopBar theme={theme} title="隐私条款" />
       <MainShell className={`${topBarOffsetClass} min-h-screen px-4 py-6 md:px-8 md:py-10`} theme={theme}>
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6">
-          <PanelSurface className="p-8 md:p-12" theme={theme} tone="panel">
+        <div className="t-route-reveal mx-auto flex w-full max-w-[1180px] flex-col gap-6">
+          <PanelSurface
+            className="t-stagger p-8 md:p-12"
+            theme={theme}
+            tone="panel"
+            style={{ '--t-order': 0 } as CSSProperties}
+          >
             <div className="mb-5 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-accent-primary)] px-3 py-1 font-[var(--ff-font-mono)] text-[11px] uppercase tracking-[0.18em] text-[var(--ff-accent-primary)]">
               Privacy Notice
             </div>
@@ -36,13 +42,13 @@ export function PrivacyPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3 border-t border-[var(--ff-border-default)] pt-6">
               <Link
-                className="inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
+                className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
                 to="/login"
               >
                 返回登录
               </Link>
               <Link
-                className="inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-6 text-sm font-semibold text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
+                className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-6 text-sm font-semibold text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
                 to={PRIVACY_PAGE_HREF}
               >
                 当前页面链接
@@ -52,7 +58,13 @@ export function PrivacyPage() {
 
           <section aria-label="隐私条款明细" className="grid gap-4 md:grid-cols-3">
             {PRIVACY_POLICY_ITEMS.map((item, index) => (
-              <PanelSurface className="p-6 md:p-8" key={item.title} theme={theme} tone="panel">
+              <PanelSurface
+                className="t-stagger p-6 md:p-8"
+                key={item.title}
+                theme={theme}
+                tone="panel"
+                style={{ '--t-order': index + 1 } as CSSProperties}
+              >
                 <div className="font-[var(--ff-font-mono)] text-[12px] text-[var(--ff-accent-primary)]">
                   {String(index + 1).padStart(2, '0')}
                 </div>
@@ -62,7 +74,12 @@ export function PrivacyPage() {
             ))}
           </section>
 
-          <PanelSurface className="p-8 md:p-10" theme={theme} tone="inset">
+          <PanelSurface
+            className="t-stagger p-8 md:p-10"
+            theme={theme}
+            tone="inset"
+            style={{ '--t-order': 4 } as CSSProperties}
+          >
             <h2 className="font-[var(--ff-font-display)] text-2xl font-bold tracking-normal text-[var(--ff-text-primary)]">
               Accessibility & Scope
             </h2>

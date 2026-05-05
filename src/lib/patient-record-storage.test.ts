@@ -1,16 +1,41 @@
 /**
  * [INPUT]: 依赖 node:fs 读取 Supabase 迁移，依赖 vitest 断言，依赖 ./patient-record-storage 的 PatientRecord 持久化映射工具。
- * [OUTPUT]: 对外提供 lab_results 迁移/RLS 合同与患者记录 labResults row 映射测试。
- * [POS]: lib 的数据边界测试，约束患者记录读取/落库与实验室指标 RLS 不分叉。
+ * [OUTPUT]: 对外提供 lab_results 迁移/RLS 合同、患者记录 labResults row 映射与假 id 落库防线测试。
+ * [POS]: lib 的数据边界测试，约束患者记录读取/落库、持久化 id 所有权校验与实验室指标 RLS 不分叉。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { mapLabResultRow, toLabResultPayload } from './patient-record-storage'
+const supabaseMocks = vi.hoisted(() => ({
+  getSupabaseClient: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase', () => ({
+  getSupabaseClient: supabaseMocks.getSupabaseClient,
+}))
+
+import { mapLabResultRow, persistPatientRecord, toLabResultPayload } from './patient-record-storage'
 
 const migrationSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/002_lab_results.sql'), 'utf8')
+
+function createPatientBuilder() {
+  const builder = {
+    eq: vi.fn(() => builder),
+    insert: vi.fn(() => builder),
+    maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+    select: vi.fn(() => builder),
+    single: vi.fn(async () => ({ data: { id: 'patient-real' }, error: null })),
+    update: vi.fn(() => builder),
+  }
+
+  return builder
+}
+
+beforeEach(() => {
+  supabaseMocks.getSupabaseClient.mockReset()
+})
 
 describe('patient-record-storage lab result mapping', () => {
   it('maps database lab rows into PatientRecord labResults', () => {
@@ -53,6 +78,43 @@ describe('patient-record-storage lab result mapping', () => {
       source: 'manual',
       value: 66,
     })
+  })
+})
+
+describe('patient-record-storage patient identity', () => {
+  it('creates a new patient row when the incoming record id is not owned or persisted', async () => {
+    const patientBuilders: ReturnType<typeof createPatientBuilder>[] = []
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table !== 'patients') {
+          return {
+            insert: vi.fn(async () => ({ error: null })),
+            upsert: vi.fn(async () => ({ error: null })),
+          }
+        }
+
+        const builder = createPatientBuilder()
+        patientBuilders.push(builder)
+        return builder
+      }),
+    }
+
+    supabaseMocks.getSupabaseClient.mockReturnValue(supabase)
+
+    await expect(
+      persistPatientRecord(
+        {
+          basicInfo: { tumorType: '乳腺癌' },
+          id: '627b6ba7-74b1-4e10-b79b-ad509bb88687',
+          treatmentLines: [],
+        },
+        'user-1',
+      ),
+    ).resolves.toMatchObject({
+      id: 'patient-real',
+    })
+    expect(patientBuilders[0].maybeSingle).toHaveBeenCalled()
+    expect(patientBuilders[1].insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'user-1' }))
   })
 })
 

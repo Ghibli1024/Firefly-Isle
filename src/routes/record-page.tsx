@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 ./record-page.view 的档案/Gantt 内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useParams。
- * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id。
- * [POS]: routes 的档案详情 orchestration 层，只负责路由参数、加载状态、视图状态、导出状态与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 ./record-page.view 的档案/Gantt 内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useParams 与 transitions-dev.css 的 route/stagger 动效合同。
+ * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id，并挂载详情页主画布入场动效。
+ * [POS]: routes 的档案详情 orchestration 层，只负责路由参数、加载状态、视图状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
@@ -123,9 +123,20 @@ export function RecordPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
   return (
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '病历详情' : 'Record Detail'} withRail />
-      <ArchiveSideNav dark={dark} isSigningOut={isSigningOut} onSignOut={onSignOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel ?? id} />
+      <ArchiveSideNav
+        dark={dark}
+        isSigningOut={isSigningOut}
+        onSignOut={onSignOut}
+        recordHref={demoRoute ? undefined : `/record/${id}`}
+        userIsAnonymous={userIsAnonymous}
+        userLabel={userLabel ?? id}
+      />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
-        <div className={`${shellWideContentClass} mt-5 md:mt-6`} data-testid="record-responsive-canvas">
+        <div
+          className={`${shellWideContentClass} t-route-reveal t-stagger mt-5 md:mt-6`}
+          data-testid="record-responsive-canvas"
+          style={{ '--t-order': 0 } as CSSProperties}
+        >
           <RecordPageContent
             activeRecordLoadState={activeRecordLoadState}
             demoRoute={demoRoute}

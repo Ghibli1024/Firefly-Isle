@@ -52,6 +52,7 @@
 #### Scenario: Dense clinical history fallback
 - **WHEN** 系统内置模型的 JSON object 输出模式因长病史或密集治疗表格返回上游失败
 - **THEN** 系统 SHALL 使用同一份紧凑 JSON 字段合同重试一次普通文本模式
+- **AND** 若普通文本模式仍返回 502 上游失败或非法响应，系统 SHALL 使用服务端 Gemini provider 兜底重试一次
 - **AND** 成功返回的 JSON SHALL 继续进入 PatientRecord 解析、归一化与预览流程
 
 ### Requirement: Confirmed OCR text reuses structured extraction

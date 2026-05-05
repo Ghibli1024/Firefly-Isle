@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 src/index.css 导入与全局 CSS 变量，承载 Transitions.dev 可移植动效工具。
- * [OUTPUT]: 对外提供 badge、dropdown、panel、audio popover、resize、icon/text swap、modal、page 与 digit 动效类。
+ * [OUTPUT]: 对外提供 badge、dropdown、panel、popover、route reveal、stagger、control press、accordion、tab switch、record view、timeline rail、gantt grow、selection pulse、edit flip、audio popover、resize、icon/text swap、modal、page 与 digit 动效类。
  * [POS]: src/styles 的共享动效合同，被组件以 t-* class 组合复用，避免业务组件内联 keyframes。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  *
@@ -29,6 +29,44 @@
   --audio-pop-dur: 170ms;
   --audio-pop-blur: 2px;
   --audio-pop-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --route-reveal-dur: 520ms;
+  --route-reveal-y: 14px;
+  --route-reveal-blur: 5px;
+  --route-reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --stagger-dur: 560ms;
+  --stagger-y: 18px;
+  --stagger-step: 80ms;
+  --stagger-blur: 4px;
+  --stagger-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --control-press-dur: 180ms;
+  --control-press-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --accordion-dur: 260ms;
+  --accordion-y: -8px;
+  --accordion-blur: 3px;
+  --accordion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --tab-switch-dur: 220ms;
+  --tab-switch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --gantt-grow-dur: 720ms;
+  --gantt-grow-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --record-view-dur: 320ms;
+  --record-view-y: 10px;
+  --record-view-blur: 3px;
+  --record-view-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --timeline-rail-dur: 900ms;
+  --timeline-rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --pulse-dur: 1700ms;
+  --pulse-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --login-backdrop-dur: 18000ms;
 
   --panel-open-dur: 400ms;
   --panel-close-dur: 350ms;
@@ -184,10 +222,248 @@
   }
 }
 
+.t-popover,
 .t-audio-popover {
   transform-origin: top right;
   animation: t-audio-pop-in var(--audio-pop-dur) var(--audio-pop-ease) both;
   will-change: transform, opacity, filter;
+}
+
+@keyframes t-route-reveal-in {
+  from {
+    transform: translateY(var(--route-reveal-y));
+    opacity: 0;
+    filter: blur(var(--route-reveal-blur));
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-route-reveal {
+  animation: t-route-reveal-in var(--route-reveal-dur) var(--route-reveal-ease) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes t-stagger-in {
+  from {
+    transform: translateY(var(--stagger-y));
+    opacity: 0;
+    filter: blur(var(--stagger-blur));
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-stagger {
+  --t-order: 0;
+  animation: t-stagger-in var(--stagger-dur) var(--stagger-ease) both;
+  animation-delay: calc(var(--t-order) * var(--stagger-step));
+  will-change: transform, opacity, filter;
+}
+
+.t-control-press {
+  transition:
+    transform var(--control-press-dur) var(--control-press-ease),
+    border-color var(--control-press-dur) var(--control-press-ease),
+    background-color var(--control-press-dur) var(--control-press-ease),
+    color var(--control-press-dur) var(--control-press-ease),
+    box-shadow var(--control-press-dur) var(--control-press-ease),
+    opacity var(--control-press-dur) var(--control-press-ease);
+  will-change: transform;
+}
+
+.t-control-press:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.t-control-press:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+
+.t-control-press .material-symbols-outlined,
+.t-control-press svg {
+  transition: transform var(--control-press-dur) var(--control-press-ease);
+}
+
+.t-control-press:hover:not(:disabled) .material-symbols-outlined,
+.t-control-press:hover:not(:disabled) svg {
+  transform: translateY(-1px);
+}
+
+@keyframes t-accordion-in {
+  from {
+    transform: translateY(var(--accordion-y));
+    opacity: 0;
+    filter: blur(var(--accordion-blur));
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-accordion {
+  overflow: hidden;
+  animation: t-accordion-in var(--accordion-dur) var(--accordion-ease) both;
+  will-change: transform, opacity, filter;
+}
+
+.t-tab-switch {
+  position: relative;
+}
+
+.t-tab-switch button {
+  transition:
+    transform var(--tab-switch-dur) var(--tab-switch-ease),
+    background-color var(--tab-switch-dur) var(--tab-switch-ease),
+    border-color var(--tab-switch-dur) var(--tab-switch-ease),
+    color var(--tab-switch-dur) var(--tab-switch-ease),
+    box-shadow var(--tab-switch-dur) var(--tab-switch-ease);
+}
+
+.t-tab-switch button[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ff-accent-primary) 42%, transparent),
+    0 0 18px color-mix(in srgb, var(--ff-accent-primary) 18%, transparent);
+}
+
+@keyframes t-record-view-in {
+  from {
+    transform: translateY(var(--record-view-y));
+    opacity: 0;
+    filter: blur(var(--record-view-blur));
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-record-view {
+  animation: t-record-view-in var(--record-view-dur) var(--record-view-ease) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes t-timeline-rail-in {
+  from {
+    transform: scaleY(0);
+    opacity: 0.44;
+  }
+
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.t-timeline-rail {
+  transform-origin: top center;
+  animation: t-timeline-rail-in var(--timeline-rail-dur) var(--timeline-rail-ease) both;
+  will-change: transform, opacity;
+}
+
+@keyframes t-gantt-grow-in {
+  from {
+    transform: scaleX(0);
+    opacity: 0.64;
+  }
+
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.t-gantt-grow {
+  transform-origin: left center;
+  animation: t-gantt-grow-in var(--gantt-grow-dur) var(--gantt-grow-ease) both;
+  will-change: transform, opacity;
+}
+
+.t-gantt-grow[data-current="true"] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ff-accent-primary) 32%, transparent),
+    0 0 18px color-mix(in srgb, var(--ff-accent-primary) 16%, transparent);
+}
+
+@keyframes t-missing-pulse-in {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ff-accent-primary) 0%, transparent);
+  }
+
+  42% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-accent-primary) 18%, transparent);
+  }
+}
+
+.t-missing-pulse {
+  animation: t-missing-pulse-in var(--pulse-dur) var(--pulse-ease) 1;
+}
+
+@keyframes t-selection-pulse-in {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ff-accent-primary) 0%, transparent);
+  }
+
+  40% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ff-accent-primary) 20%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ff-accent-primary) 0%, transparent);
+  }
+}
+
+.t-selection-pulse {
+  animation: t-selection-pulse-in var(--pulse-dur) var(--pulse-ease) 1;
+}
+
+@keyframes t-edit-flip-in {
+  from {
+    transform: rotateX(-3deg) translateY(4px);
+    opacity: 0.86;
+  }
+
+  to {
+    transform: rotateX(0deg) translateY(0);
+    opacity: 1;
+  }
+}
+
+.t-edit-flip {
+  transform-origin: top center;
+  animation: t-edit-flip-in 220ms var(--accordion-ease) both;
+  will-change: transform, opacity;
+}
+
+@keyframes t-login-backdrop-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+.t-login-backdrop {
+  animation: t-login-backdrop-breathe var(--login-backdrop-dur) ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .t-panel-slide {
@@ -377,6 +653,19 @@
   .t-badge,
   .t-badge-dot,
   .t-dropdown,
+  .t-route-reveal,
+  .t-stagger,
+  .t-control-press,
+  .t-accordion,
+  .t-tab-switch button,
+  .t-record-view,
+  .t-timeline-rail,
+  .t-gantt-grow,
+  .t-missing-pulse,
+  .t-selection-pulse,
+  .t-edit-flip,
+  .t-login-backdrop,
+  .t-popover,
   .t-audio-popover,
   .t-panel-slide,
   .t-resize,

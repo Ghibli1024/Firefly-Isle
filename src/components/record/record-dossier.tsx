@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的 RefObject、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived 与 record 展示类型。
- * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件。
- * [POS]: components/record 的主展示层，承载宽幅病历档案、指标、时间线、证据卡、导出按钮与不可用态。
+ * [INPUT]: 依赖 react 的 CSSProperties/RefObject、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
+ * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入和时间线 rail draw-in 的档案视图。
+ * [POS]: components/record 的主展示层，承载宽幅病历档案、指标、时间线、证据卡、导出按钮与不可用态，不参与路由加载状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { RefObject } from 'react'
+import type { CSSProperties, RefObject } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Locale } from '@/lib/locale'
@@ -17,7 +17,10 @@ import type { EvidenceCard, ExportFormat, Metric, TimelineEntry } from './types'
 
 function SummaryGrid({ metrics }: { metrics: Metric[] }) {
   return (
-    <div className="grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      className="t-stagger grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-4"
+      style={{ '--t-order': 1 } as CSSProperties}
+    >
       {metrics.map((metric, index) => (
         <div
           className={[
@@ -38,9 +41,12 @@ function SummaryGrid({ metrics }: { metrics: Metric[] }) {
   )
 }
 
-function EvidenceCardView({ card }: { card: EvidenceCard }) {
+function EvidenceCardView({ card, order }: { card: EvidenceCard; order: number }) {
   return (
-    <article className="rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5">
+    <article
+      className="t-stagger rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5"
+      style={{ '--t-order': order } as CSSProperties}
+    >
       <h4 className="mb-4 font-bold text-[var(--ff-accent-primary)]">{card.title}</h4>
       <div className="space-y-3">
         {card.items.map((item) => (
@@ -54,9 +60,12 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
   )
 }
 
-function TimelineNode({ entry }: { entry: TimelineEntry }) {
+function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number }) {
   return (
-    <article className="relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] 2xl:p-8">
+    <article
+      className="t-stagger relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] 2xl:p-8"
+      style={{ '--t-order': order } as CSSProperties}
+    >
       <div>
         <div className="mb-5 flex flex-wrap items-end gap-4">
           <span className="font-[var(--ff-font-mono)] text-5xl font-bold text-[var(--ff-accent-primary)]">{entry.index}</span>
@@ -122,8 +131,8 @@ function TimelineNode({ entry }: { entry: TimelineEntry }) {
       </div>
 
       <div className="space-y-4 border-[var(--ff-border-default)] md:border-l md:pl-6">
-        {entry.cards.map((card) => (
-          <EvidenceCardView card={card} key={card.title} />
+        {entry.cards.map((card, cardIndex) => (
+          <EvidenceCardView card={card} key={card.title} order={order + cardIndex + 1} />
         ))}
       </div>
     </article>
@@ -173,7 +182,7 @@ export function RecordDossier({
             </div>
             <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
               <button
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isExportDisabled || isExporting}
                 onClick={() => onExport('pdf')}
                 type="button"
@@ -182,7 +191,7 @@ export function RecordDossier({
                 {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
               </button>
               <button
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isExportDisabled || isExporting}
                 onClick={() => onExport('png')}
                 type="button"
@@ -191,7 +200,7 @@ export function RecordDossier({
                 {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
               </button>
               <Link
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
                 to="/app"
               >
                 <span className="material-symbols-outlined text-xl">arrow_back</span>
@@ -209,7 +218,9 @@ export function RecordDossier({
 
       <SummaryGrid metrics={metrics} />
 
-      <LabTrendsTable locale={locale} record={record ?? { treatmentLines: [] }} />
+      <div className="t-stagger" style={{ '--t-order': 2 } as CSSProperties}>
+        <LabTrendsTable locale={locale} record={record ?? { treatmentLines: [] }} />
+      </div>
 
       <section className="mt-8">
         <div className="mb-6 flex items-center gap-3">
@@ -218,11 +229,11 @@ export function RecordDossier({
         </div>
 
         <div className="relative space-y-4 pl-0 md:pl-10">
-          <div className="absolute bottom-0 left-4 top-0 hidden w-px bg-[var(--ff-border-default)] md:block" />
-          {entries.map((entry) => (
+          <div className="t-timeline-rail absolute bottom-0 left-4 top-0 hidden w-px bg-[var(--ff-border-default)] md:block" />
+          {entries.map((entry, index) => (
             <div className="relative" key={entry.index}>
               <span className="absolute left-[-35px] top-8 hidden h-4 w-4 rounded-[var(--ff-radius-full)] border-4 border-[var(--ff-surface-panel)] bg-[var(--ff-line)] md:block" />
-              <TimelineNode entry={entry} />
+              <TimelineNode entry={entry} order={index + 3} />
             </div>
           ))}
         </div>
@@ -240,7 +251,7 @@ export function RecordDossier({
           </div>
           <div className="flex items-center gap-4 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-muted)]">
             2024-05-20 12:08:00
-            <button className="flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)]" type="button">
+            <button className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)]" type="button">
               <span className="material-symbols-outlined text-xl">edit</span>
             </button>
           </div>
@@ -318,7 +329,7 @@ export function RecordUnavailableDossier({
             </div>
             <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
               <button
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled
                 onClick={() => onExport('pdf')}
                 type="button"
@@ -327,7 +338,7 @@ export function RecordUnavailableDossier({
                 {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
               </button>
               <button
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled
                 onClick={() => onExport('png')}
                 type="button"
@@ -336,7 +347,7 @@ export function RecordUnavailableDossier({
                 {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
               </button>
               <Link
-                className="inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
+                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
                 to="/app"
               >
                 <span className="material-symbols-outlined text-xl">arrow_back</span>

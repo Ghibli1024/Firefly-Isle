@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖隐私文案真相源与 PatientRecord 类型工具。
- * [OUTPUT]: 对外提供隐私内容、患者类型判定、认证路由与背景音 Provider 挂载位置的回归测试。
- * [POS]: lib 的应用级合同测试，约束 App 装配层不丢失隐私、路由守卫、OAuth 错误与全局背景音生命周期边界。
+ * [OUTPUT]: 对外提供隐私内容、患者类型判定、认证路由、隐私页动效与背景音 Provider 挂载位置的回归测试。
+ * [POS]: lib 的应用级合同测试，约束 App 装配层不丢失隐私、路由守卫、OAuth 错误、隐私页全站动效与全局背景音生命周期边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -19,11 +19,25 @@ function readAppSource() {
   return readFileSync(new URL('../App.tsx', import.meta.url), 'utf8')
 }
 
+function readPrivacyPageSource() {
+  return readFileSync(new URL('../routes/privacy-page.tsx', import.meta.url), 'utf8')
+}
+
 describe('privacy content', () => {
   it('exposes a stable privacy route and shared policy content', () => {
     expect(PRIVACY_PAGE_HREF).toBe('/privacy')
     expect(PRIVACY_POLICY_SUMMARY.length).toBeGreaterThan(0)
     expect(PRIVACY_POLICY_ITEMS).toHaveLength(3)
+  })
+
+  it('keeps the privacy route in the shared motion system without turning it into a loud app panel', () => {
+    const source = readPrivacyPageSource()
+
+    expect(source).toContain('t-route-reveal')
+    expect(source).toContain('t-stagger')
+    expect(source).toContain('style={{')
+    expect(source).not.toContain('t-missing-pulse')
+    expect(source).not.toContain('t-gantt-grow')
   })
 })
 

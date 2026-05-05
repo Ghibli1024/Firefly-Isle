@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabResult 数据模型。
- * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具。
- * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、treatment_lines、lab_results 的读写。
+ * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具，并校验传入 patient id 的归属。
+ * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、treatment_lines、lab_results 的读写，让数据库身份只来自已归属行或新建行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
@@ -22,6 +22,8 @@ type TreatmentLineRow = {
   regimen: string | null
   start_date: string | null
 }
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export type LabResultRow = {
   category: LabResult['category']
@@ -180,9 +182,37 @@ export async function loadLatestPatientRecord(userId: string) {
 
 async function ensurePatientRecordExists(record: PatientRecord, userId: string) {
   if (record.id) {
-    return record.id
+    const existingId = await findOwnedPatientId(record.id, userId)
+
+    if (existingId) {
+      return existingId
+    }
   }
 
+  return insertPatientRecord(record, userId)
+}
+
+async function findOwnedPatientId(recordId: string, userId: string) {
+  if (!UUID_PATTERN.test(recordId)) {
+    return null
+  }
+
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('id', recordId)
+    .eq('user_id', userId)
+    .maybeSingle<Pick<PatientRow, 'id'>>()
+
+  if (error) {
+    throw error
+  }
+
+  return data?.id ?? null
+}
+
+async function insertPatientRecord(record: PatientRecord, userId: string) {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('patients')
@@ -202,7 +232,7 @@ async function ensurePatientRecordExists(record: PatientRecord, userId: string) 
 
 export async function persistPatientRecord(record: PatientRecord, userId: string) {
   const patientId = await ensurePatientRecordExists(record, userId)
-  const persistedRecord = record.id ? record : { ...record, id: patientId }
+  const persistedRecord = record.id === patientId ? record : { ...record, id: patientId }
   const supabase = getSupabaseClient()
 
   const { error: patientError } = await supabase.from('patients').update(getPatientPayload(persistedRecord)).eq('id', patientId)

@@ -1,9 +1,11 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale、@/types/patient 的 PatientRecord 与 ./treatment-gantt 的治疗线归一化能力。
- * [OUTPUT]: 对外提供 TreatmentGanttView 组件。
- * [POS]: components/timeline 的甘特图展示层，只把 PatientRecord.treatmentLines 投影为只读治疗持续时间视图。
+ * [INPUT]: 依赖 react 的 CSSProperties、@/lib/locale 的 Locale、@/types/patient 的 PatientRecord、./treatment-gantt 的治疗线归一化能力与 transitions-dev.css 的 stagger/gantt grow 动效合同。
+ * [OUTPUT]: 对外提供 TreatmentGanttView 组件，渲染带治疗条生长动效的只读甘特图。
+ * [POS]: components/timeline 的甘特图展示层，只把 PatientRecord.treatmentLines 投影为只读治疗持续时间视图，不拥有记录编辑或导出行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import type { CSSProperties } from 'react'
+
 import type { Locale } from '@/lib/locale'
 import type { PatientRecord } from '@/types/patient'
 
@@ -70,11 +72,12 @@ export function TreatmentGanttView({ locale, record }: TreatmentGanttViewProps) 
         </div>
       ) : (
         <div className="space-y-4">
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <article
-              className="grid gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5 lg:grid-cols-[220px_minmax(0,1fr)]"
+              className="t-stagger grid gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5 lg:grid-cols-[220px_minmax(0,1fr)]"
               data-gantt-row-state={row.status}
               key={row.lineNumber}
+              style={{ '--t-order': index } as CSSProperties}
             >
               <div>
                 <div className="text-sm font-semibold text-[var(--ff-text-primary)]">
@@ -93,12 +96,14 @@ export function TreatmentGanttView({ locale, record }: TreatmentGanttViewProps) 
                 {row.bar ? (
                   <div className="relative h-12 w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)]">
                     <div
-                      className="absolute top-2 h-8 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)]"
+                      className="t-gantt-grow absolute top-2 h-8 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)]"
+                      data-current={row.isCurrent ? 'true' : 'false'}
                       data-testid="treatment-gantt-bar"
                       style={{
+                        '--t-gantt-width': `${row.bar.widthPercent}%`,
                         left: `${row.bar.leftPercent}%`,
-                        width: `${row.bar.widthPercent}%`,
-                      }}
+                        width: 'var(--t-gantt-width)',
+                      } as CSSProperties}
                     />
                   </div>
                 ) : (

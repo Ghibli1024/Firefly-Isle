@@ -365,10 +365,10 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 - `supabase/functions/llm-proxy/handler.ts` 是 Gemini / DeepSeek provider proxy 核心
 - 前端统一入口是 `src/lib/llm/index.ts`
 - 真正对外可用仍取决于：
-  - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash" DEEPSEEK_API_KEY="..." DEFAULT_DEEPSEEK_MODEL="deepseek-v4-flash" DEFAULT_LLM_PROVIDER="gemini" DEEPSEEK_BASE_URL="https://api.deepseek.com"`
+  - `supabase secrets set GEMINI_API_KEY="..." DEFAULT_GEMINI_MODEL="gemini-2.5-flash" DEEPSEEK_API_KEY="..." DEFAULT_DEEPSEEK_MODEL="deepseek-v4-flash" DEFAULT_LLM_PROVIDER="deepseek" DEEPSEEK_BASE_URL="https://api.deepseek.com"`
   - `supabase functions deploy llm-proxy`
 
-`DEFAULT_LLM_PROVIDER` 建议先保留 `gemini`。DeepSeek key、余额、限流和结构化提取 live 验证通过后，再把它切到 `deepseek`；回滚时改回 `gemini`。
+当前系统内置路径使用 `DEFAULT_LLM_PROVIDER=deepseek`。DeepSeek key、余额、限流和结构化提取 live 验证必须在发布前复核；回滚时改回 `gemini` 并记录原因。
 
 ### 8.6 匿名入口返回 422
 
@@ -427,7 +427,7 @@ Supabase 项目的短标识。本项目是 `irkjblpzmclqekxbexll`。URL、函数
 - `llm-proxy` 已部署到当前发布环境，对应 `VITE_SUPABASE_EDGE_FUNCTION_URL` 可达
 - 前端请求仍只打到 Supabase Edge Function，不直接暴露模型 API key
 - Gemini / DeepSeek API key 均只存在于 Supabase secrets；浏览器网络请求只包含 Supabase JWT
-- `DEFAULT_LLM_PROVIDER` 与对应默认模型符合当前发布策略；若切到 DeepSeek，至少完成一次真实结构化提取验证
+- `DEFAULT_LLM_PROVIDER=deepseek` 与 `DEFAULT_DEEPSEEK_MODEL=deepseek-v4-flash` 符合当前系统内置发布策略；临时回滚到 Gemini 时记录原因
 - 发布环境里至少手动走一遍：登录/匿名进入 → 提取 → 追问 → 渲染 → 编辑 → 导出
 - 若当前发布环境关闭了 Anonymous Sign-In，就不要把匿名模式写成“已可用”；先改配置，或同步改 spec / README / 产品文案
 

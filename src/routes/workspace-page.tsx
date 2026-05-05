@@ -4,7 +4,7 @@
  * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -16,11 +16,10 @@ import { useAuth } from '@/lib/auth'
 import {
   buildFollowUpQuestion,
   extractPatientRecord,
-  ExtractionParseError,
+  getExtractionFailureMessage,
   getMissingCriticalFields,
   MAX_FOLLOW_UP_ROUNDS,
 } from '@/lib/extraction'
-import { ChatError } from '@/lib/llm'
 import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
 import { loadLatestPatientRecord, persistPatientRecord } from '@/lib/patient-record-storage'
 import { applyPatientRecordEdit, applyPatientRecordEdits, extractPatientRecordEdits } from '@/lib/record-editing'
@@ -207,16 +206,9 @@ function useExtractionState() {
         retryMode: null,
       }))
     } catch (error) {
-      const message =
-        error instanceof ExtractionParseError
-          ? '解析失败，请检查返回内容后重试。'
-          : error instanceof ChatError && error.name === 'LLMInvalidResponseError'
-            ? '解析失败，请重试一次。'
-            : '提取失败，请稍后重试。'
-
       setState((current) => ({
         ...current,
-        error: message,
+        error: getExtractionFailureMessage(error, locale, 'initial'),
         isExtracting: false,
         retryAnswer: null,
         retryMode: 'initial',
@@ -280,10 +272,7 @@ function useExtractionState() {
       setState((current) => ({
         ...current,
         editFeedback: null,
-        error:
-          error instanceof ExtractionParseError
-            ? '追问解析失败，请重试这轮补充。'
-            : '追问合并失败，请重新提交这轮补充。',
+        error: getExtractionFailureMessage(error, locale, 'follow-up'),
         isExtracting: false,
         retryAnswer: answer,
         retryMode: 'follow-up',
@@ -537,11 +526,18 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
   return (
     <div className="min-h-screen bg-[var(--ff-surface-base)] font-[var(--ff-font-ui)] text-[var(--ff-text-primary)]">
       <ClinicalTopBar theme="dark" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
-      <ArchiveSideNav dark isSigningOut={isSigningOut} onSignOut={onSignOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />
+      <ArchiveSideNav
+        dark
+        isSigningOut={isSigningOut}
+        onSignOut={onSignOut}
+        recordHref={record?.id ? `/record/${record.id}` : undefined}
+        userIsAnonymous={userIsAnonymous}
+        userLabel={userLabel}
+      />
 
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="dark">
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="dark" tone="base">
-          <div className={`${shellContentWidthClass} space-y-6`}>
+          <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
               error={error}
               feedback={editFeedback}
@@ -567,12 +563,13 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
         </SectionSurface>
 
         <SectionSurface className="border-0 px-4 pb-8 pt-2 md:px-8 md:pb-8 md:pt-3" theme="dark" tone="base">
-          <div className={shellContentWidthClass}>
+          <div className={`${shellContentWidthClass} t-stagger`} style={{ '--t-order': 1 } as CSSProperties}>
             <ReportPreviewFrame
               isExtracting={isExtracting}
               isSaving={isSaving}
               onCommitField={handleFieldCommit}
               record={displayRecord}
+              recordDetailsHref={record?.id ? `/record/${record.id}` : undefined}
               remainingMissing={remainingMissing}
               setReportRef={() => undefined}
               theme="dark"
@@ -612,11 +609,18 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
   return (
     <div className="ff-light-workspace-bg min-h-screen text-[var(--ff-text-primary)]">
       <ClinicalTopBar theme="light" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
-      <ArchiveSideNav dark={false} isSigningOut={isSigningOut} onSignOut={onSignOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />
+      <ArchiveSideNav
+        dark={false}
+        isSigningOut={isSigningOut}
+        onSignOut={onSignOut}
+        recordHref={record?.id ? `/record/${record.id}` : undefined}
+        userIsAnonymous={userIsAnonymous}
+        userLabel={userLabel}
+      />
 
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="light">
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="light" tone="base">
-          <div className={`${shellContentWidthClass} space-y-6`}>
+          <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
               error={error}
               feedback={editFeedback}
@@ -642,13 +646,14 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
         </SectionSurface>
 
         <SectionSurface className="border-0 px-4 pb-8 pt-2 md:px-8 md:pb-8 md:pt-3" theme="light" tone="base">
-          <div className={shellContentWidthClass}>
+          <div className={`${shellContentWidthClass} t-stagger`} style={{ '--t-order': 1 } as CSSProperties}>
             <ReportPreviewFrame
               followUpCount={Math.min(MAX_FOLLOW_UP_ROUNDS, followUpAnswers.length)}
               isExtracting={isExtracting}
               isSaving={isSaving}
               onCommitField={handleFieldCommit}
               record={displayRecord}
+              recordDetailsHref={record?.id ? `/record/${record.id}` : undefined}
               remainingMissing={remainingMissing}
               setReportRef={() => undefined}
               theme="light"

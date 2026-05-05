@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的弹层生命周期 hooks、AuthCard、auth-copy 与登录认证卡 skin。
- * [OUTPUT]: 对外提供 AuthOverlay 组件，负责统一登录弹层、关闭动画、Esc 关闭与背景点击关闭。
- * [POS]: components/login 的弹层容器，只编排 AuthCard 与 modal 动效，不承载表单字段实现。
+ * [INPUT]: 依赖 react 的弹层生命周期 hooks、AuthCard、auth-copy、登录认证卡 skin 与 transitions-dev.css 的 modal/popover 动效合同。
+ * [OUTPUT]: 对外提供 AuthOverlay 组件，负责统一登录弹层、弹出/关闭动画、Esc 关闭与背景点击关闭。
+ * [POS]: components/login 的弹层容器，只编排 AuthCard 与 modal/popover 动效，不承载表单字段实现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -69,7 +69,7 @@ export function AuthOverlay({ onClose, ...authCardProps }: AuthOverlayProps) {
         className="mx-auto flex min-h-full w-full max-w-[520px] items-start py-2 sm:items-center"
         data-testid="login-auth-modal-card"
       >
-        <div className={`relative w-full t-modal ${motionState}`} onClick={(event) => event.stopPropagation()}>
+        <div className={`relative w-full t-modal t-popover ${motionState}`} onClick={(event) => event.stopPropagation()}>
           <button
             aria-label={locale === 'zh' ? `关闭${modeCopy.dialogLabel}` : `Close ${modeCopy.dialogLabel.toLowerCase()}`}
             className={`absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-full)] border transition-colors ${skin.closeButton}`}

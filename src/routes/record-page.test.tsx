@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、档案/Gantt 动效与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -143,6 +143,24 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('甘特图视图')
   })
 
+  it('mounts record pages into the shared route reveal motion layer', () => {
+    const markup = renderRecord('dark')
+
+    expect(markup).toContain('t-route-reveal')
+    expect(markup).toContain('t-stagger')
+    expect(markup).toContain('style="--t-order:0"')
+  })
+
+  it('uses a tab-switch contract for dossier and Gantt view changes', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('t-tab-switch')
+    expect(markup).toContain('data-active-page="dossier"')
+  })
+
   it('renders the Gantt view for demo records through the record content layer', () => {
     const markup = renderRecordContent({
       demoRoute: true,
@@ -152,6 +170,7 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('治疗线甘特图')
     expect(markup).toContain('奥希替尼')
     expect(markup).toContain('当前治疗线')
+    expect(markup).toContain('t-record-view')
   })
 
   it('renders the Gantt view for persisted records without demo fallback values', () => {

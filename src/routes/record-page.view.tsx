@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、@/components/timeline 的 TreatmentGanttView、record-copy 的 demoPatientRecord 与 ./record-page.logic 的 RecordLoadState。
- * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode 与 RecordExportState。
- * [POS]: routes 的档案详情内容组合层，隔离 dossier/gantt 视图切换，让 record-page.tsx 保持路由与副作用编排。
+ * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、@/components/timeline 的 TreatmentGanttView、record-copy 的 demoPatientRecord、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
+ * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode 与 RecordExportState，并统一档案/Gantt 切换动效锚点。
+ * [POS]: routes 的档案详情内容组合层，隔离 dossier/gantt 视图切换与 crossfade 入场，让 record-page.tsx 保持路由与副作用编排。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { RefObject } from 'react'
@@ -64,7 +64,8 @@ function RecordViewSwitch({
   return (
     <div
       aria-label={locale === 'zh' ? '病历详情视图切换' : 'Record detail view switch'}
-      className="mb-4 inline-flex rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-1"
+      className="t-tab-switch mb-4 inline-flex rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-1"
+      data-active-page={viewMode}
       data-testid="record-view-switch"
     >
       {modes.map((mode) => {
@@ -106,7 +107,9 @@ export function RecordPageContent({
     return (
       <>
         {switchNode}
-        <TreatmentGanttView locale={locale} record={ganttRecord} />
+        <div className="t-record-view" data-active-page="gantt">
+          <TreatmentGanttView locale={locale} record={ganttRecord} />
+        </div>
       </>
     )
   }
@@ -115,15 +118,17 @@ export function RecordPageContent({
     return (
       <>
         {switchNode}
-        <RecordDossier
-          exportError={exportState.error}
-          exportFormat={exportState.format}
-          isExportDisabled
-          isExporting={exportState.isExporting}
-          locale={locale}
-          onExport={onExport}
-          recordRef={recordRef}
-        />
+        <div className="t-record-view" data-active-page="dossier">
+          <RecordDossier
+            exportError={exportState.error}
+            exportFormat={exportState.format}
+            isExportDisabled
+            isExporting={exportState.isExporting}
+            locale={locale}
+            onExport={onExport}
+            recordRef={recordRef}
+          />
+        </div>
       </>
     )
   }
@@ -132,28 +137,32 @@ export function RecordPageContent({
     return (
       <>
         {switchNode}
-        <RecordDossier
-          exportError={exportState.error}
-          exportFormat={exportState.format}
-          isExportDisabled={false}
-          isExporting={exportState.isExporting}
-          locale={locale}
-          onExport={onExport}
-          record={activeRecordLoadState.record}
-          recordRef={recordRef}
-        />
+        <div className="t-record-view" data-active-page="dossier">
+          <RecordDossier
+            exportError={exportState.error}
+            exportFormat={exportState.format}
+            isExportDisabled={false}
+            isExporting={exportState.isExporting}
+            locale={locale}
+            onExport={onExport}
+            record={activeRecordLoadState.record}
+            recordRef={recordRef}
+          />
+        </div>
       </>
     )
   }
 
   return (
-    <RecordUnavailableDossier
-      exportError={exportState.error}
-      exportFormat={exportState.format}
-      isExporting={exportState.isExporting}
-      locale={locale}
-      message={activeRecordLoadState.isLoading ? labels[locale].loadingRecord : activeRecordLoadState.error ?? labels[locale].missingRecord}
-      onExport={onExport}
-    />
+    <div className="t-record-view" data-active-page="dossier">
+      <RecordUnavailableDossier
+        exportError={exportState.error}
+        exportFormat={exportState.format}
+        isExporting={exportState.isExporting}
+        locale={locale}
+        message={activeRecordLoadState.isLoading ? labels[locale].loadingRecord : activeRecordLoadState.error ?? labels[locale].missingRecord}
+        onExport={onExport}
+      />
+    </div>
   )
 }

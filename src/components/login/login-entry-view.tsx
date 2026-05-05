@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 react 的 useState、BackgroundMusicToggle、FireflyMark、LoginTraceMap、AuthOverlay、locale/copy 与隐私摘要文案。
- * [OUTPUT]: 对外提供 V3LoginView，渲染登录页全屏入口、工具区、安全状态与认证弹层入口。
+ * [INPUT]: 依赖 react 的 CSSProperties/useState、BackgroundMusicToggle、FireflyMark、FireflyBrandWordmark、LoginTraceMap、AuthOverlay、locale/copy 与隐私摘要文案。
+ * [OUTPUT]: 对外提供 V3LoginView，渲染登录页全屏入口、小屏可纵向生长且随文档流/大屏右下固定的工具区、安全状态、全站进入动效与认证弹层入口。
  * [POS]: components/login 的入口页编排层，被 login-page-view facade 消费，保持登录展示层对外 API 稳定。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 
 import { BackgroundMusicToggle } from '@/components/background-music-toggle'
+import { FireflyBrandWordmark } from '@/components/system/firefly-brand-wordmark'
 import { FireflyMark } from '@/components/system/firefly-mark'
 import { copy, getCopy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -41,7 +42,7 @@ function IntroAccessCta({
     <button
       aria-controls="login-auth-card"
       aria-expanded={isOpen}
-      className="inline-flex min-h-[52px] min-w-[156px] items-center justify-center gap-2.5 rounded-[12px] bg-[var(--ff-accent-primary)] px-6 text-base font-bold text-white shadow-[0_10px_18px_rgba(5,9,11,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)]"
+      className="t-control-press inline-flex min-h-[52px] min-w-[156px] items-center justify-center gap-2.5 rounded-[12px] bg-[var(--ff-accent-primary)] px-6 text-base font-bold text-white shadow-[0_10px_18px_rgba(5,9,11,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)]"
       data-testid="login-auth-cta"
       onClick={onOpen}
       type="button"
@@ -57,11 +58,13 @@ function IntroAccessCta({
 function LoginPageUtilityControls({
   locale,
   onToggleTheme,
+  style,
   theme,
   toggleLocale,
 }: {
   locale: 'zh' | 'en'
   onToggleTheme: () => void
+  style?: CSSProperties
   theme: Theme
   toggleLocale: () => void
 }) {
@@ -70,15 +73,16 @@ function LoginPageUtilityControls({
 
   return (
     <div
-      className={`fixed bottom-4 left-4 right-4 z-[60] flex w-auto max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 rounded-[14px] border px-3 py-3 text-sm font-semibold backdrop-blur-md sm:bottom-6 sm:left-auto sm:right-6 sm:w-fit sm:flex-nowrap sm:justify-start sm:gap-5 sm:px-6 sm:text-base ${skin.utilityShell}`}
+      className={`t-stagger relative z-20 mt-6 flex w-full max-w-[calc(100vw-3.5rem)] flex-wrap items-center justify-center gap-2 rounded-[14px] border px-3 py-3 text-sm font-semibold backdrop-blur-md sm:gap-4 sm:px-5 sm:text-base lg:fixed lg:bottom-6 lg:left-auto lg:right-6 lg:z-[60] lg:w-fit lg:max-w-[calc(100vw-3rem)] lg:flex-nowrap lg:justify-start lg:gap-5 lg:px-6 ${skin.utilityShell}`}
       data-testid="login-page-utility-controls"
+      style={style}
     >
-      <button className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={onToggleTheme} type="button">
+      <button className={`t-control-press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={onToggleTheme} type="button">
         <span className="material-symbols-outlined shrink-0 text-[24px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
         {getCopy(copy.shell.nav.themeToggle, locale)}
       </button>
       <span className={`h-5 w-px ${skin.utilityDivider}`} />
-      <button className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={toggleLocale} type="button">
+      <button className={`t-control-press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap sm:gap-2 ${skin.utilityButton}`} onClick={toggleLocale} type="button">
         <span className="material-symbols-outlined shrink-0 text-[24px]">g_translate</span>
         {getCopy(copy.shell.nav.languageToggle, locale)}
       </button>
@@ -154,22 +158,23 @@ export function V3LoginView({
   return (
     <div className={`min-h-dvh w-full overflow-x-hidden font-[var(--ff-font-ui)] ${skin.root}`}>
       <main className="grid min-h-dvh w-full xl:h-dvh xl:grid-cols-1">
-        <section className={`relative min-w-0 overflow-hidden px-7 pb-8 pt-24 md:px-14 md:py-12 xl:overflow-hidden ${skin.section}`}>
+        <section className={`t-route-reveal relative min-w-0 overflow-x-hidden px-7 pb-8 pt-24 md:px-14 md:py-12 xl:overflow-hidden ${skin.section}`}>
           <LoginTraceMap locale={locale} theme={theme} />
           <div className="relative z-10 flex min-h-full flex-col">
-            <div className="flex flex-col gap-6 md:flex-row md:items-start">
+            <div className="t-stagger flex flex-col gap-6 md:flex-row md:items-start" style={{ '--t-order': 0 } as CSSProperties}>
               <div className="flex min-w-0 items-center gap-4 md:gap-6">
                 <FireflyMark className="h-16 w-16 md:h-[72px] md:w-[72px]" />
                 <div className="min-w-0">
-                  <div className={`font-[var(--ff-font-display)] text-3xl font-bold tracking-normal md:text-[2.8rem] ${skin.brandTitle}`}>
-                    {getCopy(copy.shell.brand.lightTitle, locale)}
-                  </div>
-                  <div className={`mt-2 text-base font-semibold md:text-xl ${skin.brandSubtitle}`}>{getCopy(copy.shell.brand.lightSubtitle, locale)}</div>
+                  <FireflyBrandWordmark
+                    className="max-w-[min(17rem,calc(100vw-7rem))] md:max-w-[22rem]"
+                    locale={locale}
+                    scale="login"
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="mt-[12vh] w-full max-w-[calc(100vw-3.5rem)] md:mt-[16vh] md:max-w-[48rem]">
+            <div className="t-stagger mt-[12vh] w-full max-w-[calc(100vw-3.5rem)] md:mt-[16vh] md:max-w-[48rem]" style={{ '--t-order': 1 } as CSSProperties}>
               <div
                 className={`mb-5 inline-flex items-center gap-3 text-xs font-extrabold uppercase tracking-[0.18em] md:text-sm ${theme === 'dark' ? 'text-white/44' : 'text-[#455c58]/62'}`}
                 data-testid="login-intro-eyebrow"
@@ -191,20 +196,21 @@ export function V3LoginView({
                   'Clinical Treatment Timeline Workspace'
                 )}
               </h1>
-              <p className={`mt-7 max-w-[40rem] text-xl font-semibold leading-8 md:text-[1.35rem] ${skin.bodyCopy}`}>
+              <p className={`t-stagger mt-7 max-w-[40rem] text-xl font-semibold leading-8 md:text-[1.35rem] ${skin.bodyCopy}`} style={{ '--t-order': 2 } as CSSProperties}>
                 {locale === 'zh'
                   ? '把复杂治疗史整理为可追溯的结构化病历。'
                   : 'Transform complex treatment history into an auditable structured clinical record.'}
               </p>
             </div>
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="t-stagger mt-10 flex flex-col gap-4 sm:flex-row sm:items-center" style={{ '--t-order': 3 } as CSSProperties}>
               <IntroAccessCta isOpen={isAuthOpen} locale={locale} onOpen={() => setIsAuthOpen(true)} />
               <LoginSecurityStatus locale={locale} theme={theme} />
             </div>
             <LoginPageUtilityControls
               locale={locale}
               onToggleTheme={onToggleTheme}
+              style={{ '--t-order': 4 } as CSSProperties}
               theme={theme}
               toggleLocale={toggleLocale}
             />

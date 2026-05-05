@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 BackgroundAudioProvider 与 ./login-page-view 的 LoginPageView。
  * [OUTPUT]: 对外提供登录页主题壳层、认证弹层语义与 Transitions.dev 弹层动效合同的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效与无伪控件边界。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、内页同源品牌字标、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效、登录 scene 全站动效与无伪控件边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -170,7 +170,7 @@ describe('LoginPageView theme shell', () => {
     expect(markup).toContain('w-full')
     expect(markup).toContain('xl:h-dvh')
     expect(markup).toContain('xl:grid-cols-1')
-    expect(markup).toContain('overflow-hidden px-7 pb-8 pt-24')
+    expect(markup).toContain('overflow-x-hidden px-7 pb-8 pt-24')
     expect(markup).not.toContain('xl:grid-cols-[minmax(0,1fr)_112px]')
     expect(markup).not.toContain('order-first')
     expect(markup).not.toContain('order-last')
@@ -204,6 +204,39 @@ describe('LoginPageView theme shell', () => {
     expect(source).not.toContain('xl:grid-cols-[minmax(0,1fr)_minmax')
     expect(source).not.toContain('backdrop-blur-sm xl:hidden')
     expect(source).not.toContain('className="hidden h-full w-full xl:flex')
+  })
+
+  it('mounts the login scene into the shared route reveal and stagger motion layer', () => {
+    const markup = renderLogin('dark')
+
+    expect(markup).toContain('t-route-reveal')
+    expect(markup).toContain('t-login-backdrop')
+    expect(markup).toContain('t-stagger')
+    expect(markup).toContain('style="--t-order:0"')
+    expect(markup).toContain('style="--t-order:4"')
+    expect(markup).toContain('t-control-press')
+  })
+
+  it('uses the same artistic brand wordmark contract as inner pages', () => {
+    const markup = renderLogin('dark')
+
+    expect(markup).toContain('data-brand-art-wordmark="true"')
+    expect(markup).toContain('data-brand-wordmark="true"')
+    expect(markup).toContain('data-brand-firefly-glow="true"')
+    expect(markup).toContain('data-brand-wordmark-scale="login"')
+    expect(markup).toContain('一页<span')
+    expect(markup).toContain('萤</span>屿')
+    expect(markup).not.toContain('data-brand-subtitle="true"')
+    expect(markup).not.toContain('临床 AI 工作台')
+  })
+
+  it('uses shared tab and accordion motion inside the auth modal', () => {
+    const markup = renderLogin('dark', { defaultAuthOpen: true })
+
+    expect(markup).toContain('t-tab-switch')
+    expect(markup).toContain('t-accordion')
+    expect(markup).toContain('t-popover')
+    expect(markup).toContain('t-control-press')
   })
 
   it('renders the auth overlay title and submit action from the active mode', () => {
@@ -341,8 +374,9 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('max-w-[430px]')
   })
 
-  it('keeps theme, language and music controls fixed at the intro bottom-right', () => {
+  it('keeps theme, language and music controls in flow on small screens and fixed on large screens', () => {
     const markup = renderLogin('light')
+    const loginSource = readLoginSource()
     const utilityIndex = markup.indexOf('data-testid="login-page-utility-controls"')
     const ctaIndex = markup.indexOf('data-testid="login-auth-cta"')
     const securityIndex = markup.indexOf('data-testid="login-security-status"')
@@ -356,8 +390,12 @@ describe('LoginPageView theme shell', () => {
     expect(markup.indexOf('登录')).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(ctaIndex)
-    expect(markup).toContain('fixed bottom-4 left-4 right-4')
-    expect(markup).toContain('sm:bottom-6 sm:left-auto sm:right-6')
+    expect(markup).toContain('t-route-reveal relative min-w-0 overflow-x-hidden')
+    expect(markup).toContain('t-stagger relative z-20 mt-6 flex w-full')
+    expect(markup).toContain('lg:fixed lg:bottom-6 lg:left-auto lg:right-6')
+    expect(markup).toContain('style="--t-order:4"')
+    expect(loginSource).not.toContain('className="t-stagger" style={{ \'--t-order\': 4 } as CSSProperties}')
+    expect(markup).not.toContain('fixed bottom-4 left-4 right-4')
     expect(markup).not.toContain('data-testid="login-auth-overlay"')
     expect(markup).not.toContain('data-testid="login-auth-drawer"')
     expect(markup).not.toContain('data-testid="login-drawer-collapsed-tab"')

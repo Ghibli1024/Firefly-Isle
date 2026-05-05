@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染、vitest 断言、PatientRecord 与 ./TreatmentGanttView。
- * [OUTPUT]: 对外提供治疗线甘特图组件渲染回归测试。
- * [POS]: components/timeline 的展示测试，约束多线、缺失日期、当前治疗线与空态在 DOM 中可读。
+ * [OUTPUT]: 对外提供治疗线甘特图组件渲染与动效合同回归测试。
+ * [POS]: components/timeline 的展示测试，约束多线、缺失日期、当前治疗线、甘特条生长动效与空态在 DOM 中可读。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -30,6 +30,8 @@ describe('TreatmentGanttView', () => {
     expect(markup).toContain('多西他赛')
     expect(markup).toContain('当前治疗线')
     expect(markup.match(/data-testid="treatment-gantt-bar"/g)?.length).toBe(2)
+    expect(markup).toContain('t-gantt-grow')
+    expect(markup).toContain('style="--t-gantt-width:')
   })
 
   it('shows pending rows for missing dates instead of drawing bars', () => {

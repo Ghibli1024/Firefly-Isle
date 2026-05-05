@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy 与 locale 文案，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group 数字动效合同。
- * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、缺失字段告警、临床备注与验证状态带。
- * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，同时保留 setReportRef 导出捕获点。
+ * [INPUT]: 依赖 react-router-dom 的 Link，依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy 与 locale 文案，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group、.t-missing-pulse 与 .t-edit-flip 动效合同。
+ * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、真实治疗时间线、正式档案入口、缺失字段告警、临床备注与验证状态带。
+ * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord treatmentLines 投影为可读预览，同时保留 setReportRef 导出捕获点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { PanelSurface } from '@/components/system/surfaces'
 import { getCopy, copy } from '@/lib/copy'
@@ -17,6 +18,7 @@ type ReportPreviewFrameProps = {
   isSaving: boolean
   onCommitField: (target: PatientFieldTarget, value: string) => void
   record: PatientRecord
+  recordDetailsHref?: string
   remainingMissing: string[]
   setReportRef: (node: HTMLDivElement | null) => void
   theme: 'dark' | 'light'
@@ -38,7 +40,9 @@ type DisplayCellProps = {
 }
 
 type TimelinePillProps = {
+  detail?: string
   label: string
+  period?: string
   tone: 'initial' | 'line' | 'stable'
 }
 
@@ -77,6 +81,22 @@ function displayAge(value: number | undefined, locale: Locale) {
   }
 
   return locale === 'zh' ? `${value} 岁` : `${value} years`
+}
+
+function displayPeriod(startDate: string | undefined, endDate: string | undefined, locale: Locale) {
+  if (startDate && endDate) {
+    return `${startDate} → ${endDate}`
+  }
+
+  if (startDate) {
+    return locale === 'zh' ? `${startDate} 起` : `From ${startDate}`
+  }
+
+  if (endDate) {
+    return locale === 'zh' ? `至 ${endDate}` : `Until ${endDate}`
+  }
+
+  return locale === 'zh' ? '时间待补充' : 'Date pending'
 }
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -128,7 +148,7 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
     return (
       <button
         className={[
-          'group flex min-h-[64px] w-full items-center justify-between rounded-[var(--ff-radius-md)] border px-4 py-3 text-left transition-colors',
+          'group t-edit-flip t-control-press flex min-h-[64px] w-full items-center justify-between rounded-[var(--ff-radius-md)] border px-4 py-3 text-left transition-colors',
           critical && isMissing
             ? 'border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] text-[var(--ff-accent-primary)]'
             : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)]',
@@ -160,7 +180,7 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
 
   return (
     <form
-      className="rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-panel)] p-3"
+      className="t-edit-flip rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-panel)] p-3"
       onSubmit={(event) => {
         event.preventDefault()
         onCommitField(target, draft)
@@ -176,13 +196,13 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
           value={draft}
         />
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-[var(--ff-radius-sm)] bg-[var(--ff-accent-primary)] text-white"
+          className="t-control-press flex h-9 w-9 items-center justify-center rounded-[var(--ff-radius-sm)] bg-[var(--ff-accent-primary)] text-white"
           type="submit"
         >
           <span className="material-symbols-outlined text-lg">check</span>
         </button>
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] text-[var(--ff-text-secondary)]"
+          className="t-control-press flex h-9 w-9 items-center justify-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] text-[var(--ff-text-secondary)]"
           onClick={() => setEditing(false)}
           type="button"
         >
@@ -199,7 +219,7 @@ function DisplayCell({ critical = false, label, value }: DisplayCellProps) {
   return (
     <div
       className={[
-        'min-h-[64px] rounded-[var(--ff-radius-md)] border px-4 py-3',
+        't-edit-flip min-h-[64px] rounded-[var(--ff-radius-md)] border px-4 py-3',
         critical && isMissing
           ? 'border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] text-[var(--ff-accent-primary)]'
           : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)]',
@@ -211,7 +231,7 @@ function DisplayCell({ critical = false, label, value }: DisplayCellProps) {
   )
 }
 
-function TimelinePill({ label, tone }: TimelinePillProps) {
+function TimelinePill({ detail, label, period, tone }: TimelinePillProps) {
   const toneClass =
     tone === 'stable'
       ? 'border-[color:color-mix(in_srgb,var(--ff-accent-success)_46%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_10%,var(--ff-surface-panel))]'
@@ -220,10 +240,50 @@ function TimelinePill({ label, tone }: TimelinePillProps) {
         : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)]'
 
   return (
-    <div className={`flex h-11 min-w-[150px] items-center justify-center rounded-[var(--ff-radius-md)] border px-4 font-semibold ${toneClass}`}>
-      {label}
+    <div
+      className={`flex min-h-[76px] w-full min-w-[220px] flex-col justify-center rounded-[var(--ff-radius-md)] border px-4 py-3 ${toneClass} md:max-w-[260px]`}
+    >
+      <span className="font-[var(--ff-font-display)] text-sm font-bold tracking-normal text-[var(--ff-text-primary)]">{label}</span>
+      {period ? <span className="mt-1 text-xs font-semibold text-[var(--ff-text-muted)]">{period}</span> : null}
+      {detail ? (
+        <span className="mt-1 line-clamp-2 whitespace-normal break-words text-sm font-semibold leading-snug text-[var(--ff-text-secondary)]">
+          {detail}
+        </span>
+      ) : null}
     </div>
   )
+}
+
+function getPreviewTimelineItems(record: PatientRecord, locale: Locale): TimelinePillProps[] {
+  const items: TimelinePillProps[] = []
+
+  if (record.initialOnset) {
+    items.push({
+      detail: display(record.initialOnset.treatment),
+      label: locale === 'zh' ? '初发治疗' : 'Initial Treatment',
+      period: record.initialOnset.triggerDate,
+      tone: 'initial',
+    })
+  }
+
+  for (const line of [...record.treatmentLines].sort((left, right) => left.lineNumber - right.lineNumber)) {
+    items.push({
+      detail: display(line.regimen),
+      label: `${line.lineNumber}L ${locale === 'zh' ? '治疗线' : 'Treatment Line'}`,
+      period: displayPeriod(line.startDate, line.endDate, locale),
+      tone: line.endDate ? 'line' : 'stable',
+    })
+  }
+
+  return items.length > 0
+    ? items
+    : [
+        {
+          detail: locale === 'zh' ? '完成结构化提取后显示治疗方案、起止时间与换线顺序。' : 'Extract a record to show regimen, dates, and line order.',
+          label: locale === 'zh' ? '暂无治疗线内容' : 'No Treatment Lines',
+          tone: 'initial',
+        },
+      ]
 }
 
 function Connector() {
@@ -255,6 +315,7 @@ export function ReportPreviewFrame({
   isSaving,
   onCommitField,
   record,
+  recordDetailsHref,
   remainingMissing,
   setReportRef,
   theme,
@@ -267,6 +328,7 @@ export function ReportPreviewFrame({
   const missingLabels =
     recordHasData && remainingMissing.length > 0 ? remainingMissing : recordHasData ? [] : placeholderMissing[locale]
   const missingCount = missingLabels.length
+  const timelineItems = getPreviewTimelineItems(record, locale)
   const notePlaceholder =
     locale === 'zh' ? '可在此记录关键临床备注或补充说明...' : 'Record key clinical notes or supplemental comments...'
 
@@ -284,14 +346,14 @@ export function ReportPreviewFrame({
             </span>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
+            <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
               <span className="material-symbols-outlined text-xl">warning</span>
               <span>
                 {locale === 'zh' ? '必填字段 / 缺失字段：' : 'Required / Missing: '}
                 {missingLabels.length > 0 ? missingLabels.join(locale === 'zh' ? ' / ' : ' / ') : locale === 'zh' ? '无' : 'None'}
               </span>
             </div>
-            <div className="inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
+            <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
               <span className="material-symbols-outlined text-xl">chat_bubble</span>
               <span>
                 {locale === 'zh' ? (
@@ -305,6 +367,15 @@ export function ReportPreviewFrame({
                 )}
               </span>
             </div>
+            {recordDetailsHref ? (
+              <Link
+                className="t-control-press inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
+                to={recordDetailsHref}
+              >
+                <span className="material-symbols-outlined text-xl">open_in_new</span>
+                {locale === 'zh' ? '打开病历详情' : 'Open record detail'}
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -371,15 +442,12 @@ export function ReportPreviewFrame({
         <div className="mt-2 max-w-full overflow-x-auto pb-2">
           <div className="flex flex-col gap-3 md:min-w-max md:flex-row md:items-center md:gap-2">
             <span className="hidden h-8 w-8 shrink-0 rounded-[var(--ff-radius-full)] border-2 border-dashed border-[var(--ff-line)] md:block" />
-            <Connector />
-            <TimelinePill label={locale === 'zh' ? '初发治疗（可选）' : 'Initial Treatment (Optional)'} tone="initial" />
-            <Connector />
-            <TimelinePill label={locale === 'zh' ? '1L 治疗线' : '1L Treatment Line'} tone="line" />
-            <Connector />
-            <TimelinePill label={locale === 'zh' ? '2L 治疗线' : '2L Treatment Line'} tone="line" />
-            <Connector />
-            <TimelinePill label={locale === 'zh' ? '3L 治疗线' : '3L Treatment Line'} tone="stable" />
-            <Connector />
+            {timelineItems.map((item, index) => (
+              <div className="contents" key={`${item.label}-${index}`}>
+                <Connector />
+                <TimelinePill {...item} />
+              </div>
+            ))}
             <span className="hidden h-8 w-8 shrink-0 rounded-[var(--ff-radius-full)] border-2 border-dashed border-[var(--ff-line)] md:block" />
           </div>
         </div>
@@ -390,7 +458,7 @@ export function ReportPreviewFrame({
             {notePlaceholder}
           </div>
           <button
-            className="flex h-12 w-14 shrink-0 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
+            className="t-control-press flex h-12 w-14 shrink-0 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
             type="button"
           >
             <span className="material-symbols-outlined">edit</span>

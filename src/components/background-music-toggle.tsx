@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 @/lib/background-audio 的全局歌单状态，依赖 @/lib/locale 与 @/lib/copy 的双语文案，依赖 @/lib/utils 的类名合并。
- * [OUTPUT]: 对外提供 BackgroundMusicToggle 组件，包含播放开关、当前曲目、上一首、下一首与离开收回的半透明弹出短侧舱布局。
+ * [INPUT]: 依赖 @/lib/background-audio 的全局歌单状态，依赖 @/lib/locale 与 @/lib/copy 的双语文案，依赖 @/lib/utils 的类名合并，依赖 transitions-dev.css 的 control/popover 动效合同。
+ * [OUTPUT]: 对外提供 BackgroundMusicToggle 组件，包含播放开关、当前曲目、上一首、下一首、点击压入反馈与离开收回的半透明弹出短侧舱布局。
  * [POS]: components 的共享背景音乐控件，被登录页工具区和 authenticated top bar 复用，只表达播放、暂停与拦截状态，不拥有 audio 实例。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -98,7 +98,7 @@ export function BackgroundMusicToggle({
           aria-haspopup="dialog"
           aria-label={openControlsLabel}
           className={cn(
-            'inline-flex shrink-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+            't-control-press inline-flex shrink-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-60',
             className,
           )}
           data-audio-status={status}
@@ -114,7 +114,7 @@ export function BackgroundMusicToggle({
         {isPanelOpen ? (
           <div
             aria-label={openControlsLabel}
-            className="t-audio-popover fixed right-0 top-[68px] z-50 w-[min(19rem,calc(100vw-1rem))] border-b border-l border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_54%,transparent)] px-5 pb-5 pt-4 text-[var(--ff-text-primary)] shadow-[0_22px_55px_rgba(0,0,0,0.34)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_44%,transparent)]"
+            className="t-audio-popover t-popover fixed right-0 top-[68px] z-50 w-[min(19rem,calc(100vw-1rem))] border-b border-l border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_54%,transparent)] px-5 pb-5 pt-4 text-[var(--ff-text-primary)] shadow-[0_22px_55px_rgba(0,0,0,0.34)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_44%,transparent)]"
             data-testid="background-music-short-dock"
             id={panelId}
             ref={panelRef}
@@ -136,7 +136,7 @@ export function BackgroundMusicToggle({
               <button
                 aria-label={ariaLabel}
                 aria-pressed={isAudioPressed(status)}
-                className="inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
+                className="t-control-press inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
                 data-audio-status={status}
                 onClick={() => void toggle()}
                 title={ariaLabel}
@@ -146,7 +146,7 @@ export function BackgroundMusicToggle({
               </button>
               <button
                 aria-label={previousLabel}
-                className="inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-current transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+                className="t-control-press inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-current transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                 disabled={trackControlsDisabled}
                 onClick={() => void previousTrack()}
                 title={previousLabel}
@@ -156,7 +156,7 @@ export function BackgroundMusicToggle({
               </button>
               <button
                 aria-label={nextLabel}
-                className="inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-current transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+                className="t-control-press inline-flex h-12 items-center justify-center border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-current transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                 disabled={trackControlsDisabled}
                 onClick={() => void nextTrack()}
                 title={nextLabel}
@@ -178,7 +178,7 @@ export function BackgroundMusicToggle({
         aria-label={ariaLabel}
         aria-pressed={isAudioPressed(status)}
         className={cn(
-          'inline-flex shrink-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+          't-control-press inline-flex shrink-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-60',
           className,
         )}
         data-audio-status={status}
@@ -201,7 +201,7 @@ export function BackgroundMusicToggle({
       </span>
       <button
         aria-label={previousLabel}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--ff-radius-sm)] border border-current text-current opacity-75 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-35"
+        className="t-control-press inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--ff-radius-sm)] border border-current text-current opacity-75 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-35"
         disabled={trackControlsDisabled}
         onClick={() => void previousTrack()}
         title={previousLabel}
@@ -211,7 +211,7 @@ export function BackgroundMusicToggle({
       </button>
       <button
         aria-label={nextLabel}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--ff-radius-sm)] border border-current text-current opacity-75 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-35"
+        className="t-control-press inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--ff-radius-sm)] border border-current text-current opacity-75 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-35"
         disabled={trackControlsDisabled}
         onClick={() => void nextTrack()}
         title={nextLabel}

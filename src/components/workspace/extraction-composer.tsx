@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap 与 .t-text-swap 动效合同。
+ * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap、.t-text-swap、.t-control-press 与 .t-popover 动效合同。
  * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口与外层容器旋转的 loading icon 唯一主提取动作。
  * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、模型设置、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -121,7 +121,7 @@ export function ExtractionComposer({
 
       <div className="relative">
         <textarea
-          className="h-44 w-full resize-none rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-4 pb-16 text-base leading-7 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] focus:border-[var(--ff-accent-primary)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--ff-accent-primary)_18%,transparent)] sm:h-48"
+          className="h-44 w-full resize-none rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-4 pb-16 text-base leading-7 text-[var(--ff-text-primary)] outline-none placeholder:text-[var(--ff-text-muted)] transition-[border-color,box-shadow] focus:border-[var(--ff-accent-primary)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--ff-accent-primary)_18%,transparent)] sm:h-48"
           id="patient-history-input"
           maxLength={MAX_EXTRACTION_INPUT_LENGTH}
           onChange={(event) => onInputChange(event.target.value)}
@@ -131,7 +131,7 @@ export function ExtractionComposer({
         <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-3">
           <label
             aria-label={getCopy(copy.workspace.composer.importRecordFile, locale)}
-            className="pointer-events-auto inline-flex h-10 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 font-[var(--ff-font-ui)] text-xs font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="t-control-press pointer-events-auto inline-flex h-10 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 font-[var(--ff-font-ui)] text-xs font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
             data-input-tool="import-record-file"
             title={uploadTitle}
           >
@@ -157,7 +157,7 @@ export function ExtractionComposer({
           <div className="pointer-events-auto flex items-center gap-3">
             <button
               aria-label={getCopy(copy.workspace.composer.voiceInput, locale)}
-              className="flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
               data-input-tool="voice-input"
               disabled={disabled}
               onClick={() => setToolMessage(voiceUnavailableTitle)}
@@ -174,13 +174,13 @@ export function ExtractionComposer({
       </div>
 
       {toolMessage ? (
-        <div className="mt-3 text-sm font-semibold text-[var(--ff-text-secondary)]" role="status">
+        <div className="t-popover mt-3 text-sm font-semibold text-[var(--ff-text-secondary)]" role="status">
           {toolMessage}
         </div>
       ) : null}
 
       {feedback ? (
-        <div className="mt-3 text-sm font-semibold text-[var(--ff-accent-success)]" role="status">
+        <div className="t-popover mt-3 text-sm font-semibold text-[var(--ff-accent-success)]" role="status">
           {feedback}
         </div>
       ) : null}
@@ -188,7 +188,7 @@ export function ExtractionComposer({
       <LlmProviderSettingsPanel disabled={disabled} theme={theme} />
 
       {ocrState.isProcessing || ocrState.error || ocrState.text ? (
-        <ActionSurface className="mt-4 px-4 py-4 text-sm" theme={theme} tone={ocrState.error ? 'warning' : 'panel'}>
+        <ActionSurface className="t-popover mt-4 px-4 py-4 text-sm" theme={theme} tone={ocrState.error ? 'warning' : 'panel'}>
           {ocrState.isProcessing ? (
             <div className="font-semibold text-[var(--ff-text-secondary)]">{locale === 'zh' ? 'OCR 识别中...' : 'Recognizing document...'}</div>
           ) : null}
@@ -205,7 +205,7 @@ export function ExtractionComposer({
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  className="inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 font-[var(--ff-font-ui)] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 font-[var(--ff-font-ui)] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={disabled}
                   onClick={onConfirmOcrText}
                   type="button"
@@ -213,7 +213,7 @@ export function ExtractionComposer({
                   {locale === 'zh' ? '确认并提取' : 'Confirm and Extract'}
                 </button>
                 <button
-                  className="inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)]"
+                  className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)]"
                   onClick={onDiscardOcrText}
                   type="button"
                 >
@@ -228,7 +228,7 @@ export function ExtractionComposer({
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {retryMode ? (
           <button
-            className="inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-5 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
+            className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-5 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
             onClick={onRetry}
             type="button"
           >
@@ -242,7 +242,7 @@ export function ExtractionComposer({
           <span aria-hidden="true" />
         )}
         <button
-          className="inline-flex h-12 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 font-[var(--ff-font-ui)] text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="t-control-press inline-flex h-12 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 font-[var(--ff-font-ui)] text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled || inputTooLong}
           onClick={onExtract}
           type="button"
@@ -258,12 +258,12 @@ export function ExtractionComposer({
       {error || isSaving ? (
         <div className="mt-4 grid gap-3">
           {error ? (
-            <ActionSurface className="px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme={theme} tone="warning">
+            <ActionSurface className="t-popover px-4 py-3 text-sm text-[var(--ff-accent-warning)]" theme={theme} tone="warning">
               {error}
             </ActionSurface>
           ) : null}
           {isSaving ? (
-            <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">
+            <div className="t-popover font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--ff-accent-primary)]">
               {getCopy(copy.workspace.composer.saving, locale)}
             </div>
           ) : null}

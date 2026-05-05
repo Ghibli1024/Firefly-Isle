@@ -10,8 +10,8 @@
 成员清单
 CLAUDE.md: 说明时间线表格组件目录的职责边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 TimelineTable.tsx: 按 archetype 组合基本信息、初发区块与治疗线区块的主表格组件，消费 V3 timeline token、locale 文案真相源，并负责关键缺失字段橙色高亮与行内编辑入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-TreatmentGanttView.tsx: 治疗线甘特图展示组件，消费 PatientRecord.treatmentLines、locale 文案与 treatment-gantt 归一化结果，只读展示持续时间、缺失日期与当前治疗线，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-TreatmentGanttView.test.tsx: 治疗线甘特图静态渲染测试，约束多线、缺失日期、当前治疗线与空态 DOM 输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+TreatmentGanttView.tsx: 治疗线甘特图展示组件，消费 PatientRecord.treatmentLines、locale 文案与 treatment-gantt 归一化结果，只读展示持续时间、缺失日期、当前治疗线与条形生长动效，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+TreatmentGanttView.test.tsx: 治疗线甘特图静态渲染测试，约束多线、缺失日期、当前治疗线、条形生长动效与空态 DOM 输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 treatment-gantt.ts: 治疗线甘特纯数据投影，负责 lineNumber 排序、日期解析、bar 百分比与 current-line 判定，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 treatment-gantt.test.ts: 治疗线甘特纯逻辑测试，约束排序、缺失日期不画假 bar、空数组与当前治疗线判定，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 

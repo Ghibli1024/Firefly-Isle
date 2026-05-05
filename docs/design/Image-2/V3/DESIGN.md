@@ -232,6 +232,21 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 
 如果一个状态需要超过三种形状来表达，说明设计错了；先合并状态，再画组件。
 
+## Motion
+
+Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制台的进入感、切换感和响应感，不服务玩具感、营销感或新颜色系统。运行时统一由 `src/styles/transitions-dev.css` 输出 `t-*` class，组件只挂语义类。
+
+- **Route reveal:** `/login`、`/app`、`/record/:id`、`/privacy`、`/brand-lockup-preview` 的页面主画布使用 `t-route-reveal`。入场只允许轻微位移、透明度和 blur 归位，不能旋转整页或制造沉重投影。
+- **Stagger:** 登录品牌区、工作台输入/预览、病历 summary、时间线节点、证据卡、隐私条款卡、品牌候选卡使用 `t-stagger` 与 `--t-order` 顺序进入。节奏应像档案逐层展开，而不是卡片跳舞。
+- **Controls:** 按钮、图标按钮、音乐播放器控制、导出、提交、tab 选项使用 `t-control-press`。点击反馈是压入与图标微位移，不改变尺寸、不挤压邻居。
+- **Popover / accordion:** 背景音乐短侧舱、联系卡、认证 modal 反馈、OCR/保存/错误状态使用 `t-popover`；模型设置、登录 tab 内容和提示块使用 `t-accordion`。
+- **Tab switch:** 登录邮箱/手机、病历详情档案/Gantt、模型设置模式选择使用 `t-tab-switch`，选中态可以有橙色焦点光，但不能新增蓝紫渐变。
+- **Record motion:** 病历详情视图切换使用 `t-record-view`；纵向时间线 rail 使用 `t-timeline-rail` draw-in；Gantt 条使用 `t-gantt-grow` 从左向右生长，当前治疗线允许更明确的橙色强调。
+- **Scene breathing:** 登录背景图可使用 `t-login-backdrop` 极慢呼吸，周期要长，幅度要小；普通工作区、隐私页、病历页禁止背景呼吸。
+- **Reduced motion:** 所有新增 `t-*` 动效必须在 `prefers-reduced-motion: reduce` 中关闭 animation/transition，保留最终布局与语义。
+
+禁用场景：长正文阅读过程、表格滚动、病历导出捕获区域、隐私条款正文、任何可能造成文字溢出或遮挡的容器。动效是系统反馈，不是注意力税。
+
 ## Components
 
 **Responsive Sidebar:** 默认展开时显示 mark + 产品名、图标 + 标签导航、主题/语言/匿名/退出与系统状态卡；边界胶囊柄同时承担拖拽缩放、拖到隐藏与单击三态切换，不在品牌区额外放置显式隐藏按钮。拖拽变窄到阈值以下时自动 icon-only，并用 tooltip 保留短中文名，例如“提取”“病历”。隐藏侧栏后页面内容要自然占满，不能留下 72px 空白；左边缘恢复浮标只做提示，不抢占主内容层级，但允许作为渐进拉出的起点。
@@ -267,7 +282,8 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 3. `src/components/system/` 承载 Shell、Sidebar、TopBar、Main、Panel、Section、Action surface 等系统基元。
 4. `src/components/ui/` 只承载 shadcn 原子组件，不定义项目级壳层语义。
 5. `src/components/login-page-view.tsx` 当前承载登录 scene 的 component token maps（`loginThemeSkins`、`authCardSkins`）。这些 map 是登录入口的 bounded component tokens，不得被复制到其他页面；后续若继续扩展，应提升为 `src/lib/theme` 下的命名 token。
-6. 页面路由只能组合 system/feature 组件并消费 token，不得直接发明新的颜色、surface、壳层结构或主题分支。
+6. `src/styles/transitions-dev.css` 承载全站 `t-*` 动效语法；页面和组件只能消费语义 class，不在业务组件内发明 keyframes。
+7. 页面路由只能组合 system/feature 组件并消费 token，不得直接发明新的颜色、surface、壳层结构、主题分支或局部动画系统。
 
 ### Runtime Geometry Rules
 
@@ -282,6 +298,7 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 - 改设计，先改本文件；改实现，再改 runtime token 和 system component。
 - 新颜色必须先归入既有 `accent`、`success`、`warning`、`surface`、`border` 或 `text` 语义；无法归入时先扩展 token contract。
 - 新壳层结构必须先判断能否由 `src/components/system/` 现有基元承担。
+- 新动效必须先归入 `route reveal`、`stagger`、`control press`、`popover`、`accordion`、`tab switch`、`record view` 或 `gantt grow` 语义；无法归入时先扩展 `transitions-dev.css` 合同和本文件 Motion 规则。
 - 主题切换只改变材料、明暗和文字语气，不改变信息架构、操作位置或布局身份。
 - 页面中出现散写 hex、未命名 surface、整页固定宽度或暗亮主题结构跳变，视为设计系统回归；唯一例外是登录 scene 已命名的 component token maps 与第三方 provider glyph 原色。
 
@@ -290,12 +307,14 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 - Do 保持暗亮主题同骨架、同组件、同状态语言，只改变材料明暗。
 - Do 把橙色留给行动、焦点、风险和当前位置。
 - Do 把登录页看作 CTA-driven entry scene：首屏建立信任，modal 承载身份输入。
+- Do 使用 `t-*` 语义类建立进入、切换、响应三类动效，并始终保留 reduced-motion 退路。
 - Do 让病历详情页纵向滚动，治疗节点按时间自然展开。
 - Do 让临床缺失信息在原字段和汇总告警中同时可见。
 - Do 在实现任何新页面前先检查本文件、V3 截图和对应 `CLAUDE.md`。
 - Don't 把 `03-app-dark.png` 当作最终暗色工作台参考；使用 `03-app-dark-new.png`。
 - Don't 新增紫蓝渐变、圆形光斑、营销式 hero 卡片，或把 auth modal 的强投影复制到普通工作区卡片。
 - Don't 让按钮、输入框、卡片在 hover/focus 时改变尺寸。
+- Don't 在业务组件里散写 keyframes、绕过 `transitions-dev.css`，或把动效当作新装饰系统。
 - Don't 把绿色用于主要按钮或风险提示。
 - Don't 为暗色和亮色分别发明两套组件行为；主题差异只能存在于材料，不存在于交互语法。
 

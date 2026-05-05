@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 CSSProperties/useMemo/useState，依赖 BrandLockup 及其候选元数据，依赖 themeTokens 固定预览页夜间底色。
- * [OUTPUT]: 对外提供 BrandLockupPreviewPage 路由组件，渲染 /brand-lockup-preview 的 6 组侧栏品牌锁定组合设计看板。
- * [POS]: routes 的设计预览页，只服务品牌区候选选择，不接入认证工作流、不替换 /app 或 /record/:id 的生产侧栏。
+ * [INPUT]: 依赖 react 的 CSSProperties/useMemo/useState，依赖 BrandLockup 及其候选元数据，依赖 themeTokens 固定预览页夜间底色，依赖 transitions-dev.css 的 route/stagger/selection pulse 动效合同。
+ * [OUTPUT]: 对外提供 BrandLockupPreviewPage 路由组件，渲染带候选确认动效的 /brand-lockup-preview 六组侧栏品牌锁定组合设计看板。
+ * [POS]: routes 的设计预览页，只服务品牌区候选选择与 current pick 动效确认，不接入认证工作流、不替换 /app 或 /record/:id 的生产侧栏。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useMemo, useState, type CSSProperties } from 'react'
@@ -50,11 +50,13 @@ function PreviewSky() {
 }
 
 function VariantCard({
+  order,
   selected,
   variant,
   onSelect,
 }: {
   onSelect: (variant: BrandLockupVariant) => void
+  order: number
   selected: boolean
   variant: BrandLockupVariant
 }) {
@@ -63,14 +65,15 @@ function VariantCard({
   return (
     <article
       className={cn(
-        'group overflow-hidden rounded-[var(--ff-radius-md)] border bg-[var(--ff-surface-panel)] transition-[border-color,box-shadow,transform] duration-200',
+        'group t-stagger overflow-hidden rounded-[var(--ff-radius-md)] border bg-[var(--ff-surface-panel)] transition-[border-color,box-shadow,transform] duration-200',
         selected
-          ? 'border-[var(--ff-accent-primary)]'
+          ? 't-selection-pulse border-[var(--ff-accent-primary)]'
           : 'border-[var(--ff-border-default)] hover:border-[var(--ff-accent-primary)]',
       )}
       data-brand-lockup-variant={variant}
+      style={{ '--t-order': order } as CSSProperties}
     >
-      <button className="block w-full text-left" onClick={() => onSelect(variant)} type="button">
+      <button className="t-control-press block w-full text-left" onClick={() => onSelect(variant)} type="button">
         <div className="flex min-h-[118px] items-start justify-between gap-4 border-b border-[var(--ff-border-default)] px-5 py-4">
           <div className="min-w-0">
             <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
@@ -116,7 +119,10 @@ function SelectedPanel({ variant }: { variant: BrandLockupVariant }) {
   const meta = BRAND_LOCKUP_VARIANT_META[variant]
 
   return (
-    <aside className="sticky top-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5">
+    <aside
+      className="t-stagger t-selection-pulse sticky top-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5"
+      style={{ '--t-order': 7 } as CSSProperties}
+    >
       <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.22em] text-[var(--ff-accent-primary)]">
         Current pick
       </div>
@@ -153,13 +159,16 @@ export function BrandLockupPreviewPage() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden bg-[var(--ff-surface-base)] px-5 py-6 text-[var(--ff-text-primary)] md:px-8"
+      className="t-route-reveal relative min-h-screen overflow-hidden bg-[var(--ff-surface-base)] px-5 py-6 text-[var(--ff-text-primary)] md:px-8"
       style={previewPageStyle}
     >
       <PreviewSky />
       <div className="relative z-10 mx-auto grid max-w-[1760px] gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0">
-          <div className="mb-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 md:p-6">
+          <div
+            className="t-stagger mb-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 md:p-6"
+            style={{ '--t-order': 0 } as CSSProperties}
+          >
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
                 <div className="font-[var(--ff-font-mono)] text-[10px] uppercase tracking-[0.28em] text-[var(--ff-accent-primary)]">
@@ -178,10 +187,11 @@ export function BrandLockupPreviewPage() {
           </div>
 
           <div className="grid gap-5 2xl:grid-cols-2">
-            {brandLockupVariants.map((variant) => (
+            {brandLockupVariants.map((variant, index) => (
               <VariantCard
                 key={variant}
                 onSelect={setSelectedVariant}
+                order={index + 1}
                 selected={variant === selectedVariant}
                 variant={variant}
               />
@@ -189,7 +199,7 @@ export function BrandLockupPreviewPage() {
           </div>
         </section>
 
-        <SelectedPanel variant={selectedVariant} />
+        <SelectedPanel key={selectedVariant} variant={selectedVariant} />
       </div>
     </main>
   )

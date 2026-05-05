@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 vitest 的 LLM mock，依赖 ./extraction 的 extractPatientRecord。
- * [OUTPUT]: 对外提供结构化提取对 LLM JSON 输出模式、紧凑提示词合同、上游失败降级重试与日期归一化的回归测试。
- * [POS]: src/lib 的提取协议测试，确保病历结构化链路优先要求模型返回 JSON 对象、避免长 TypeScript schema/多消息提示词、接住上游 502 与中文/点号日期。
+ * [INPUT]: 依赖 vitest 的 LLM mock，依赖 ./extraction 的 extractPatientRecord 与 getExtractionFailureMessage。
+ * [OUTPUT]: 对外提供结构化提取对 LLM JSON 输出模式、模型 id 清洗、紧凑提示词合同、上游失败降级重试、Gemini 兜底、错误文案分流与日期归一化的回归测试。
+ * [POS]: src/lib 的提取协议测试，确保病历结构化链路优先要求模型返回 JSON 对象、避免长 TypeScript schema/多消息提示词、接住上游 502、清除未持久化 id、区分 Auth/限流/超时/上游失败与中文/点号日期。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,11 +10,17 @@ const llmMocks = vi.hoisted(() => ({
   chat: vi.fn(),
 }))
 
-vi.mock('@/lib/llm', () => ({
-  chat: llmMocks.chat,
-}))
+vi.mock('@/lib/llm', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/llm')>('@/lib/llm')
+  return {
+    ...actual,
+    chat: llmMocks.chat,
+  }
+})
 
-import { extractPatientRecord } from './extraction'
+import { ChatError } from '@/lib/llm'
+
+import { ExtractionParseError, extractPatientRecord, getExtractionFailureMessage } from './extraction'
 
 function getUserPrompt(messages: Array<{ role: string; content: string }>) {
   return messages.find((message) => message.role === 'user')?.content ?? ''
@@ -22,7 +28,7 @@ function getUserPrompt(messages: Array<{ role: string; content: string }>) {
 
 describe('extractPatientRecord', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    llmMocks.chat.mockReset()
     llmMocks.chat.mockResolvedValue('{"treatmentLines":[]}')
   })
 
@@ -54,6 +60,28 @@ describe('extractPatientRecord', () => {
     expect(llmMocks.chat).toHaveBeenNthCalledWith(2, expect.any(Array))
   })
 
+  it('falls back to Gemini when the built-in DeepSeek path rejects dense histories twice', async () => {
+    llmMocks.chat
+      .mockRejectedValueOnce(new ChatError('LLMUpstreamError', 'deepseek API request failed.', 502))
+      .mockRejectedValueOnce(new ChatError('LLMInvalidResponseError', 'LLM proxy returned invalid response.', 502))
+      .mockResolvedValueOnce('```json\n{"treatmentLines":[{"lineNumber":9,"regimen":"氟唑帕利+哌柏西利"}]}\n```')
+
+    await expect(extractPatientRecord('乳腺癌长病史，包含 9 线治疗表格。')).resolves.toMatchObject({
+      treatmentLines: [
+        {
+          lineNumber: 9,
+          regimen: '氟唑帕利+哌柏西利',
+        },
+      ],
+    })
+    expect(llmMocks.chat).toHaveBeenNthCalledWith(1, expect.any(Array), { responseFormat: 'json_object' })
+    expect(llmMocks.chat).toHaveBeenNthCalledWith(2, expect.any(Array))
+    expect(llmMocks.chat).toHaveBeenNthCalledWith(3, expect.any(Array), {
+      provider: 'gemini',
+      responseFormat: 'json_object',
+    })
+  })
+
   it('keeps extracted lab readings in labResults instead of treatmentLines', async () => {
     llmMocks.chat.mockResolvedValue(
       JSON.stringify({
@@ -83,6 +111,57 @@ describe('extractPatientRecord', () => {
           value: 8.2,
         },
       ],
+      treatmentLines: [],
+    })
+  })
+
+  it('drops model-generated ids from initial extraction so storage owns persisted record identity', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        id: '627b6ba7-74b1-4e10-b79b-ad509bb88687',
+        basicInfo: {
+          stage: 'IV',
+          tumorType: '乳腺癌',
+        },
+        treatmentLines: [{ lineNumber: 1, regimen: '阿贝西利+氟维司群' }],
+      }),
+    )
+
+    const record = await extractPatientRecord('乳腺癌 IV 期，一线阿贝西利+氟维司群。')
+
+    expect(record.id).toBeUndefined()
+    expect(record).toMatchObject({
+      basicInfo: {
+        stage: 'IV',
+        tumorType: '乳腺癌',
+      },
+      treatmentLines: [{ lineNumber: 1, regimen: '阿贝西利+氟维司群' }],
+    })
+  })
+
+  it('keeps the existing persisted id when merging follow-up extraction', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        id: 'model-should-not-win',
+        basicInfo: {
+          stage: 'IV',
+        },
+        treatmentLines: [],
+      }),
+    )
+
+    await expect(
+      extractPatientRecord('补充：分期 IV。', {
+        basicInfo: { tumorType: '乳腺癌' },
+        id: 'patient-42',
+        treatmentLines: [],
+      }),
+    ).resolves.toMatchObject({
+      basicInfo: {
+        stage: 'IV',
+        tumorType: '乳腺癌',
+      },
+      id: 'patient-42',
       treatmentLines: [],
     })
   })
@@ -158,5 +237,15 @@ describe('extractPatientRecord', () => {
         },
       ],
     })
+  })
+})
+
+describe('getExtractionFailureMessage', () => {
+  it('maps auth, rate limit, timeout, upstream, and parse failures to specific Chinese messages', () => {
+    expect(getExtractionFailureMessage(new ChatError('AuthError', 'Missing session'), 'zh', 'initial')).toContain('登录状态')
+    expect(getExtractionFailureMessage(new ChatError('LLMRateLimitError', 'Too many requests', 429), 'zh', 'initial')).toContain('请求太频繁')
+    expect(getExtractionFailureMessage(new ChatError('LLMTimeoutError', 'Timeout', 504), 'zh', 'initial')).toContain('超时')
+    expect(getExtractionFailureMessage(new ChatError('LLMUpstreamError', 'Failed', 502), 'zh', 'initial')).toContain('模型服务暂时不可用')
+    expect(getExtractionFailureMessage(new ExtractionParseError('{}'), 'zh', 'initial')).toContain('解析失败')
   })
 })

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 BrandLockupPreviewPage 与 brandLockupVariants。
- * [OUTPUT]: 对外提供 /brand-lockup-preview 设计看板的候选数量与四态展示回归测试。
- * [POS]: routes 的品牌锁定组合预览测试文件，确保 6 套候选同时展示 full-label、icon-only、dark、light 状态。
+ * [OUTPUT]: 对外提供 /brand-lockup-preview 设计看板的候选数量、四态展示与动效合同回归测试。
+ * [POS]: routes 的品牌锁定组合预览测试文件，确保 6 套候选同时展示 full-label、icon-only、dark、light 状态，并进入全站 route/stagger 动效层。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -27,5 +27,14 @@ describe('BrandLockupPreviewPage', () => {
     for (const variant of brandLockupVariants) {
       expect(markup).toContain(variant)
     }
+  })
+
+  it('uses route reveal, stagger, and selection pulse motion for the preview board', () => {
+    const markup = renderToStaticMarkup(<BrandLockupPreviewPage />)
+
+    expect(markup).toContain('t-route-reveal')
+    expect(markup).toContain('t-stagger')
+    expect(markup).toContain('t-selection-pulse')
+    expect(markup).toContain('style="--t-order:0"')
   })
 })

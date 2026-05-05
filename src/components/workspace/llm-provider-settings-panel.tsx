@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API 与 system ActionSurface。
- * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染整块可点击收起的系统内置 DeepSeekV4、API 自提供与自定义设置入口。
+ * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API、system ActionSurface 与 transitions-dev.css 的 accordion/control/tab 动效合同。
+ * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染整块可点击收起的系统内置 deepseek-v4-flash、API 自提供与自定义设置入口。
  * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑头部展开、按模式展开字段与保存动作但不参与 chat 请求。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -121,7 +121,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
         preset: 'API 自提供',
         provider: 'Provider',
         save: saving ? '保存中...' : '保存模型设置',
-        system: '系统内置（DeepSeekV4）',
+        system: '系统内置（deepseek-v4-flash）',
         title: '模型设置',
       }
     : {
@@ -135,7 +135,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
         preset: 'Bring your API',
         provider: 'Provider',
         save: saving ? 'Saving...' : 'Save Provider Settings',
-        system: 'Built-in system (DeepSeek V4)',
+        system: 'Built-in system (deepseek-v4-flash)',
         title: 'Model Settings',
       }
   const providerLabel = presetProviders.find((option) => option.value === provider)?.label ?? provider
@@ -210,7 +210,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
             aria-controls="llm-provider-settings-body"
             aria-expanded={expanded}
             aria-label={toggleLabel}
-            className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[var(--ff-surface-soft)] focus-visible:bg-[var(--ff-surface-soft)] focus-visible:outline-none sm:px-4"
+            className="t-control-press flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[var(--ff-surface-soft)] focus-visible:bg-[var(--ff-surface-soft)] focus-visible:outline-none sm:px-4"
             data-llm-provider-settings-toggle="true"
             onClick={() => setExpanded((value) => !value)}
             title={toggleLabel}
@@ -228,8 +228,8 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
             </div>
           </button>
 
-          <div aria-hidden={!expanded} className="grid gap-4 px-3 pb-3 sm:px-4" hidden={!expanded} id="llm-provider-settings-body">
-            <div className="grid gap-2 text-sm text-[var(--ff-text-secondary)] md:grid-cols-3">
+          <div aria-hidden={!expanded} className="t-accordion grid gap-4 px-3 pb-3 sm:px-4" hidden={!expanded} id="llm-provider-settings-body">
+            <div className="t-tab-switch grid gap-2 text-sm text-[var(--ff-text-secondary)] md:grid-cols-3">
               <label className="flex min-h-11 items-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-3">
                 <input checked={mode === 'system'} disabled={disabled || saving} name="llm-provider-mode" onChange={() => setMode('system')} type="radio" />
                 {copy.system}
@@ -253,7 +253,7 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold leading-5 text-[var(--ff-accent-warning)]">{copy.disclosure}</p>
               <button
-                className="inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={disabled || saving}
                 onClick={() => void saveSetting()}
                 type="button"

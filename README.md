@@ -46,7 +46,7 @@ cp .env.local.example .env.local
 - function env：`DEFAULT_GEMINI_MODEL=gemini-2.5-flash`
 - secret：`DEEPSEEK_API_KEY`
 - function env：`DEFAULT_DEEPSEEK_MODEL=deepseek-v4-flash`
-- function env：`DEFAULT_LLM_PROVIDER=gemini`（保守默认；DeepSeek live 验证通过后再改为 `deepseek`）
+- function env：`DEFAULT_LLM_PROVIDER=deepseek`（当前系统内置模型路径）
 - 可选 function env：`DEEPSEEK_BASE_URL=https://api.deepseek.com`
 
 ### 3. 启动开发环境
@@ -65,7 +65,7 @@ supabase secrets set \
   DEFAULT_GEMINI_MODEL="gemini-2.5-flash" \
   DEEPSEEK_API_KEY="<your-deepseek-api-key>" \
   DEFAULT_DEEPSEEK_MODEL="deepseek-v4-flash" \
-  DEFAULT_LLM_PROVIDER="gemini" \
+  DEFAULT_LLM_PROVIDER="deepseek" \
   DEEPSEEK_BASE_URL="https://api.deepseek.com"
 ```
 
@@ -75,7 +75,7 @@ supabase secrets set \
 supabase functions deploy llm-proxy
 ```
 
-部署完成后，前端统一通过 `src/lib/llm/index.ts` 的 `chat(messages, options)` 调用该函数，不直接访问 Gemini 或 DeepSeek。回滚模型 provider 时只需把 `DEFAULT_LLM_PROVIDER` 改回 `gemini` 并重新部署/刷新函数配置。
+部署完成后，前端统一通过 `src/lib/llm/index.ts` 的 `chat(messages, options)` 调用该函数，不直接访问 Gemini 或 DeepSeek。当前系统内置路径是 `DEFAULT_LLM_PROVIDER=deepseek` + `DEFAULT_DEEPSEEK_MODEL=deepseek-v4-flash`；回滚模型 provider 时只需把 `DEFAULT_LLM_PROVIDER` 改回 `gemini` 并重新部署/刷新函数配置。
 
 ### 5. 验证当前基线
 

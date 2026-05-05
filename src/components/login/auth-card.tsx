@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react 的 ReactNode、react-router-dom 的 Link、登录 skin/token、auth-copy、隐私页路径与本地化文案。
- * [OUTPUT]: 对外提供 AuthCard 与 AuthCardProps，渲染邮箱/手机登录、Google、微信占位、匿名会话与隐私入口。
+ * [INPUT]: 依赖 react 的 ReactNode、react-router-dom 的 Link、登录 skin/token、auth-copy、隐私页路径、本地化文案与 transitions-dev.css 的 control/tab/accordion/popover 动效合同。
+ * [OUTPUT]: 对外提供 AuthCard 与 AuthCardProps，渲染带反馈动效的邮箱/手机登录、Google、微信占位、匿名会话与隐私入口。
  * [POS]: components/login 的认证卡主体，被 AuthOverlay 消费，不触碰 Supabase 认证状态机。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -33,7 +33,7 @@ function AuthFeedbackBlock({ feedback, theme }: { feedback: AuthFeedback | null;
   }
 
   return (
-    <div className={`rounded-[var(--ff-radius-md)] border px-4 py-3 text-sm ${authCardSkins[theme].feedbackSurface} ${feedbackClass(feedback, theme)}`}>
+    <div className={`t-popover rounded-[var(--ff-radius-md)] border px-4 py-3 text-sm ${authCardSkins[theme].feedbackSurface} ${feedbackClass(feedback, theme)}`}>
       {feedback.message}
     </div>
   )
@@ -82,7 +82,7 @@ function SocialButton({
   return (
     <button
       aria-label={label}
-      className={`flex h-12 min-w-0 flex-1 items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${skin.socialButton}`}
+      className={`t-control-press flex h-12 min-w-0 flex-1 items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${skin.socialButton}`}
       disabled={disabled}
       onClick={onClick}
       type="button"
@@ -106,7 +106,7 @@ function WeChatComingSoonPanel({ locale, theme }: { locale: 'zh' | 'en'; theme: 
   return (
     <div
       aria-label={locale === 'zh' ? '微信敬请期待' : 'WeChat coming soon'}
-      className={`flex h-12 min-w-0 flex-1 cursor-default items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold ${shellClass}`}
+      className={`t-control-press flex h-12 min-w-0 flex-1 cursor-default items-center justify-center gap-2.5 rounded-[10px] border px-3 text-sm font-semibold ${shellClass}`}
       data-testid="login-wechat-coming-soon"
     >
       <span className="flex h-6 w-6 shrink-0 items-center justify-center">
@@ -181,11 +181,11 @@ function AuthMethodTabs({
   const inactiveClass = theme === 'dark' ? 'text-white/50 hover:text-white/82' : 'text-[#6b7d7a] hover:text-[#172522]'
 
   return (
-    <div className={`grid grid-cols-2 rounded-[12px] border p-1 ${shellClass}`} data-testid="login-auth-method-tabs">
+    <div className={`t-tab-switch grid grid-cols-2 rounded-[12px] border p-1 ${shellClass}`} data-testid="login-auth-method-tabs">
       {options.map((option) => (
         <button
           aria-pressed={authMethod === option.method}
-          className={`min-h-[38px] rounded-[9px] text-sm font-bold transition-colors ${authMethod === option.method ? activeClass : inactiveClass}`}
+          className={`t-control-press min-h-[38px] rounded-[9px] text-sm font-bold transition-colors ${authMethod === option.method ? activeClass : inactiveClass}`}
           key={option.method}
           onClick={() => onAuthMethodChange(option.method)}
           type="button"
@@ -233,7 +233,7 @@ function PhoneComingSoonPanel({ locale, theme }: { locale: 'zh' | 'en'; theme: T
 
   return (
     <div
-      className={`rounded-[14px] border px-4 py-5 text-center ${theme === 'dark' ? 'border-white/10 bg-white/[0.035]' : 'border-[#d5e2e3] bg-[#f8fbfb]'}`}
+      className={`t-accordion rounded-[14px] border px-4 py-5 text-center ${theme === 'dark' ? 'border-white/10 bg-white/[0.035]' : 'border-[#d5e2e3] bg-[#f8fbfb]'}`}
       data-testid="login-phone-coming-soon"
     >
       <div className={`text-lg font-black ${skin.socialLabel}`}>
@@ -257,7 +257,7 @@ function LoginSubmitButton({
 }) {
   return (
     <button
-      className="flex min-h-[54px] w-full items-center justify-center gap-3 rounded-[14px] bg-[var(--ff-accent-primary)] px-5 text-base font-bold text-white shadow-[0_16px_34px_rgba(232,93,42,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="t-control-press flex min-h-[54px] w-full items-center justify-center gap-3 rounded-[14px] bg-[var(--ff-accent-primary)] px-5 text-base font-bold text-white shadow-[0_16px_34px_rgba(232,93,42,0.22)] transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
       data-testid="login-submit-button"
       disabled={isSubmitting}
       type="submit"
@@ -380,9 +380,9 @@ export function AuthCard({
           ) : null}
 
           {mode === 'login' && !isPhoneAuth ? (
-            <div className="flex justify-end text-sm font-semibold">
+            <div className="t-accordion flex justify-end text-sm font-semibold">
               <button
-                className={`shrink-0 ${skin.forgotLink}`}
+                className={`t-control-press shrink-0 ${skin.forgotLink}`}
                 onClick={() => onModeChange('password-reset')}
                 type="button"
               >
@@ -415,7 +415,7 @@ export function AuthCard({
               </div>
 
               <button
-                className={`flex min-h-[52px] w-full items-center justify-center gap-3 rounded-[14px] border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${skin.anonymousButton}`}
+                className={`t-control-press flex min-h-[52px] w-full items-center justify-center gap-3 rounded-[14px] border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${skin.anonymousButton}`}
                 disabled={isSubmitting}
                 onClick={onAnonymousLogin}
                 type="button"
@@ -432,7 +432,7 @@ export function AuthCard({
           ) : null}
         </form>
 
-        <p className={`mt-3 rounded-[var(--ff-radius-full)] px-4 py-1.5 text-center text-[11px] leading-5 ${skin.privacy}`}>
+        <p className={`t-accordion mt-3 rounded-[var(--ff-radius-full)] px-4 py-1.5 text-center text-[11px] leading-5 ${skin.privacy}`}>
           <span className="material-symbols-outlined mr-2 inline text-base align-[-3px]">verified_user</span>
           {privacySummary}
           {' '}
@@ -441,11 +441,11 @@ export function AuthCard({
           </Link>
         </p>
         {showModeSwitch ? (
-        <p className={`mt-3 text-center text-xs font-semibold ${skin.modeHint}`}>
+        <p className={`t-accordion mt-3 text-center text-xs font-semibold ${skin.modeHint}`}>
           {modeCopy.footerPrompt}
           {' '}
           <button
-            className={`underline underline-offset-4 ${skin.modeButton}`}
+            className={`t-control-press underline underline-offset-4 ${skin.modeButton}`}
             onClick={() => onModeChange(modeCopy.footerMode)}
             type="button"
           >

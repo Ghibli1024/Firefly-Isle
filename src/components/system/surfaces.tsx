@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties/PropsWithChildren，依赖 @/lib/theme/tokens 的过渡类与侧栏宽度合同。
- * [OUTPUT]: 对外提供 SidebarShell、TopBarShell、MainShell、PanelSurface、SectionSurface、ActionSurface 与 SurfaceTone 类型。
+ * [OUTPUT]: 对外提供 SidebarShell、TopBarShell、MainShell、PanelSurface、SectionSurface、ActionSurface 与 SurfaceTone 类型，Panel/Section/Action 支持 style passthrough。
  * [POS]: src/components/system 的壳层与表面基元文件，为页面与 app-shell 提供统一结构与 surface contract。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -79,16 +79,28 @@ export function MainShell({ children, className, theme }: ThemedProps) {
   )
 }
 
-export function PanelSurface({ children, className, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
-  return <div className={cn(themeTransitionClass, panelSurface(theme, tone), className)}>{children}</div>
+export function PanelSurface({ children, className, style, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
+  return (
+    <div className={cn(themeTransitionClass, panelSurface(theme, tone), className)} style={style}>
+      {children}
+    </div>
+  )
 }
 
-export function SectionSurface({ children, className, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
-  return <section className={cn(themeTransitionClass, panelSurface(theme, tone), className)}>{children}</section>
+export function SectionSurface({ children, className, style, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
+  return (
+    <section className={cn(themeTransitionClass, panelSurface(theme, tone), className)} style={style}>
+      {children}
+    </section>
+  )
 }
 
-export function ActionSurface({ children, className, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
-  return <div className={cn(themeTransitionClass, panelSurface(theme, tone), className)}>{children}</div>
+export function ActionSurface({ children, className, style, theme, tone = 'panel' }: ThemedProps & { tone?: SurfaceTone }) {
+  return (
+    <div className={cn(themeTransitionClass, panelSurface(theme, tone), className)} style={style}>
+      {children}
+    </div>
+  )
 }
 
 export type { SurfaceTone }

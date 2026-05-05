@@ -44,6 +44,7 @@ body,
   --ff-sidebar-width: 148px;
   --ff-sidebar-offset: 148px;
   --ff-shell-topbar-height: 68px;
+  --ff-topbar-height: var(--ff-shell-topbar-height);
   --ff-font-display: "New York", "Songti SC", "STSong", "Times New Roman", serif;
   --ff-font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
   --ff-font-mono: "SFMono-Regular", "SF Mono", ui-monospace, monospace;
