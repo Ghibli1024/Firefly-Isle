@@ -11,6 +11,7 @@ The system SHALL provide a user-facing provider setting that chooses either syst
 - **WHEN** the user opens the `/app` workspace
 - **THEN** the provider setting SHALL render as a compact expandable panel
 - **AND** the compact state SHALL show the current provider mode without occupying the full form height
+- **AND** the compact header area SHALL toggle expand/collapse as one click target with an unframed arrow indicator
 
 #### Scenario: System default selection
 - **WHEN** the user selects the system default option

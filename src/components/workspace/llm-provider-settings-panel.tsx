@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的本地表单状态、@/lib/locale 的语言状态、@/lib/llm/provider-settings 的设置 API 与 system ActionSurface。
- * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染可收起的系统内置 DeepSeekV4、API 自提供与自定义设置入口。
- * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑入口、按模式展开字段与保存动作但不参与 chat 请求。
+ * [OUTPUT]: 对外提供 LlmProviderSettingsPanel 组件与字段显隐纯函数，渲染整块可点击收起的系统内置 DeepSeekV4、API 自提供与自定义设置入口。
+ * [POS]: components/workspace 的 provider 设置区块，被 ExtractionComposer 嵌入，负责紧凑头部展开、按模式展开字段与保存动作但不参与 chat 请求。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState } from 'react'
@@ -204,31 +204,31 @@ export function LlmProviderSettingsPanel({ disabled = false, theme }: LlmProvide
 
   return (
     <div data-llm-provider-settings="true">
-      <ActionSurface className="mt-4 px-3 py-3 sm:px-4" theme={theme} tone="panel">
+      <ActionSurface className="mt-4 overflow-hidden p-0" theme={theme} tone="panel">
         <div className="flex flex-col">
-          <div className="flex items-center justify-between gap-3">
+          <button
+            aria-controls="llm-provider-settings-body"
+            aria-expanded={expanded}
+            aria-label={toggleLabel}
+            className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[var(--ff-surface-soft)] focus-visible:bg-[var(--ff-surface-soft)] focus-visible:outline-none sm:px-4"
+            data-llm-provider-settings-toggle="true"
+            onClick={() => setExpanded((value) => !value)}
+            title={toggleLabel}
+            type="button"
+          >
             <div className="flex min-w-0 items-center gap-3">
               <span className="material-symbols-outlined text-xl text-[var(--ff-text-primary)]">model_training</span>
               <div className="min-w-0">
-                <h3 className="font-[var(--ff-font-display)] text-base font-bold tracking-normal text-[var(--ff-text-primary)] sm:text-lg">{copy.title}</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="font-[var(--ff-font-display)] text-base font-bold tracking-normal text-[var(--ff-text-primary)] sm:text-lg">{copy.title}</h3>
+                  <span aria-hidden="true" className="material-symbols-outlined shrink-0 text-xl text-[var(--ff-text-secondary)]">{expanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+                </div>
                 <p className="truncate text-xs font-semibold text-[var(--ff-text-secondary)] sm:text-sm">{selectedModeLabel}</p>
               </div>
             </div>
-            <button
-              aria-controls="llm-provider-settings-body"
-              aria-expanded={expanded}
-              aria-label={toggleLabel}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
-              data-llm-provider-settings-toggle="true"
-              onClick={() => setExpanded((value) => !value)}
-              title={toggleLabel}
-              type="button"
-            >
-              <span className="material-symbols-outlined text-xl">{expanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
-            </button>
-          </div>
+          </button>
 
-          <div aria-hidden={!expanded} className="mt-4 grid gap-4" hidden={!expanded} id="llm-provider-settings-body">
+          <div aria-hidden={!expanded} className="grid gap-4 px-3 pb-3 sm:px-4" hidden={!expanded} id="llm-provider-settings-body">
             <div className="grid gap-2 text-sm text-[var(--ff-text-secondary)] md:grid-cols-3">
               <label className="flex min-h-11 items-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-3">
                 <input checked={mode === 'system'} disabled={disabled || saving} name="llm-provider-mode" onChange={() => setMode('system')} type="radio" />
