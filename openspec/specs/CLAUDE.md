@@ -11,9 +11,11 @@ commit-history/spec.md: docs/log 提交日志粒度、证据来源与置信度�
 deployment/spec.md: 部署入口、Cloudflare Pages 与发布控制的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 editing/spec.md: 时间线表格字段编辑、blur 保存、空白高亮与布局稳定性的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export/spec.md: 正式档案导出、PDF/PNG 行为与导出边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-info-extraction/spec.md: 自然语言提取、关键字段追问、三轮上限与 LLM JSON 约束的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+info-extraction/spec.md: 自然语言/OCR 确认文本提取、关键字段追问、三轮上限与 LLM JSON 约束的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm-adapter/spec.md: chat 适配器、Edge Function 代理、模型参数与错误处理的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+medical-document-ocr/spec.md: 医学文档图片/PDF OCR、服务端密钥边界、文本确认与失败不污染 PatientRecord 的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 patient-record/spec.md: PatientRecord 数据结构、治疗线与三类患者判定的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-treatment-gantt/spec.md: /record/:id 治疗线甘特图视图、缺失日期 pending、当前治疗线与空态的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase-schema/spec.md: Supabase 表结构、RLS、区域选择与 updated_at 触发器的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme-system/spec.md: Dark/Light 主题 token、surface、登录视觉合同与主题切换的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 timeline-table/spec.md: 时间线表格渲染、检测信息归属、空字段与基本信息顺序的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

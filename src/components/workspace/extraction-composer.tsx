@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的 Effect 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取状态，依赖 transitions-dev.css 的 .t-icon-swap 与 .t-text-swap 动效合同。
- * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、文件/语音输入工具、错误提示、重试入口与唯一主提取动作。
- * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入与结构化提取工作台。
+ * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap 与 .t-text-swap 动效合同。
+ * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、语音工具、OCR 确认、错误提示、重试入口与唯一主提取动作。
+ * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -16,12 +16,22 @@ type ExtractionComposerProps = {
   extractionInput: string
   isExtracting: boolean
   isSaving: boolean
+  ocrState?: OcrState
+  onConfirmOcrText?: () => void
+  onDiscardOcrText?: () => void
   onExtract: () => void
+  onImportFile?: (file: File) => void
   onInputChange: (value: string) => void
   onRetry: () => void
   remainingMissingCount: number
   retryMode: 'initial' | 'follow-up' | null
   theme: 'dark' | 'light'
+}
+
+type OcrState = {
+  error: string | null
+  isProcessing: boolean
+  text: string | null
 }
 
 const MAX_EXTRACTION_INPUT_LENGTH = 8000
@@ -30,12 +40,20 @@ function getUnavailableTitle(feature: string, locale: 'zh' | 'en') {
   return locale === 'zh' ? `${feature}暂未开放` : `${feature} is not available yet`
 }
 
+function getUploadTitle(locale: 'zh' | 'en') {
+  return locale === 'zh' ? '上传病历图片或 PDF' : 'Upload medical image or PDF'
+}
+
 export function ExtractionComposer({
   error,
   extractionInput,
   isExtracting,
   isSaving,
+  ocrState = { error: null, isProcessing: false, text: null },
+  onConfirmOcrText,
+  onDiscardOcrText,
   onExtract,
+  onImportFile,
   onInputChange,
   onRetry,
   remainingMissingCount,
@@ -43,7 +61,8 @@ export function ExtractionComposer({
   theme,
 }: ExtractionComposerProps) {
   const { locale } = useLocale()
-  const disabled = isExtracting || isSaving
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const disabled = isExtracting || isSaving || ocrState.isProcessing
   const statusLabel = isExtracting
     ? getCopy(copy.workspace.composer.analyzing, locale)
     : remainingMissingCount > 0
@@ -56,8 +75,8 @@ export function ExtractionComposer({
   const [textSwapState, setTextSwapState] = useState('')
   const [toolMessage, setToolMessage] = useState<string | null>(null)
   const inputTooLong = extractionInput.length > MAX_EXTRACTION_INPUT_LENGTH
-  const importUnavailableTitle = getUnavailableTitle(getCopy(copy.workspace.composer.importRecordFile, locale), locale)
   const voiceUnavailableTitle = getUnavailableTitle(getCopy(copy.workspace.composer.voiceInput, locale), locale)
+  const uploadTitle = getUploadTitle(locale)
 
   useEffect(() => {
     if (extractLabel === visibleExtractLabel) {
@@ -107,18 +126,31 @@ export function ExtractionComposer({
           value={extractionInput}
         />
         <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-3">
-          <button
+          <label
             aria-label={getCopy(copy.workspace.composer.importRecordFile, locale)}
             className="pointer-events-auto inline-flex h-10 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 font-[var(--ff-font-ui)] text-xs font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
             data-input-tool="import-record-file"
-            disabled={disabled}
-            onClick={() => setToolMessage(importUnavailableTitle)}
-            title={importUnavailableTitle}
-            type="button"
+            title={uploadTitle}
           >
+            <input
+              accept="image/*,application/pdf"
+              className="sr-only"
+              disabled={disabled}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+
+                if (file) {
+                  onImportFile?.(file)
+                }
+
+                event.currentTarget.value = ''
+              }}
+              ref={fileInputRef}
+              type="file"
+            />
             <span className="material-symbols-outlined text-lg">upload_file</span>
             {getCopy(copy.workspace.composer.importRecordFile, locale)}
-          </button>
+          </label>
           <div className="pointer-events-auto flex items-center gap-3">
             <button
               aria-label={getCopy(copy.workspace.composer.voiceInput, locale)}
@@ -142,6 +174,44 @@ export function ExtractionComposer({
         <div className="mt-3 text-sm font-semibold text-[var(--ff-text-secondary)]" role="status">
           {toolMessage}
         </div>
+      ) : null}
+
+      {ocrState.isProcessing || ocrState.error || ocrState.text ? (
+        <ActionSurface className="mt-4 px-4 py-4 text-sm" theme={theme} tone={ocrState.error ? 'warning' : 'panel'}>
+          {ocrState.isProcessing ? (
+            <div className="font-semibold text-[var(--ff-text-secondary)]">{locale === 'zh' ? 'OCR 识别中...' : 'Recognizing document...'}</div>
+          ) : null}
+          {ocrState.error ? (
+            <div className="font-semibold text-[var(--ff-accent-warning)]">{ocrState.error}</div>
+          ) : null}
+          {ocrState.text ? (
+            <div>
+              <h3 className="font-[var(--ff-font-display)] text-lg font-bold tracking-normal text-[var(--ff-text-primary)]">
+                {locale === 'zh' ? 'OCR 文本确认' : 'OCR Text Confirmation'}
+              </h3>
+              <div className="mt-3 max-h-44 overflow-auto whitespace-pre-wrap rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-3 leading-7 text-[var(--ff-text-secondary)]">
+                {ocrState.text}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 font-[var(--ff-font-ui)] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={disabled}
+                  onClick={onConfirmOcrText}
+                  type="button"
+                >
+                  {locale === 'zh' ? '确认并提取' : 'Confirm and Extract'}
+                </button>
+                <button
+                  className="inline-flex h-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)]"
+                  onClick={onDiscardOcrText}
+                  type="button"
+                >
+                  {locale === 'zh' ? '丢弃' : 'Discard'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </ActionSurface>
       ) : null}
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

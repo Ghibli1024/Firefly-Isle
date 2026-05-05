@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区 orchestration 层，保留文本提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
+ * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState } from 'react'
@@ -21,6 +21,7 @@ import {
   MAX_FOLLOW_UP_ROUNDS,
 } from '@/lib/extraction'
 import { ChatError } from '@/lib/llm'
+import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { shellContentWidthClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
@@ -40,10 +41,17 @@ type ExtractionState = {
   followUpAnswers: string[]
   isExtracting: boolean
   isSaving: boolean
+  ocr: OcrState
   record: PatientRecord | null
   remainingMissing: string[]
   retryAnswer: string | null
   retryMode: 'initial' | 'follow-up' | null
+}
+
+type OcrState = {
+  error: string | null
+  isProcessing: boolean
+  text: string | null
 }
 
 type PatientRow = {
@@ -249,6 +257,11 @@ function useExtractionState() {
     followUpAnswers: [],
     isExtracting: false,
     isSaving: false,
+    ocr: {
+      error: null,
+      isProcessing: false,
+      text: null,
+    },
     record: null,
     remainingMissing: [],
     retryAnswer: null,
@@ -310,8 +323,10 @@ function useExtractionState() {
     }
   }, [locale, user])
 
-  async function runInitialExtraction() {
-    if (!state.extractionInput.trim()) {
+  async function runInitialExtraction(inputOverride?: string) {
+    const extractionText = inputOverride ?? state.extractionInput
+
+    if (!extractionText.trim()) {
       setState((current) => ({
         ...current,
         error: getCopy(copy.workspace.errors.missingInput, locale),
@@ -326,6 +341,11 @@ function useExtractionState() {
       error: null,
       followUpAnswers: [],
       isExtracting: true,
+      ocr: {
+        error: null,
+        isProcessing: false,
+        text: null,
+      },
       record: null,
       remainingMissing: [],
       retryAnswer: null,
@@ -333,7 +353,7 @@ function useExtractionState() {
     }))
 
     try {
-      const record = await extractPatientRecord(state.extractionInput)
+      const record = await extractPatientRecord(extractionText)
       const missingFields = getMissingCriticalFields(record)
       let persistedRecord = record
       let persistenceError: string | null = null
@@ -445,6 +465,74 @@ function useExtractionState() {
     await runInitialExtraction()
   }
 
+  async function importMedicalDocument(file: File) {
+    setState((current) => ({
+      ...current,
+      error: null,
+      ocr: {
+        error: null,
+        isProcessing: true,
+        text: null,
+      },
+    }))
+
+    try {
+      const result = await recognizeMedicalDocument(file)
+
+      setState((current) => ({
+        ...current,
+        ocr: {
+          error: null,
+          isProcessing: false,
+          text: result.text,
+        },
+      }))
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: null,
+        ocr: {
+          error: getMedicalDocumentOcrMessage(error, locale),
+          isProcessing: false,
+          text: null,
+        },
+        record: current.record,
+        remainingMissing: current.remainingMissing,
+      }))
+    }
+  }
+
+  async function confirmOcrText() {
+    const ocrText = state.ocr.text?.trim()
+
+    if (!ocrText) {
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      extractionInput: ocrText,
+      ocr: {
+        error: null,
+        isProcessing: false,
+        text: null,
+      },
+    }))
+
+    await runInitialExtraction(ocrText)
+  }
+
+  function discardOcrText() {
+    setState((current) => ({
+      ...current,
+      ocr: {
+        error: null,
+        isProcessing: false,
+        text: null,
+      },
+    }))
+  }
+
   async function persistField(record: PatientRecord) {
     if (!user) {
       throw new Error('Missing authenticated user.')
@@ -523,6 +611,9 @@ function useExtractionState() {
   return {
     ...state,
     handleFieldCommit,
+    confirmOcrText,
+    discardOcrText,
+    importMedicalDocument,
     retryLastAction,
     runFollowUpExtraction,
     runInitialExtraction,
@@ -536,9 +627,13 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     currentQuestion,
     error,
     extractionInput,
+    confirmOcrText,
+    discardOcrText,
     handleFieldCommit,
+    importMedicalDocument,
     isExtracting,
     isSaving,
+    ocr,
     record,
     remainingMissing,
     retryLastAction,
@@ -562,7 +657,11 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
               extractionInput={extractionInput}
               isExtracting={isExtracting}
               isSaving={isSaving}
+              ocrState={ocr}
+              onConfirmOcrText={() => void confirmOcrText()}
+              onDiscardOcrText={discardOcrText}
               onExtract={() => void runInitialExtraction()}
+              onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
               remainingMissingCount={remainingMissing.length}
@@ -600,10 +699,14 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
     currentQuestion,
     error,
     extractionInput,
+    confirmOcrText,
+    discardOcrText,
     followUpAnswers,
     handleFieldCommit,
+    importMedicalDocument,
     isExtracting,
     isSaving,
+    ocr,
     record,
     remainingMissing,
     retryLastAction,
@@ -627,7 +730,11 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
               extractionInput={extractionInput}
               isExtracting={isExtracting}
               isSaving={isSaving}
+              ocrState={ocr}
+              onConfirmOcrText={() => void confirmOcrText()}
+              onDiscardOcrText={discardOcrText}
               onExtract={() => void runInitialExtraction()}
+              onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
               remainingMissingCount={remainingMissing.length}

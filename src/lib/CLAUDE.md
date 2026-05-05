@@ -20,6 +20,8 @@ llm/: 前端 LLM adapter 目录，收敛 chat 接口、provider/model/responseFo
 extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extraction.test.ts: 信息提取协议回归测试，约束结构化提取通过 LLM adapter 请求 JSON object 输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+medical-document-ocr.ts: 医学文档 OCR 前端协议边界，负责图片/PDF 校验、base64 编码、Supabase JWT 透传、Edge Function 调用与本地化错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图片/PDF 成功、类型拒绝、错误 envelope、空文本与浏览器不泄露 provider key，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase.ts: Supabase 客户端初始化与环境变量边界，Auth 使用 PKCE + detectSessionInUrl，区分 Auth 所需 env、Edge Function env 与非敏感微信 custom provider id，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 utils.ts: 类名合并等无业务状态工具，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -1,9 +1,7 @@
 ## Purpose
 
 定义自然语言病史到 PatientRecord 的结构化提取、缺失字段追问与 LLM 输出约束。
-
 ## Requirements
-
 ### Requirement: 自然语言输入转换为 PatientRecord
 系统 SHALL 接受用户自然语言描述，调用 LLM 提取结构化 PatientRecord JSON，用于后续追问、渲染与保存。
 
@@ -50,3 +48,16 @@
 #### Scenario: 非法 JSON 处理
 - **WHEN** LLM 返回非法 JSON 或包含 markdown 代码块包裹的 JSON
 - **THEN** 系统 SHALL 尝试提取 JSON 内容并解析，解析失败时 SHALL 向用户展示错误提示并允许重试
+
+### Requirement: Confirmed OCR text reuses structured extraction
+The system SHALL feed confirmed OCR text into the existing natural-language PatientRecord extraction flow.
+
+#### Scenario: Confirmed OCR text creates PatientRecord
+- **WHEN** a user confirms recognized OCR text and no current PatientRecord exists
+- **THEN** the system SHALL call the existing structured extraction flow
+- **AND** the resulting PatientRecord SHALL render through the existing preview and follow-up path
+
+#### Scenario: Confirmed OCR text merges with existing PatientRecord
+- **WHEN** a user confirms recognized OCR text while a PatientRecord already exists
+- **THEN** the system SHALL reuse the existing merge semantics for extracted PatientRecord updates
+- **AND** fields not mentioned in the OCR text SHALL NOT be overwritten
