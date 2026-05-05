@@ -172,6 +172,23 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('张三')
   })
 
+  it('renders lab trends for persisted records on the dossier view', () => {
+    const markup = renderRecordContent({
+      record: {
+        id: 'patient-42',
+        labResults: [
+          { category: 'tumor-marker', itemCode: 'cea', itemName: 'CEA', testDate: '2024-01-01', value: 8.1, unit: 'ng/mL' },
+          { category: 'tumor-marker', itemCode: 'cea', itemName: 'CEA', testDate: '2024-02-01', value: 9.3, unit: 'ng/mL' },
+        ],
+        treatmentLines: [],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('实验室趋势')
+    expect(markup).toContain('持续增高')
+  })
+
   it('keeps export actions scoped to the dossier view instead of the active Gantt view', () => {
     const record: PatientRecord = {
       id: 'patient-42',

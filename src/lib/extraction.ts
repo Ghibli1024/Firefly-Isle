@@ -1,16 +1,18 @@
 /**
  * [INPUT]: 依赖 @/lib/llm 的 chat 边界、@/lib/extractionPrompt、@/types/patient。
- * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、extractPatientRecord 与 runExtractionWithFollowUps。
+ * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、extractPatientRecord 与 runExtractionWithFollowUps，保留 labResults 独立结构。
  * [POS]: src/lib 的信息提取主链路，把解析、归一化、缺失字段检测与追问 merge 收敛在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { buildExtractionPrompt } from '@/lib/extractionPrompt'
 import { chat } from '@/lib/llm'
 import { type Message } from '@/lib/llm/types'
-import type { PatientRecord, TreatmentLine } from '@/types/patient'
+import type { LabResult, LabResultCategory, LabResultSource, PatientRecord, TreatmentLine } from '@/types/patient'
 
 const CRITICAL_FIELDS = ['tumorType', 'stage', 'regimen'] as const
 const DATE_PATTERN = /^\d{4}-(\d{2})(-\d{2})?$/
+const LAB_CATEGORIES = new Set<LabResultCategory>(['blood-routine', 'blood-biochemistry', 'tumor-marker'])
+const LAB_SOURCES = new Set<LabResultSource>(['ocr', 'manual', 'test'])
 export const MAX_FOLLOW_UP_ROUNDS = 3
 
 type CriticalField = (typeof CRITICAL_FIELDS)[number]
@@ -76,10 +78,48 @@ function normalizeTreatmentLine(line: Partial<TreatmentLine> | undefined, fallba
   }
 }
 
+function normalizeString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function normalizeLabCategory(value: unknown): LabResultCategory | undefined {
+  return typeof value === 'string' && LAB_CATEGORIES.has(value as LabResultCategory) ? (value as LabResultCategory) : undefined
+}
+
+function normalizeLabSource(value: unknown): LabResultSource | undefined {
+  return typeof value === 'string' && LAB_SOURCES.has(value as LabResultSource) ? (value as LabResultSource) : undefined
+}
+
+function normalizeLabResult(reading: Partial<LabResult> | undefined): LabResult | null {
+  const category = normalizeLabCategory(reading?.category)
+  const itemCode = normalizeString(reading?.itemCode)
+  const itemName = normalizeString(reading?.itemName)
+  const value = normalizeNumber(reading?.value)
+
+  if (!category || !itemCode || !itemName || value === undefined) {
+    return null
+  }
+
+  return {
+    category,
+    itemCode,
+    itemName,
+    referenceHigh: normalizeNumber(reading?.referenceHigh),
+    referenceLow: normalizeNumber(reading?.referenceLow),
+    source: normalizeLabSource(reading?.source),
+    testDate: normalizeDate(reading?.testDate),
+    unit: normalizeString(reading?.unit),
+    value,
+  }
+}
+
 export function normalizePatientRecord(input: Partial<PatientRecord>): PatientRecord {
   const treatmentLines = Array.isArray(input.treatmentLines)
     ? input.treatmentLines.map((line, index) => normalizeTreatmentLine(line, index + 1))
     : []
+  const labResults = Array.isArray(input.labResults)
+    ? input.labResults.map(normalizeLabResult).filter((reading): reading is LabResult => reading !== null)
+    : undefined
 
   return {
     id: typeof input.id === 'string' && input.id.trim() ? input.id.trim() : undefined,
@@ -120,6 +160,7 @@ export function normalizePatientRecord(input: Partial<PatientRecord>): PatientRe
               : undefined,
         }
       : undefined,
+    labResults: labResults && labResults.length > 0 ? labResults : undefined,
     treatmentLines: treatmentLines.sort((a, b) => a.lineNumber - b.lineNumber),
   }
 }
@@ -174,6 +215,10 @@ function mergeTreatmentLines(current: TreatmentLine[], incoming: TreatmentLine[]
   return [...byLineNumber.values()].sort((a, b) => a.lineNumber - b.lineNumber)
 }
 
+function mergeLabResults(current: LabResult[] | undefined, incoming: LabResult[] | undefined) {
+  return incoming && incoming.length > 0 ? [...(current ?? []), ...incoming] : current
+}
+
 export function mergePatientRecord(current: PatientRecord, incoming: Partial<PatientRecord>) {
   const normalizedIncoming = normalizePatientRecord(incoming)
 
@@ -187,6 +232,7 @@ export function mergePatientRecord(current: PatientRecord, incoming: Partial<Pat
       ...current.initialOnset,
       ...normalizedIncoming.initialOnset,
     },
+    labResults: mergeLabResults(current.labResults, normalizedIncoming.labResults),
     treatmentLines: mergeTreatmentLines(current.treatmentLines, normalizedIncoming.treatmentLines),
   })
 }

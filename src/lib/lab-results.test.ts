@@ -1,0 +1,76 @@
+/**
+ * [INPUT]: 依赖 vitest 的 describe/it/expect，依赖 ./lab-results 的实验室指标趋势分类工具。
+ * [OUTPUT]: 对外提供实验室指标正常值、单次异常、连续异常、缺日期与缺参考范围的回归测试。
+ * [POS]: lib 的纯逻辑测试，约束 lab trends 的医学提示边界不产生诊断结论。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import { describe, expect, it } from 'vitest'
+
+import { buildLabTrendRows } from './lab-results'
+
+describe('buildLabTrendRows', () => {
+  it('classifies normal values with centralized default reference ranges', () => {
+    const rows = buildLabTrendRows([
+      { category: 'blood-routine', itemCode: 'wbc', itemName: '白细胞', testDate: '2024-01-01', value: 6.2, unit: '10^9/L' },
+      { category: 'blood-routine', itemCode: 'wbc', itemName: '白细胞', testDate: '2024-02-01', value: 7.1, unit: '10^9/L' },
+    ])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      itemCode: 'wbc',
+      latestDate: '2024-02-01',
+      latestValue: 7.1,
+      status: 'normal',
+      trendWarning: null,
+    })
+  })
+
+  it('marks a single high value without persistent elevation', () => {
+    const rows = buildLabTrendRows([
+      { category: 'tumor-marker', itemCode: 'cea', itemName: 'CEA', testDate: '2024-01-01', value: 3.2, unit: 'ng/mL' },
+      { category: 'tumor-marker', itemCode: 'cea', itemName: 'CEA', testDate: '2024-02-01', value: 8.4, unit: 'ng/mL' },
+    ])
+
+    expect(rows[0]).toMatchObject({
+      status: 'high',
+      trendWarning: null,
+    })
+  })
+
+  it('highlights consecutive high readings as persistent elevation without diagnosis text', () => {
+    const rows = buildLabTrendRows([
+      { category: 'tumor-marker', itemCode: 'ca125', itemName: 'CA125', testDate: '2024-01-01', value: 44, unit: 'U/mL' },
+      { category: 'tumor-marker', itemCode: 'ca125', itemName: 'CA125', testDate: '2024-02-01', value: 62, unit: 'U/mL' },
+    ])
+
+    expect(rows[0].status).toBe('persistent-high')
+    expect(rows[0].trendWarning).toContain('连续')
+    expect(rows[0].trendWarning).not.toMatch(/诊断|治疗|用药/)
+  })
+
+  it('displays missing dates but ignores them for persistent elevation', () => {
+    const rows = buildLabTrendRows([
+      { category: 'blood-biochemistry', itemCode: 'alt', itemName: 'ALT', value: 92, unit: 'U/L' },
+      { category: 'blood-biochemistry', itemCode: 'alt', itemName: 'ALT', testDate: '2024-02-01', value: 88, unit: 'U/L' },
+    ])
+
+    expect(rows[0]).toMatchObject({
+      latestDate: '2024-02-01',
+      readingCount: 2,
+      status: 'high',
+      undatedCount: 1,
+    })
+  })
+
+  it('requires reference ranges when no row range or default exists', () => {
+    const rows = buildLabTrendRows([
+      { category: 'tumor-marker', itemCode: 'unknown-marker', itemName: '未知指标', testDate: '2024-01-01', value: 99, unit: 'U/mL' },
+    ])
+
+    expect(rows[0]).toMatchObject({
+      referenceRangeLabel: '需补充参考范围',
+      status: 'reference-missing',
+      trendWarning: null,
+    })
+  })
+})

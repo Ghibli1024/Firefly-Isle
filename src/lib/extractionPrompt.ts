@@ -31,6 +31,17 @@ export const PATIENT_RECORD_SCHEMA = `interface PatientRecord {
     immunohistochemistry?: string
     geneticTest?: string
   }>
+  labResults?: Array<{
+    testDate?: string
+    category: 'blood-routine' | 'blood-biochemistry' | 'tumor-marker'
+    itemCode: string
+    itemName: string
+    value: number
+    unit?: string
+    referenceLow?: number
+    referenceHigh?: number
+    source?: 'ocr' | 'manual' | 'test'
+  }>
 }`
 
 export function buildExtractionPrompt(input: string, existingRecord?: PatientRecord) {
@@ -42,6 +53,7 @@ export function buildExtractionPrompt(input: string, existingRecord?: PatientRec
     '如果原文没有提到字段，就省略该字段，不要编造。',
     '数值字段必须输出 number；日期字段只允许 YYYY-MM-DD 或 YYYY-MM。',
     'treatmentLines 必须按 lineNumber 升序。',
+    '实验室指标必须放入 labResults，不得塞入 treatmentLines；OCR 来源的实验室指标 source 输出 "ocr"。',
     '',
     '目标 TypeScript schema：',
     PATIENT_RECORD_SCHEMA,

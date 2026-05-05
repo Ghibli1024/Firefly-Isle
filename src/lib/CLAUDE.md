@@ -18,10 +18,14 @@ auth.tsx: Supabase session 恢复、URL callback 初始化、认证状态广播�
 auth.test.tsx: Supabase URL callback 初始化、session 恢复、认证广播、订阅清理与 signOut 的源码合同测试，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm/: 前端 LLM adapter 目录，收敛 chat 接口、provider/model/responseFormat 请求协议、类型与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-extraction.test.ts: 信息提取协议回归测试，约束结构化提取通过 LLM adapter 请求 JSON object 输出，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、实验室指标独立归档、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extraction.test.ts: 信息提取协议回归测试，约束结构化提取通过 LLM adapter 请求 JSON object 输出，并保持 labResults 不混入 treatmentLines，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+lab-results.ts: 实验室指标趋势纯逻辑，集中默认参考范围、异常分类、持续增高提示与非诊断输出边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+lab-results.test.ts: 实验室指标趋势回归测试，约束正常、单次异常、连续异常、缺日期与缺参考范围行为，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.ts: 医学文档 OCR 前端协议边界，负责图片/PDF 校验、base64 编码、Supabase JWT 透传、Edge Function 调用与本地化错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图片/PDF 成功、类型拒绝、错误 envelope、空文本与浏览器不泄露 provider key，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+patient-record-storage.ts: 患者记录持久化边界，统一 patients、treatment_lines、lab_results 的读取、映射与落库同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+patient-record-storage.test.ts: 患者记录持久化合同测试，约束 lab_results row 映射、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase.ts: Supabase 客户端初始化与环境变量边界，Auth 使用 PKCE + detectSessionInUrl，区分 Auth 所需 env、Edge Function env 与非敏感微信 custom provider id，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 utils.ts: 类名合并等无业务状态工具，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

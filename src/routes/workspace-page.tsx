@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/supabase 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
+ * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
  * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -22,10 +22,10 @@ import {
 } from '@/lib/extraction'
 import { ChatError } from '@/lib/llm'
 import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
-import { getSupabaseClient } from '@/lib/supabase'
+import { loadLatestPatientRecord, persistPatientRecord } from '@/lib/patient-record-storage'
 import { useTheme } from '@/lib/theme'
 import { shellContentWidthClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
-import type { PatientFieldTarget, PatientRecord, TreatmentLine } from '@/types/patient'
+import type { PatientFieldTarget, PatientRecord } from '@/types/patient'
 
 type WorkspacePageProps = {
   isSigningOut?: boolean
@@ -52,22 +52,6 @@ type OcrState = {
   error: string | null
   isProcessing: boolean
   text: string | null
-}
-
-type PatientRow = {
-  basic_info: PatientRecord['basicInfo'] | null
-  id: string
-  initial_onset: PatientRecord['initialOnset'] | null
-}
-
-type TreatmentLineRow = {
-  biopsy: string | null
-  end_date: string | null
-  genetic_test: string | null
-  immunohistochemistry: string | null
-  line_number: number
-  regimen: string | null
-  start_date: string | null
 }
 
 const EMPTY_RECORD: PatientRecord = {
@@ -138,105 +122,10 @@ function applyFieldUpdate(record: PatientRecord, target: PatientFieldTarget, raw
   }
 }
 
-function getPatientPayload(record: PatientRecord) {
-  return {
-    basic_info: record.basicInfo ?? {},
-    initial_onset: record.initialOnset ? record.initialOnset : null,
-  }
-}
-
-function getTreatmentLinePayload(line: TreatmentLine, patientId: string) {
-  return {
-    biopsy: line.biopsy ?? null,
-    end_date: line.endDate ?? null,
-    genetic_test: line.geneticTest ?? null,
-    immunohistochemistry: line.immunohistochemistry ?? null,
-    line_number: line.lineNumber,
-    patient_id: patientId,
-    regimen: line.regimen ?? null,
-    start_date: line.startDate ?? null,
-  }
-}
-
 function getSaveErrorMessage(target: PatientFieldTarget, locale: 'zh' | 'en') {
   return target.section === 'treatmentLine'
     ? getCopy(copy.workspace.errors.saveTreatmentLine, locale)
     : getCopy(copy.workspace.errors.savePatient, locale)
-}
-
-function mapTreatmentLineRow(row: TreatmentLineRow): TreatmentLine {
-  return {
-    biopsy: row.biopsy ?? undefined,
-    endDate: row.end_date ?? undefined,
-    geneticTest: row.genetic_test ?? undefined,
-    immunohistochemistry: row.immunohistochemistry ?? undefined,
-    lineNumber: row.line_number,
-    regimen: row.regimen ?? undefined,
-    startDate: row.start_date ?? undefined,
-  }
-}
-
-function mapPatientRow(patient: PatientRow, lines: TreatmentLineRow[]): PatientRecord {
-  return {
-    basicInfo: patient.basic_info ?? undefined,
-    id: patient.id,
-    initialOnset: patient.initial_onset ?? undefined,
-    treatmentLines: lines.map(mapTreatmentLineRow).sort((left, right) => left.lineNumber - right.lineNumber),
-  }
-}
-
-async function loadLatestPatientRecord(userId: string) {
-  const supabase = getSupabaseClient()
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('id, basic_info, initial_onset')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<PatientRow>()
-
-  if (patientError) {
-    throw patientError
-  }
-
-  if (!patient) {
-    return null
-  }
-
-  const { data: lines, error: linesError } = await supabase
-    .from('treatment_lines')
-    .select('line_number, start_date, end_date, regimen, biopsy, immunohistochemistry, genetic_test')
-    .eq('patient_id', patient.id)
-    .order('line_number', { ascending: true })
-    .returns<TreatmentLineRow[]>()
-
-  if (linesError) {
-    throw linesError
-  }
-
-  return mapPatientRow(patient, lines ?? [])
-}
-
-async function ensurePatientRecordExists(record: PatientRecord, userId: string) {
-  if (record.id) {
-    return record.id
-  }
-
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('patients')
-    .insert({
-      ...getPatientPayload(record),
-      user_id: userId,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return data.id
 }
 
 function getNextQuestion(missingFields: string[], followUpCount: number) {
@@ -538,30 +427,7 @@ function useExtractionState() {
       throw new Error('Missing authenticated user.')
     }
 
-    const patientId = await ensurePatientRecordExists(record, user.id)
-    const persistedRecord = record.id ? record : { ...record, id: patientId }
-    const supabase = getSupabaseClient()
-
-    const { error: patientError } = await supabase.from('patients').update(getPatientPayload(persistedRecord)).eq('id', patientId)
-
-    if (patientError) {
-      throw patientError
-    }
-
-    if (persistedRecord.treatmentLines.length > 0) {
-      const { error: lineError } = await supabase
-        .from('treatment_lines')
-        .upsert(
-          persistedRecord.treatmentLines.map((line) => getTreatmentLinePayload(line, patientId)),
-          { onConflict: 'patient_id,line_number' },
-        )
-
-      if (lineError) {
-        throw lineError
-      }
-    }
-
-    return persistedRecord
+    return persistPatientRecord(record, user.id)
   }
 
   async function handleFieldCommit(target: PatientFieldTarget, value: string) {

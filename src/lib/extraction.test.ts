@@ -28,4 +28,37 @@ describe('extractPatientRecord', () => {
       responseFormat: 'json_object',
     })
   })
+
+  it('keeps extracted lab readings in labResults instead of treatmentLines', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        labResults: [
+          {
+            category: 'tumor-marker',
+            itemCode: 'cea',
+            itemName: 'CEA',
+            referenceHigh: '5',
+            source: 'ocr',
+            testDate: '2024/02/01',
+            unit: 'ng/mL',
+            value: '8.2',
+          },
+        ],
+        treatmentLines: [],
+      }),
+    )
+
+    await expect(extractPatientRecord('CEA 8.2 ng/mL，参考值 <5。')).resolves.toMatchObject({
+      labResults: [
+        {
+          itemCode: 'cea',
+          referenceHigh: 5,
+          source: 'ocr',
+          testDate: '2024-02-01',
+          value: 8.2,
+        },
+      ],
+      treatmentLines: [],
+    })
+  })
 })

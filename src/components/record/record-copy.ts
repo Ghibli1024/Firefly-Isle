@@ -92,6 +92,26 @@ export const demoPatientRecord: PatientRecord = {
     triggerDate: '2023.04',
     treatment: '初发诊断',
   },
+  labResults: [
+    {
+      category: 'tumor-marker',
+      itemCode: 'cea',
+      itemName: 'CEA',
+      source: 'test',
+      testDate: '2024-04-01',
+      unit: 'ng/mL',
+      value: 7.8,
+    },
+    {
+      category: 'tumor-marker',
+      itemCode: 'cea',
+      itemName: 'CEA',
+      source: 'test',
+      testDate: '2024-05-01',
+      unit: 'ng/mL',
+      value: 9.1,
+    },
+  ],
   treatmentLines: [
     {
       endDate: '2024.02',

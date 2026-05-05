@@ -93,11 +93,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Core domain model
 
-The app revolves around a `PatientRecord` with three layers:
+The app revolves around a `PatientRecord` with treatment history layers plus an independent lab trend collection:
 
 1. `basicInfo` — demographics and diagnosis summary
 2. `initialOnset` — optional early-stage/initial treatment block
 3. `treatmentLines[]` — ordered advanced-treatment lines
+4. `labResults[]` — optional repeated blood routine, blood biochemistry, and tumor-marker readings, kept independent from treatment lines
 
 Rendering depends on three patient archetypes:
 
@@ -110,6 +111,7 @@ Important domain rules from the specs:
 - Basic info always renders first.
 - `initialOnset` is shown only when present.
 - `treatmentLines` are ordered by `lineNumber`.
+- `labResults` are grouped by lab indicator and rendered as non-diagnostic trends.
 - Immunohistochemistry and genetic-test data stay attached to each onset/treatment line, not in a shared summary section.
 - Clinically important missing fields (`tumorType`, `stage`, `regimen`) should be visually highlighted for manual completion.
 
@@ -133,7 +135,7 @@ The OpenSpec artifacts are aligned on these points:
 - MVP keeps a thin `chat(messages, options)` adapter boundary.
 - The LLM proxy supports Gemini and DeepSeek through a Supabase Edge Function provider boundary.
 - The app does **not** implement a user-facing provider settings UI; default provider remains server-side configuration.
-- Data storage uses normalized `patients` + `treatment_lines` tables with RLS.
+- Data storage uses normalized `patients` + `treatment_lines` + `lab_results` tables with RLS.
 
 ## Stitch note
 

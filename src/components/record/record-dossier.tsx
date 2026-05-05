@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 react 的 RefObject、react-router-dom 的 Link、PatientRecord、record-copy、record-derived 与 record 展示类型。
+ * [INPUT]: 依赖 react 的 RefObject、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived 与 record 展示类型。
  * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件。
  * [POS]: components/record 的主展示层，承载宽幅病历档案、指标、时间线、证据卡、导出按钮与不可用态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -11,6 +11,7 @@ import type { Locale } from '@/lib/locale'
 import type { PatientRecord } from '@/types/patient'
 
 import { getRecordHeaderSubtitle, getRecordSummaryMetrics, getRecordTimelineEntries } from './record-derived'
+import { LabTrendsTable } from './LabTrendsTable'
 import { getTimelineEntries, labels, summaryMetrics } from './record-copy'
 import type { EvidenceCard, ExportFormat, Metric, TimelineEntry } from './types'
 
@@ -207,6 +208,8 @@ export function RecordDossier({
       </header>
 
       <SummaryGrid metrics={metrics} />
+
+      <LabTrendsTable locale={locale} record={record ?? { treatmentLines: [] }} />
 
       <section className="mt-8">
         <div className="mb-6 flex items-center gap-3">
