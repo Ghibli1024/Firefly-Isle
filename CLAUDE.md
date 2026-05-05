@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The input/export ownership change is archived at `openspec/changes/archive/2026-04-28-separate-workspace-input-record-export/`.
 - The login intro/drawer refinement is archived at `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`.
 - The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
+- The user-owned LLM provider settings work is archived at `openspec/changes/archive/2026-05-05-add-user-llm-provider-settings/`; current baseline behavior lives in `openspec/specs/llm-provider-settings/spec.md`, `openspec/specs/llm-adapter/spec.md`, and `openspec/specs/supabase-schema/spec.md`.
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
 - Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, `docs/products/product-goals.md`, and archived product snapshots under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
@@ -86,7 +87,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
 - **Edge adapter:** Cloudflare Pages Functions host WeChat OAuth2 adapter prework for future Supabase custom provider compatibility; current login UI keeps WeChat deferred
-- **AI boundary:** frontend calls a Supabase Edge Function proxy; Gemini / DeepSeek provider API keys stay server-side
+- **AI boundary:** frontend calls a Supabase Edge Function proxy; system provider keys stay server-side, and user-owned provider keys are saved only through encrypted `llm_provider_settings` rows
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → PDF/PNG export
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
 - **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
@@ -133,8 +134,8 @@ When implementation starts, read these in roughly this order:
 The OpenSpec artifacts are aligned on these points:
 
 - MVP keeps a thin `chat(messages, options)` adapter boundary.
-- The LLM proxy supports Gemini and DeepSeek through a Supabase Edge Function provider boundary.
-- The app does **not** implement a user-facing provider settings UI; default provider remains server-side configuration.
+- The LLM proxy supports system DeepSeek fallback plus user-owned Gemini, Claude, OpenAI, GLM, DeepSeek, Kimi, and custom OpenAI-style provider settings through a Supabase Edge Function boundary.
+- The app now provides a user-facing LLM provider settings entry: no saved setting falls back to system DeepSeek, while user-owned preset/custom provider keys are saved through `llm-proxy/settings` with server-side encryption and RLS-backed storage.
 - Data storage uses normalized `patients` + `treatment_lines` + `lab_results` tables with RLS.
 
 ## Stitch note

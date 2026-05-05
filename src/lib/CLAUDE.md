@@ -16,7 +16,7 @@ file-size-contract.test.ts: 结构债回归测试，递归约束 src、functions
 theme/: 设计系统 token 目录，收敛 surface、text、border、accent 与 motion 真相源
 auth.tsx: Supabase session 恢复、URL callback 初始化、认证状态广播与 signOut 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 auth.test.tsx: Supabase URL callback 初始化、session 恢复、认证广播、订阅清理与 signOut 的源码合同测试，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-llm/: 前端 LLM adapter 目录，收敛 chat 接口、provider/model/responseFormat 请求协议、类型与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+llm/: 前端 LLM adapter 目录，收敛 chat 接口、provider 设置客户端、provider/model/responseFormat 请求协议、类型与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、实验室指标独立归档、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 extraction.test.ts: 信息提取协议回归测试，约束结构化提取通过 LLM adapter 请求 JSON object 输出，并保持 labResults 不混入 treatmentLines，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

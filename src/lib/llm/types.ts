@@ -9,7 +9,7 @@ export type Message = {
   content: string
 }
 
-export type ChatProvider = 'gemini' | 'deepseek'
+export type ChatProvider = 'gemini' | 'claude' | 'openai' | 'glm' | 'deepseek' | 'kimi' | 'custom_openai'
 
 export type ChatResponseFormat = 'text' | 'json_object'
 

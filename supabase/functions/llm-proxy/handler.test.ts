@@ -18,6 +18,7 @@ const messages = [
 type FetchCall = {
   body?: unknown
   headers?: Headers
+  method?: string
   url: string
 }
 
@@ -58,10 +59,17 @@ function createFetchMock(
     const url = input.toString()
     const headers = new Headers(init?.headers)
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
-    calls.push({ body, headers, url })
+    calls.push({ body, headers, method: init?.method, url })
 
     if (url.includes('/auth/v1/user')) {
       return new Response(JSON.stringify(authUser), { status: 200 })
+    }
+
+    if (url.includes('/rest/v1/llm_provider_settings')) {
+      return new Response(JSON.stringify([]), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
 
     if (upstreamResponse instanceof Error) {
@@ -72,6 +80,53 @@ function createFetchMock(
   })
 
   return { calls, fetchMock }
+}
+
+function createSettingsFetchMock(
+  upstreamResponse: Response | Error = deepSeekResponse('deepseek-v4-flash', 'ok'),
+  authUser: Record<string, unknown> = { id: 'auth-user' },
+) {
+  const calls: FetchCall[] = []
+  let savedRows: unknown[] = []
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input.toString()
+    const headers = new Headers(init?.headers)
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+    calls.push({ body, headers, method: init?.method, url })
+
+    if (url.includes('/auth/v1/user')) {
+      return new Response(JSON.stringify(authUser), { status: 200 })
+    }
+
+    if (url.includes('/rest/v1/llm_provider_settings')) {
+      if (init?.method === 'DELETE') {
+        savedRows = []
+        return new Response(null, { status: 204 })
+      }
+
+      if (init?.method === 'POST') {
+        savedRows = body ? [body] : []
+        return new Response(JSON.stringify(savedRows[0]), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 201,
+        })
+      }
+
+      return new Response(JSON.stringify(savedRows), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    if (upstreamResponse instanceof Error) {
+      throw upstreamResponse
+    }
+
+    return upstreamResponse
+  })
+
+  return { calls, fetchMock, getSavedRows: () => savedRows }
 }
 
 function deepSeekResponse(model: string, content: string | null) {
@@ -106,22 +161,22 @@ function createRequestWithIp(body: unknown, ip: string) {
 }
 
 async function json(response: Response) {
-  return response.json() as Promise<{ error?: { name: string }; model?: string; text?: string }>
+  return response.json() as Promise<Record<string, unknown> & { error?: { message?: string; name: string }; model?: string; text?: string }>
+}
+
+function findUpstreamCall(calls: FetchCall[]) {
+  return calls.find((call) => !call.url.includes('/auth/v1/user') && !call.url.includes('/rest/v1/llm_provider_settings'))
 }
 
 describe('llm-proxy provider handler', () => {
-  it('uses Gemini when no provider or default provider is configured', async () => {
-    const { calls, fetchMock } = createFetchMock(
-      new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'gemini text' }] } }] }), {
-        status: 200,
-      }),
-    )
+  it('uses system DeepSeek when no provider, no default provider, and no user setting are configured', async () => {
+    const { calls, fetchMock } = createSettingsFetchMock(deepSeekResponse('deepseek-v4-flash', 'deepseek text'))
     const handler = createLlmProxyHandler({ env: createEnv(), fetch: fetchMock })
     const response = await handler(createRequest({ messages }))
     const payload = await json(response)
 
-    expect(payload).toEqual({ model: 'gemini-2.5-flash', text: 'gemini text' })
-    expect(calls[1].url).toContain('generativelanguage.googleapis.com')
+    expect(payload).toEqual({ model: 'deepseek-v4-flash', text: 'deepseek text' })
+    expect(findUpstreamCall(calls)?.url).toBe('https://api.deepseek.com/chat/completions')
   })
 
   it('uses explicit DeepSeek provider and default non-deprecated model', async () => {
@@ -131,9 +186,11 @@ describe('llm-proxy provider handler', () => {
     const payload = await json(response)
 
     expect(payload).toEqual({ model: 'deepseek-v4-flash', text: 'deepseek text' })
-    expect(calls[1].url).toBe('https://api.deepseek.com/chat/completions')
-    expect(calls[1].headers?.get('Authorization')).toBe('Bearer deepseek-key')
-    expect(calls[1].body).toMatchObject({
+    const upstreamCall = findUpstreamCall(calls)
+
+    expect(upstreamCall?.url).toBe('https://api.deepseek.com/chat/completions')
+    expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer deepseek-key')
+    expect(upstreamCall?.body).toMatchObject({
       messages,
       model: 'deepseek-v4-flash',
       stream: false,
@@ -154,7 +211,7 @@ describe('llm-proxy provider handler', () => {
     const payload = await json(response)
 
     expect(payload.text).toBe('gemini text')
-    expect(calls[1].url).toContain('generativelanguage.googleapis.com')
+    expect(findUpstreamCall(calls)?.url).toContain('generativelanguage.googleapis.com')
   })
 
   it('rejects unknown providers before calling an upstream model', async () => {
@@ -165,7 +222,7 @@ describe('llm-proxy provider handler', () => {
 
     expect(response.status).toBe(400)
     expect(payload.error?.name).toBe('LLMInvalidRequestError')
-    expect(calls).toHaveLength(1)
+    expect(calls.filter((call) => !call.url.includes('/auth/v1/user') && !call.url.includes('/rest/v1/llm_provider_settings'))).toHaveLength(0)
     expect(calls[0].url).toContain('/auth/v1/user')
   })
 
@@ -180,7 +237,7 @@ describe('llm-proxy provider handler', () => {
       }),
     )
 
-    expect(calls[1].body).toMatchObject({
+    expect(findUpstreamCall(calls)?.body).toMatchObject({
       response_format: {
         type: 'json_object',
       },
@@ -234,4 +291,113 @@ describe('llm-proxy provider handler', () => {
     expect(secondPayload.error?.name).toBe('LLMRateLimitError')
     expect(calls.filter((call) => call.url.includes('/chat/completions'))).toHaveLength(1)
   })
+
+  it('saves a preset user key encrypted, reads it for routing, and never returns plaintext', async () => {
+    const { calls, fetchMock, getSavedRows } = createSettingsFetchMock(
+      new Response(JSON.stringify({ choices: [{ message: { content: 'openai text' } }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    const saveResponse = await handler(createRequestWithMethod('/settings', 'PUT', {
+      apiKey: 'openai-user-key',
+      provider: 'openai',
+    }))
+    const savePayload = await json(saveResponse)
+    await handler(createRequest({ messages }))
+
+    const savedText = JSON.stringify(getSavedRows())
+    const upstreamCall = findUpstreamCall(calls)
+
+    expect(savePayload).toMatchObject({ keySet: true, mode: 'user', provider: 'openai' })
+    expect(savePayload).not.toHaveProperty('apiKey')
+    expect(savedText).not.toContain('openai-user-key')
+    expect(savedText).toContain('api_key_ciphertext')
+    expect(upstreamCall?.url).toBe('https://api.openai.com/v1/chat/completions')
+    expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer openai-user-key')
+  })
+
+  it('routes custom OpenAI-style settings through the stored HTTPS base URL and model', async () => {
+    const { calls, fetchMock } = createSettingsFetchMock(
+      new Response(JSON.stringify({ choices: [{ message: { content: 'custom text' } }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    await handler(createRequestWithMethod('/settings', 'PUT', {
+      apiKey: 'custom-user-key',
+      baseUrl: 'https://llm.example.test/v1',
+      model: 'custom-model',
+      provider: 'custom_openai',
+    }))
+    const response = await handler(createRequest({ messages }))
+    const payload = await json(response)
+    const upstreamCall = findUpstreamCall(calls)
+
+    expect(payload).toEqual({ model: 'custom-model', text: 'custom text' })
+    expect(upstreamCall?.url).toBe('https://llm.example.test/v1/chat/completions')
+    expect(upstreamCall?.body).toMatchObject({ messages, model: 'custom-model', stream: false })
+    expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer custom-user-key')
+  })
+
+  it('rejects invalid custom base URLs before persisting settings', async () => {
+    const { calls, fetchMock } = createSettingsFetchMock()
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    const response = await handler(createRequestWithMethod('/settings', 'PUT', {
+      apiKey: 'custom-user-key',
+      baseUrl: 'http://localhost:11434/v1',
+      model: 'custom-model',
+      provider: 'custom_openai',
+    }))
+    const payload = await json(response)
+
+    expect(response.status).toBe(400)
+    expect(payload.error?.name).toBe('LLMInvalidRequestError')
+    expect(calls.filter((call) => call.url.includes('/rest/v1/llm_provider_settings') && call.method === 'POST')).toHaveLength(0)
+  })
+
+  it('maps user-owned provider authentication failures without leaking the saved key', async () => {
+    const { fetchMock } = createSettingsFetchMock(new Response('{}', { status: 401 }))
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    await handler(createRequestWithMethod('/settings', 'PUT', {
+      apiKey: 'bad-openai-key',
+      provider: 'openai',
+    }))
+    const response = await handler(createRequest({ messages }))
+    const payload = await json(response)
+    const responseText = JSON.stringify(payload)
+
+    expect(response.status).toBe(500)
+    expect(payload.error?.name).toBe('ConfigurationError')
+    expect(responseText).not.toContain('bad-openai-key')
+  })
 })
+
+function createRequestWithMethod(pathname: string, method: string, body?: unknown) {
+  return new Request(`https://edge.test/llm-proxy${pathname}`, {
+    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: {
+      Authorization: 'Bearer session-token',
+      'Content-Type': 'application/json',
+    },
+    method,
+  })
+}
