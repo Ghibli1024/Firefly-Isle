@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The login intro/drawer refinement is archived at `openspec/changes/archive/2026-04-29-refine-login-intro-drawer/`.
 - The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
-- Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots under `docs/products/archive/`.
+- Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, `docs/products/product-goals.md`, and archived product snapshots under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 
 ## Common commands
@@ -40,6 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/products/`
   - `prd-implementation-status.md` — current PRD implementation status, preserving the implemented / partial / not implemented feature audit
   - `product-priority-roadmap.md` — current product priority roadmap, ranking next work across core medical-document capture, treatment visualization, model-provider settings, auth, sharing, and platform expansion
+  - `product-goals.md` — Goal Forge draft contracts for each roadmap item, including candidate done_when criteria and verification loops before `/goal` execution
   - `archive/` — archived product snapshots: `prd.md`, `spec.md`, `design-system.md`, and `stitch-screen-mapping.md`; archived `design-system.md` is historical and must not override `DESIGN.md`
 - `docs/log/`
   - `index.md` — commit history 总入口
