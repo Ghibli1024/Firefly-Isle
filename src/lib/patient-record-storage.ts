@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabResult 数据模型。
  * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具，并校验传入 patient id 的归属。
- * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、treatment_lines、lab_results 的读写，让数据库身份只来自已归属行或新建行。
+ * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行或新建行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
@@ -24,6 +24,11 @@ type TreatmentLineRow = {
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+type SupabaseQueryError = {
+  code?: string
+  message?: string
+}
 
 export type LabResultRow = {
   category: LabResult['category']
@@ -102,6 +107,10 @@ export function mapLabResultRow(row: LabResultRow): LabResult {
   }
 }
 
+function isMissingLabResultsTableError(error: SupabaseQueryError) {
+  return error.code === 'PGRST205' && /lab_results/i.test(error.message ?? '')
+}
+
 function mapPatientRow(patient: PatientRow, lines: TreatmentLineRow[], labRows: LabResultRow[]): PatientRecord {
   const labResults = labRows.map(mapLabResultRow)
 
@@ -135,6 +144,10 @@ async function loadPatientChildren(patient: PatientRow) {
     .returns<LabResultRow[]>()
 
   if (labError) {
+    if (isMissingLabResultsTableError(labError)) {
+      return mapPatientRow(patient, lines ?? [], [])
+    }
+
     throw labError
   }
 

@@ -18,6 +18,12 @@
 - **THEN** 系统 SHALL 接受可选 `labResults` 集合承载多次实验室指标读数
 - **AND** 系统 SHALL 保持 `treatmentLines` 仅承载治疗线数据，不把实验室指标塞入治疗线字段
 
+#### Scenario: labResults 缺失不阻断主病历
+- **WHEN** 已保存病历的 basicInfo、initialOnset 或 treatmentLines 可读取
+- **AND** labResults 为空或 lab_results 可选存储暂不可用
+- **THEN** 系统 SHALL 继续渲染主病历与治疗线
+- **AND** 实验室趋势 SHALL 显示空态，不得让病历详情页整体载入失败
+
 ### Requirement: TreatmentLine 治疗线数据结构
 系统 SHALL 定义 TreatmentLine 接口，`lineNumber` 为必填数字（1=一线，2=二线，以此类推）；`regimen` 在完整治疗线中应被支持，但在提取中间态或缺失字段待补全时可暂时缺失。
 

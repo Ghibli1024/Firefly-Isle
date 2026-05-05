@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 读取 Supabase 迁移，依赖 vitest 断言，依赖 ./patient-record-storage 的 PatientRecord 持久化映射工具。
- * [OUTPUT]: 对外提供 lab_results 迁移/RLS 合同、患者记录 labResults row 映射与假 id 落库防线测试。
- * [POS]: lib 的数据边界测试，约束患者记录读取/落库、持久化 id 所有权校验与实验室指标 RLS 不分叉。
+ * [OUTPUT]: 对外提供 lab_results 迁移/RLS 合同、患者记录 labResults row 映射、缺表读取降级与假 id 落库防线测试。
+ * [POS]: lib 的数据边界测试，约束患者记录读取/落库、持久化 id 所有权校验、可选 lab_results 读取降级与实验室指标 RLS 不分叉。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -16,7 +16,7 @@ vi.mock('@/lib/supabase', () => ({
   getSupabaseClient: supabaseMocks.getSupabaseClient,
 }))
 
-import { mapLabResultRow, persistPatientRecord, toLabResultPayload } from './patient-record-storage'
+import { loadPatientRecordById, mapLabResultRow, persistPatientRecord, toLabResultPayload } from './patient-record-storage'
 
 const migrationSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/002_lab_results.sql'), 'utf8')
 
@@ -82,6 +82,78 @@ describe('patient-record-storage lab result mapping', () => {
 })
 
 describe('patient-record-storage patient identity', () => {
+  it('loads a saved patient and treatment lines when the optional lab_results table is not deployed yet', async () => {
+    const patientBuilder = {
+      eq: vi.fn(() => patientBuilder),
+      maybeSingle: vi.fn(async () => ({
+        data: {
+          basic_info: { tumorType: '乳腺癌' },
+          id: '54122ae9-269b-4294-9756-141cf40ffd0c',
+          initial_onset: null,
+        },
+        error: null,
+      })),
+      select: vi.fn(() => patientBuilder),
+    }
+    const lineBuilder = {
+      eq: vi.fn(() => lineBuilder),
+      order: vi.fn(() => lineBuilder),
+      returns: vi.fn(async () => ({
+        data: [
+          {
+            biopsy: null,
+            end_date: '2023-05',
+            genetic_test: null,
+            immunohistochemistry: null,
+            line_number: 1,
+            regimen: '阿贝西利+氟维司群+亮丙瑞林+地舒单抗',
+            start_date: '2022-10',
+          },
+        ],
+        error: null,
+      })),
+      select: vi.fn(() => lineBuilder),
+    }
+    const labBuilder = {
+      eq: vi.fn(() => labBuilder),
+      order: vi.fn(() => labBuilder),
+      returns: vi.fn(async () => ({
+        data: null,
+        error: {
+          code: 'PGRST205',
+          message: "Could not find the table 'public.lab_results' in the schema cache",
+        },
+      })),
+      select: vi.fn(() => labBuilder),
+    }
+    const supabase = {
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } }, error: null })),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'patients') {
+          return patientBuilder
+        }
+
+        return table === 'treatment_lines' ? lineBuilder : labBuilder
+      }),
+    }
+
+    supabaseMocks.getSupabaseClient.mockReturnValue(supabase)
+
+    await expect(loadPatientRecordById('54122ae9-269b-4294-9756-141cf40ffd0c')).resolves.toMatchObject({
+      id: '54122ae9-269b-4294-9756-141cf40ffd0c',
+      labResults: undefined,
+      treatmentLines: [
+        {
+          lineNumber: 1,
+          regimen: '阿贝西利+氟维司群+亮丙瑞林+地舒单抗',
+        },
+      ],
+    })
+    expect(labBuilder.returns).toHaveBeenCalled()
+  })
+
   it('creates a new patient row when the incoming record id is not owned or persisted', async () => {
     const patientBuilders: ReturnType<typeof createPatientBuilder>[] = []
     const supabase = {

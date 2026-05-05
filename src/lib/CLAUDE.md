@@ -24,8 +24,8 @@ lab-results.ts: 实验室指标趋势纯逻辑，集中默认参考范围、异�
 lab-results.test.ts: 实验室指标趋势回归测试，约束正常、单次异常、连续异常、缺日期与缺参考范围行为，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.ts: 医学文档 OCR 前端协议边界，负责图片/PDF 校验、base64 编码、Supabase JWT 透传、Edge Function 调用与本地化错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图片/PDF 成功、类型拒绝、错误 envelope、空文本与浏览器不泄露 provider key，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-patient-record-storage.ts: 患者记录持久化边界，统一 patients、treatment_lines、lab_results 的读取、归属校验、映射与落库同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-patient-record-storage.test.ts: 患者记录持久化合同测试，约束假 id 新建真实 patient、lab_results row 映射、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+patient-record-storage.ts: 患者记录持久化边界，统一 patients、treatment_lines、可选 lab_results 的读取、归属校验、映射与落库同步，缺失 lab_results 远端迁移时不阻断主病历读取，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+patient-record-storage.test.ts: 患者记录持久化合同测试，约束假 id 新建真实 patient、lab_results row 映射、缺表读取降级、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-editing.ts: 自然语言病历编辑边界，要求 LLM 返回 PatientFieldTarget 字段级 patch，并复用逐格编辑的归一化 merge 语义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-editing.test.ts: 自然语言病历编辑回归测试，约束 basicInfo、initialOnset、treatmentLine、清空字段、无效目标与提示词合同，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
