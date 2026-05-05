@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale 类型与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供 record labels、demo summaryMetrics 与 getTimelineEntries 演示时间线文案。
- * [POS]: components/record 的静态文案与 demo 数据模块，被 RecordDossier 和路由错误态复用。
+ * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、@/types/patient 的 PatientRecord 与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供 record labels、demoPatientRecord、demo summaryMetrics 与 getTimelineEntries 演示时间线文案。
+ * [POS]: components/record 的静态文案与 demo 数据模块，被 RecordDossier、RecordPageContent 和路由错误态复用。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
+import type { PatientRecord } from '@/types/patient'
 
 import type { Metric, TimelineEntry } from './types'
 
@@ -77,6 +78,34 @@ export const summaryMetrics = {
     { label: '当前方案', value: '二线治疗' },
   ],
 } satisfies Record<Locale, Metric[]>
+
+export const demoPatientRecord: PatientRecord = {
+  basicInfo: {
+    age: 56,
+    gender: '女',
+    stage: 'IV 期',
+    tumorType: 'NSCLC',
+  },
+  initialOnset: {
+    geneticTest: 'EGFR L858R',
+    immunohistochemistry: 'PD-L1 TPS 45%',
+    triggerDate: '2023.04',
+    treatment: '初发诊断',
+  },
+  treatmentLines: [
+    {
+      endDate: '2024.02',
+      lineNumber: 1,
+      regimen: '奥希替尼靶向治疗',
+      startDate: '2023.05',
+    },
+    {
+      lineNumber: 2,
+      regimen: '培美曲塞 + 卡铂 + 赛沃替尼',
+      startDate: '2024.03',
+    },
+  ],
+}
 
 export function getTimelineEntries(locale: Locale): TimelineEntry[] {
   if (locale === 'en') {

@@ -12,7 +12,7 @@ login-page-view.test.tsx: 登录页主题壳层与认证弹层回归测试，读
 privacy-gate.tsx: 首次使用隐私门控层，负责 localStorage 确认状态、独立隐私页放行与可滚动全屏阻塞弹层，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record/: 病例详情展示层内部模块，收敛 dossier 展示、文案、demo 数据、真实病历派生数据与展示类型，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 system/: 设计系统壳层、品牌 mark 与 surface 基元目录，统一 sidebar、top bar、panel 与 section 结构语义，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-timeline/: 时间线表格组件目录，收敛 TimelineTable、基本信息区块、初发区块与治疗线区块渲染，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+timeline/: 时间线表格与甘特图组件目录，收敛 TimelineTable、基本信息区块、初发区块、治疗线区块渲染与 treatmentLines 甘特投影，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme-toggle.tsx: 全局主题切换入口，供壳层头部复用且只负责 theme 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale-toggle.tsx: 全局语言切换入口，与 ThemeToggle 并列复用但只负责 locale 状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 ui/: shadcn/ui 基础组件与轻量封装，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
