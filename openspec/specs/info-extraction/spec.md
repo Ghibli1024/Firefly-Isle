@@ -43,11 +43,16 @@
 - **THEN** 系统 SHALL 在单条消息中列出所有需要补充的字段，用户一次性回复
 
 ### Requirement: LLM Prompt 结构化约束
-系统 SHALL 在 Prompt 中明确要求 LLM 输出合法 JSON，并指定 PatientRecord 的完整 TypeScript 接口定义作为输出 schema 约束。
+系统 SHALL 使用紧凑 JSON 字段合同约束 LLM 输出 PatientRecord，不得把完整 TypeScript 接口塞入面向模型的主提示词。
 
 #### Scenario: 非法 JSON 处理
 - **WHEN** LLM 返回非法 JSON 或包含 markdown 代码块包裹的 JSON
 - **THEN** 系统 SHALL 尝试提取 JSON 内容并解析，解析失败时 SHALL 向用户展示错误提示并允许重试
+
+#### Scenario: Dense clinical history fallback
+- **WHEN** 系统内置模型的 JSON object 输出模式因长病史或密集治疗表格返回上游失败
+- **THEN** 系统 SHALL 使用同一份紧凑 JSON 字段合同重试一次普通文本模式
+- **AND** 成功返回的 JSON SHALL 继续进入 PatientRecord 解析、归一化与预览流程
 
 ### Requirement: Confirmed OCR text reuses structured extraction
 The system SHALL feed confirmed OCR text into the existing natural-language PatientRecord extraction flow.

@@ -17,9 +17,9 @@ theme/: 设计系统 token 目录，收敛 surface、text、border、accent 与 
 auth.tsx: Supabase session 恢复、URL callback 初始化、认证状态广播与 signOut 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 auth.test.tsx: Supabase URL callback 初始化、session 恢复、认证广播、订阅清理与 signOut 的源码合同测试，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm/: 前端 LLM adapter 目录，收敛 chat 接口、provider 设置客户端、provider/model/responseFormat 请求协议、类型与错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-extractionPrompt.ts: PatientRecord schema 提示词模板与 JSON 输出约束边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-extraction.ts: 信息提取主链路，负责解析、归一化、关键缺失字段检测、实验室指标独立归档、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-extraction.test.ts: 信息提取协议回归测试，约束结构化提取通过 LLM adapter 请求 JSON object 输出，并保持 labResults 不混入 treatmentLines，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extractionPrompt.ts: PatientRecord 一句式 JSON 字段合同提示词与输出约束边界，避免长 schema 或多消息 prompt 触发上游失败，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extraction.ts: 信息提取主链路，负责解析、中文/点号日期归一化、JSON mode 上游失败降级重试、关键缺失字段检测、实验室指标独立归档、追问 merge、解析错误语义与 follow-up runner，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+extraction.test.ts: 信息提取协议回归测试，约束结构化提取优先请求 JSON object 输出、上游失败降级重试、提示词紧凑合同、日期归一化，并保持 labResults 不混入 treatmentLines，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 lab-results.ts: 实验室指标趋势纯逻辑，集中默认参考范围、异常分类、持续增高提示与非诊断输出边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 lab-results.test.ts: 实验室指标趋势回归测试，约束正常、单次异常、连续异常、缺日期与缺参考范围行为，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.ts: 医学文档 OCR 前端协议边界，负责图片/PDF 校验、base64 编码、Supabase JWT 透传、Edge Function 调用与本地化错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

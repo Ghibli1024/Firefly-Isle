@@ -1,67 +1,42 @@
 /**
  * [INPUT]: 依赖 @/types/patient 的 PatientRecord 结构真相源。
  * [OUTPUT]: 对外提供 PATIENT_RECORD_SCHEMA 与 buildExtractionPrompt。
- * [POS]: src/lib 的提取提示词边界，把 LLM 的 JSON 输出约束锁在一处。
+ * [POS]: src/lib 的提取提示词边界，用一句式 JSON 字段合同约束 LLM 输出，避免长 schema 或多消息 prompt 触发上游失败。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { PatientRecord } from '@/types/patient'
 
-export const PATIENT_RECORD_SCHEMA = `interface PatientRecord {
-  basicInfo?: {
-    gender?: string
-    age?: number
-    height?: number
-    weight?: number
-    tumorType?: string
-    diagnosisDate?: string
-    stage?: string
+export const PATIENT_RECORD_SCHEMA = 'basicInfo含 tumorType, diagnosisDate, stage。initialOnset含 triggerDate, treatment, immunohistochemistry, geneticTest。treatmentLines 是数组，每项含 lineNumber, startDate, endDate, regimen。'
+
+const LAB_RESULT_SCHEMA = 'labResults 是数组，每项含 testDate, category, itemCode, itemName, value, unit, referenceLow, referenceHigh, source。'
+
+function shouldRequestLabResults(input: string, existingRecord?: PatientRecord) {
+  if (existingRecord?.labResults?.length) {
+    return true
   }
-  initialOnset?: {
-    triggerDate?: string
-    treatment?: string
-    immunohistochemistry?: string
-    geneticTest?: string
-  }
-  treatmentLines: Array<{
-    lineNumber: number
-    startDate?: string
-    endDate?: string
-    regimen?: string
-    biopsy?: string
-    immunohistochemistry?: string
-    geneticTest?: string
-  }>
-  labResults?: Array<{
-    testDate?: string
-    category: 'blood-routine' | 'blood-biochemistry' | 'tumor-marker'
-    itemCode: string
-    itemName: string
-    value: number
-    unit?: string
-    referenceLow?: number
-    referenceHigh?: number
-    source?: 'ocr' | 'manual' | 'test'
-  }>
-}`
+
+  return /\b(cea|ca[-_ ]?\d+|afp|psa|hb|plt|wbc|alt|ast|alp|ldh|crp)\b|参考值|血常规|生化|肿瘤标志物|ng\/?mL|u\/?mL|mmol\/?L/i.test(input)
+}
 
 export function buildExtractionPrompt(input: string, existingRecord?: PatientRecord) {
-  const existingRecordJson = existingRecord ? JSON.stringify(existingRecord, null, 2) : 'null'
+  const requestLabResults = shouldRequestLabResults(input, existingRecord)
+  const topFields = requestLabResults
+    ? 'basicInfo, initialOnset, treatmentLines, labResults'
+    : 'basicInfo, initialOnset, treatmentLines'
 
-  return [
-    '你是一个肿瘤病历结构化提取器。',
-    '只输出合法 JSON，不要输出 markdown 代码块，不要解释。',
-    '如果原文没有提到字段，就省略该字段，不要编造。',
-    '数值字段必须输出 number；日期字段只允许 YYYY-MM-DD 或 YYYY-MM。',
-    'treatmentLines 必须按 lineNumber 升序。',
-    '实验室指标必须放入 labResults，不得塞入 treatmentLines；OCR 来源的实验室指标 source 输出 "ocr"。',
-    '',
-    '目标 TypeScript schema：',
-    PATIENT_RECORD_SCHEMA,
-    '',
-    '当前已知记录（没有则为 null）：',
-    existingRecordJson,
-    '',
-    '待提取文本：',
-    input.trim(),
-  ].join('\n')
+  const promptLines = [
+    `从病史提取 JSON。只允许这些顶层字段：${topFields}。${PATIENT_RECORD_SCHEMA}`,
+  ]
+
+  if (requestLabResults) {
+    promptLines.push(LAB_RESULT_SCHEMA)
+  }
+
+  if (existingRecord) {
+    promptLines.push(`当前已知记录：${JSON.stringify(existingRecord)}`)
+  }
+
+  promptLines.push(`只输出JSON。\n${input.trim()}`)
+
+  return promptLines.join('\n')
 }

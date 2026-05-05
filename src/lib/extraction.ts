@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/lib/llm 的 chat 边界、@/lib/extractionPrompt、@/types/patient。
- * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、extractPatientRecord 与 runExtractionWithFollowUps，保留 labResults 独立结构。
+ * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、extractPatientRecord 与 runExtractionWithFollowUps，保留 labResults 独立结构、中文/点号日期归一化与单消息 JSON mode 降级重试。
  * [POS]: src/lib 的信息提取主链路，把解析、归一化、缺失字段检测与追问 merge 收敛在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -58,7 +58,33 @@ function normalizeDate(value: unknown) {
     return undefined
   }
 
-  const normalized = value.trim().replaceAll('/', '-')
+  const parts = value
+    .trim()
+    .replace(/[年/.]/g, '-')
+    .replace(/月/g, '-')
+    .replace(/日/g, '')
+    .replace(/-+$/g, '')
+    .split('-')
+    .filter(Boolean)
+
+  if (parts.length !== 2 && parts.length !== 3) {
+    return undefined
+  }
+
+  const [year, month, day] = parts
+
+  if (!/^\d{4}$/.test(year) || !/^\d{1,2}$/.test(month) || (day !== undefined && !/^\d{1,2}$/.test(day))) {
+    return undefined
+  }
+
+  const monthNumber = Number(month)
+  const dayNumber = day === undefined ? undefined : Number(day)
+
+  if (monthNumber < 1 || monthNumber > 12 || (dayNumber !== undefined && (dayNumber < 1 || dayNumber > 31))) {
+    return undefined
+  }
+
+  const normalized = `${year}-${month.padStart(2, '0')}${day === undefined ? '' : `-${day.padStart(2, '0')}`}`
   return DATE_PATTERN.test(normalized) ? normalized : undefined
 }
 
@@ -264,19 +290,36 @@ export function parsePatientRecordResponse(response: string) {
   }
 }
 
+function shouldRetryWithoutJsonMode(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'LLMUpstreamError' &&
+    (!('status' in error) || error.status === 502)
+  )
+}
+
 export async function extractPatientRecord(input: string, existingRecord?: PatientRecord): Promise<PatientRecord> {
   const messages: Message[] = [
-    {
-      role: 'system',
-      content: '你是一个严格输出 JSON 的肿瘤病历结构化提取器。',
-    },
     {
       role: 'user',
       content: buildExtractionPrompt(input, existingRecord),
     },
   ]
 
-  const response = await chat(messages, { responseFormat: 'json_object' })
+  let response: string
+
+  try {
+    response = await chat(messages, { responseFormat: 'json_object' })
+  } catch (error) {
+    if (!shouldRetryWithoutJsonMode(error)) {
+      throw error
+    }
+
+    response = await chat(messages)
+  }
+
   const normalized = parsePatientRecordResponse(response)
 
   return existingRecord ? mergePatientRecord(existingRecord, normalized) : normalized
