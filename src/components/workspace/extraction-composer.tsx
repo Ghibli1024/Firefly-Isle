@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap 与 .t-text-swap 动效合同。
- * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口与带旋转 loading icon 的唯一主提取动作。
+ * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口与外层容器旋转的 loading icon 唯一主提取动作。
  * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、模型设置、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -247,9 +247,9 @@ export function ExtractionComposer({
           onClick={onExtract}
           type="button"
         >
-          <span className="t-icon-swap" data-state={isExtracting ? 'b' : 'a'}>
+          <span className={`t-icon-swap ${isExtracting ? 'animate-spin' : ''}`} data-state={isExtracting ? 'b' : 'a'}>
             <span className="material-symbols-outlined t-icon text-xl" data-icon="a">my_location</span>
-            <span className={`material-symbols-outlined t-icon text-xl ${isExtracting ? 'animate-spin' : ''}`} data-icon="b">progress_activity</span>
+            <span className="material-symbols-outlined t-icon text-xl" data-icon="b">progress_activity</span>
           </span>
           <span className={`t-text-swap ${textSwapState}`}>{visibleExtractLabel}</span>
         </button>
