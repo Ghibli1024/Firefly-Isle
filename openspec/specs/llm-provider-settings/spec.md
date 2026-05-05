@@ -7,6 +7,11 @@
 ### Requirement: Provider setting entry
 The system SHALL provide a user-facing provider setting that chooses either system default DeepSeek or a user-owned LLM provider.
 
+#### Scenario: Compact provider panel
+- **WHEN** the user opens the `/app` workspace
+- **THEN** the provider setting SHALL render as a compact expandable panel
+- **AND** the compact state SHALL show the current provider mode without occupying the full form height
+
 #### Scenario: System default selection
 - **WHEN** the user selects the system default option
 - **THEN** the system SHALL use the project DeepSeek provider without requiring a user API key
