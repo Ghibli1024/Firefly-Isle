@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
 - Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, `docs/products/product-goals.md`, and archived product snapshots under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
+- Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
 
 ## Common commands
 
@@ -33,6 +34,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### What exists today
 
+- `LICENSE`
+  - MIT license grant for public reuse, modification, distribution, and warranty disclaimer
+- `SECURITY.md`
+  - private vulnerability reporting policy for auth, RLS, Edge Functions, Cloudflare Functions, provider-key storage, and privacy-sensitive flows
+- `CONTRIBUTING.md`
+  - contributor workflow, verification commands, OpenSpec/GEB documentation rules, PR expectations, and Conventional Commits format
+- `CODE_OF_CONDUCT.md`
+  - project collaboration standards and conduct-reporting boundary for a privacy-sensitive medical workflow
 - `DESIGN.md`
   - project-level design-system entrypoint linking to the current V3 `DESIGN.md` source
 - `docs/design/`
@@ -69,6 +78,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`
   - archived LLM provider artifacts defining the Gemini / DeepSeek Edge Function proxy, JSON output mode, provider config and rollback boundary
 - `.github/`
+  - `PULL_REQUEST_TEMPLATE.md` — PR summary, verification, documentation, and Conventional Commits checklist
   - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`
   - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
@@ -145,6 +155,7 @@ If future work uses the archived Stitch artifacts in `docs/products/archive/stit
 ## Working conventions already present
 
 - Follow the spec-first workflow already encoded in the repo: adjust specs before implementing when requirements change.
+- PR titles and squash-merge commit messages should follow Conventional Commits: `<type>[optional scope]: <description>`.
 - Commit granularity should follow OpenSpec/change boundaries. The repository default is to commit at completed Step boundaries, but if the active change documents a more specific recommended commit map, follow that map.
 - Tasks are execution checklists, not an instruction to create one commit per checkbox.
 - Only commit after the tests relevant to the commit's scope pass.

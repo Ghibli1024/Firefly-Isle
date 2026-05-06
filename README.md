@@ -97,7 +97,7 @@ npm run test
     - `npm run type-check`
     - `npm run test`
     - `npm run build`
-- `.github/workflows/deploy.yml`
+- `.github/workflows/cd.yml`
   - 仅在 `v*` tag push 或手动 `workflow_dispatch` 时执行
   - 重新构建 `dist/`，并通过 `wrangler pages deploy` 发布到 Cloudflare Pages 生产环境
   - 会额外校验：待部署 commit 必须属于 `main`

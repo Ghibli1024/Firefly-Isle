@@ -9,10 +9,31 @@ on:
       - main
     types:
       - opened
+      - edited
       - synchronize
       - reopened
 
 jobs:
+  validate-pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Conventional Commits title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|refactor|test|ci|build|chore|perf|style|revert)(\([a-z0-9._-]+\))?(!)?: .+$'
+          if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+            echo "PR title must follow Conventional Commits:"
+            echo "  <type>[optional scope]: <description>"
+            echo "Allowed types: feat, fix, docs, refactor, test, ci, build, chore, perf, style, revert"
+            echo "Examples:"
+            echo "  feat(provider-settings): add user-owned Kimi preset"
+            echo "  fix(auth): preserve session after privacy gate redirect"
+            echo "  docs(governance): add community health files"
+            exit 1
+          fi
+
   validate:
     runs-on: ubuntu-latest
     permissions:
