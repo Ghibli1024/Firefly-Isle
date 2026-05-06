@@ -149,8 +149,8 @@ function toOpenAiCompatibleRequest(messages: Message[], options: ProviderBuildOp
   return body
 }
 
-function buildGeminiUrl(model: string, apiKey: string, baseUrl: string) {
-  return `${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
+function buildGeminiUrl(model: string, baseUrl: string) {
+  return `${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent`
 }
 
 function buildChatCompletionsUrl(baseUrl: string) {
@@ -162,11 +162,14 @@ export function buildProviderRequest(provider: ChatProvider, messages: Message[]
     return {
       init: {
         body: JSON.stringify(toGeminiRequest(messages)),
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': options.apiKey,
+        },
         method: 'POST',
       },
       model: options.model,
-      url: buildGeminiUrl(options.model, options.apiKey, options.baseUrl),
+      url: buildGeminiUrl(options.model, options.baseUrl),
     }
   }
 

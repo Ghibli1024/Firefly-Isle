@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Fetch API、Supabase JWT 校验端点、PostgREST、Web Crypto 与 provider-adapters。
- * [OUTPUT]: 对外提供 createLlmProxyHandler、RuntimeEnv 与 llm-proxy 统一 HTTP 协议，支持用户 preset/custom provider 模型名持久化。
+ * [OUTPUT]: 对外提供 createLlmProxyHandler、RuntimeEnv 与 llm-proxy 统一 HTTP 协议，支持用户 provider 设置与显式系统 provider 测试。
  * [POS]: supabase/functions/llm-proxy 的可测试核心，把鉴权、设置加密持久化、provider/model 选择与错误协议收敛在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -56,6 +56,7 @@ type HandlerOptions = {
 }
 
 type RequestBody = {
+  bypassSavedSetting?: boolean
   messages?: Message[]
   model?: string
   provider?: string
@@ -260,6 +261,15 @@ function validateMessages(messages: Message[] | undefined): messages is Message[
     const validRole = message?.role === 'system' || message?.role === 'user' || message?.role === 'assistant'
     return validRole && typeof message?.content === 'string' && message.content.trim().length > 0
   })
+}
+
+function isSystemDeepSeekTestRequest(body: RequestBody, config: RuntimeConfig) {
+  return body.bypassSavedSetting === true
+    && body.provider === 'deepseek'
+    && (!body.model || body.model.trim() === config.defaultDeepseekModel)
+    && body.messages?.length === 1
+    && body.messages[0]?.role === 'user'
+    && body.messages[0]?.content.trim() === '请只回复 OK，用于测试模型服务连通性。'
 }
 
 function normalizeResponseFormat(responseFormat: string | undefined): ResponseFormat | undefined {
@@ -716,7 +726,15 @@ export function createLlmProxyHandler(options: HandlerOptions) {
       return errorResponse(400, 'LLMInvalidRequestError', 'messages must be a non-empty array of valid chat messages.')
     }
 
-    const savedSetting = await loadProviderSetting(config, token, user.id ?? '', runtimeFetch)
+    const bypassSavedSetting = isSystemDeepSeekTestRequest(body, config)
+
+    if (body.bypassSavedSetting === true && !bypassSavedSetting) {
+      return errorResponse(400, 'LLMInvalidRequestError', 'Saved provider settings can only be bypassed for the system DeepSeek test.')
+    }
+
+    const savedSetting = bypassSavedSetting
+      ? null
+      : await loadProviderSetting(config, token, user.id ?? '', runtimeFetch)
 
     if (isErrorResponse(savedSetting)) {
       return jsonResponse(savedSetting.error.name === 'ConfigurationError' ? 500 : 400, savedSetting)

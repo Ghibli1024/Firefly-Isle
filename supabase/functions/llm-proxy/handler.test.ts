@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 vitest 的 fetch mock，依赖 ./handler.ts 的 createLlmProxyHandler。
- * [OUTPUT]: 对外提供 llm-proxy provider 选择、用户 provider/model 设置、DeepSeek 请求与错误映射测试。
+ * [OUTPUT]: 对外提供 llm-proxy provider 选择、用户 provider/model 设置、系统 DeepSeek 测试、Gemini 密钥转发与错误映射测试。
  * [POS]: supabase/functions/llm-proxy 的协议测试，替代本机缺失 Deno 时的最近本地验证层。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -209,9 +209,12 @@ describe('llm-proxy provider handler', () => {
     })
     const response = await handler(createRequest({ messages, provider: 'gemini' }))
     const payload = await json(response)
+    const upstreamCall = findUpstreamCall(calls)
 
     expect(payload.text).toBe('gemini text')
-    expect(findUpstreamCall(calls)?.url).toContain('generativelanguage.googleapis.com')
+    expect(upstreamCall?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent')
+    expect(upstreamCall?.url).not.toContain('gemini-key')
+    expect(upstreamCall?.headers?.get('x-goog-api-key')).toBe('gemini-key')
   })
 
   it('rejects unknown providers before calling an upstream model', async () => {
@@ -322,6 +325,52 @@ describe('llm-proxy provider handler', () => {
     expect(upstreamCall?.url).toBe('https://api.openai.com/v1/chat/completions')
     expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer openai-user-key')
     expect(upstreamCall?.body).toMatchObject({ model: 'gpt-4.1-mini' })
+  })
+
+  it('bypasses saved user settings for the system DeepSeek connection test', async () => {
+    const { calls, fetchMock } = createSettingsFetchMock(deepSeekResponse('deepseek-v4-flash', 'deepseek text'))
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    await handler(createRequestWithMethod('/settings', 'PUT', {
+      apiKey: 'openai-user-key',
+      model: 'gpt-4.1-mini',
+      provider: 'openai',
+    }))
+    const response = await handler(createRequest({
+      bypassSavedSetting: true,
+      messages: [{ content: '请只回复 OK，用于测试模型服务连通性。', role: 'user' }],
+      model: 'deepseek-v4-flash',
+      provider: 'deepseek',
+    }))
+    const payload = await json(response)
+    const upstreamCall = findUpstreamCall(calls)
+
+    expect(payload).toEqual({ model: 'deepseek-v4-flash', text: 'deepseek text' })
+    expect(upstreamCall?.url).toBe('https://api.deepseek.com/chat/completions')
+    expect(upstreamCall?.headers?.get('Authorization')).toBe('Bearer deepseek-key')
+    expect(upstreamCall?.body).toMatchObject({ model: 'deepseek-v4-flash' })
+  })
+
+  it('rejects saved-setting bypass outside the fixed system DeepSeek test', async () => {
+    const { calls, fetchMock } = createSettingsFetchMock()
+    const handler = createLlmProxyHandler({
+      env: createEnv({ LLM_PROVIDER_SETTINGS_ENCRYPTION_KEY: 'test encryption secret' }),
+      fetch: fetchMock,
+    })
+
+    const response = await handler(createRequest({
+      bypassSavedSetting: true,
+      messages,
+      provider: 'openai',
+    }))
+    const payload = await json(response)
+
+    expect(response.status).toBe(400)
+    expect(payload.error?.name).toBe('LLMInvalidRequestError')
+    expect(calls.filter((call) => !call.url.includes('/auth/v1/user') && !call.url.includes('/rest/v1/llm_provider_settings'))).toHaveLength(0)
   })
 
   it('routes custom OpenAI-style settings through the stored HTTPS base URL and model', async () => {

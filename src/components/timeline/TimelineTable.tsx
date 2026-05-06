@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的 useState，依赖 @/lib/theme 的 Theme，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
- * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock 与 TreatmentLineBlock。
+ * [INPUT]: 依赖 react 的 useRef/useState，依赖 @/lib/theme 的 Theme，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
+ * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock、TreatmentLineBlock 与 blur 取消提交 helpers。
  * [POS]: components/timeline 的正式时间线表格渲染器，负责三种 archetype 的区块布局、关键缺失字段高亮与行内编辑入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale } from '@/lib/locale'
@@ -22,6 +22,10 @@ import {
 type EditorState = {
   id: string
   value: string
+}
+
+type BlurCommitGuard = {
+  current: boolean
 }
 
 type TimelineTableProps = {
@@ -147,16 +151,12 @@ function formatPeriod(startDate?: string, endDate?: string, locale?: 'zh' | 'en'
   return `${startDate} — ${endDate}`
 }
 
-function getShellClass(theme: Theme) {
-  return theme === 'dark'
-    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
-    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
+function getShellClass() {
+  return 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-shell-border)] bg-[var(--ff-timeline-shell-bg)] text-[var(--ff-timeline-shell-text)]'
 }
 
-function getSectionClass(theme: Theme) {
-  return theme === 'dark'
-    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
-    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
+function getSectionClass() {
+  return 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-section-bg)] p-6 sm:p-8'
 }
 
 function getLabelClass() {
@@ -175,20 +175,29 @@ function getValueClass(theme: Theme, filled: boolean, prominent: boolean) {
     : `whitespace-pre-wrap text-sm leading-7 ${filled ? 'text-[var(--ff-timeline-text-body)]' : 'text-[var(--ff-timeline-text-muted)]'}`
 }
 
-function getCellClass(theme: Theme, critical: boolean, filled: boolean) {
+function getCellClass(critical: boolean, filled: boolean) {
   if (critical && !filled) {
-    return theme === 'dark'
-      ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
-      : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
+    return 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-critical-border)] bg-[var(--ff-timeline-cell-critical-bg)]'
   }
 
-  return theme === 'dark'
-    ? 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
-    : 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
+  return 'rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-cell-border)] bg-[var(--ff-timeline-cell-bg)]'
 }
 
 function getEditValue(value: unknown) {
   return value === undefined || value === null ? '' : String(value)
+}
+
+export function markNextBlurAsCanceled(guard: BlurCommitGuard) {
+  guard.current = true
+}
+
+export function consumeCanceledBlur(guard: BlurCommitGuard) {
+  if (!guard.current) {
+    return false
+  }
+
+  guard.current = false
+  return true
 }
 
 function SectionHeader({ badge, order, subtitle, title, theme }: SectionHeaderProps) {
@@ -250,12 +259,13 @@ function DataCell({
   theme,
   value,
 }: CellProps) {
+  const skipCommitOnBlurRef = useRef(false)
   const filled = hasValue(value)
   const isEditing = editor?.id === cellId
   const rendered = display(value)
 
   return (
-    <div className={`${getCellClass(theme, critical, filled)} p-4`}>
+    <div className={`${getCellClass(critical, filled)} p-4`}>
       <div className={getLabelClass()}>{label}</div>
       {isEditing ? (
         <input
@@ -263,12 +273,17 @@ function DataCell({
           className="mt-3 w-full bg-transparent text-sm outline-none"
           disabled={disabled}
           onBlur={(event) => {
+            if (consumeCanceledBlur(skipCommitOnBlurRef)) {
+              return
+            }
+
             void onCommitField?.(target, event.currentTarget.value)
           }}
           onChange={(event) => onUpdateEditorValue(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault()
+              markNextBlurAsCanceled(skipCommitOnBlurRef)
               onCancelEdit()
             }
           }}
@@ -358,7 +373,7 @@ export function BasicInfoBlock({
   ]
 
   return (
-    <section className={getSectionClass(theme)}>
+    <section className={getSectionClass()}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="font-[var(--ff-font-display)] text-3xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-4xl">
@@ -604,7 +619,7 @@ function EmptyState({ theme }: { theme: Theme }) {
   const { locale } = useLocale()
 
   return (
-    <div className={`${getSectionClass(theme)} text-[var(--ff-timeline-text-muted)]`}>
+    <div className={`${getSectionClass()} text-[var(--ff-timeline-text-muted)]`}>
       <div className={getLabelClass()}>{getCopy(copy.timeline.emptyStateKey, locale)}</div>
       <p
         className={
@@ -663,7 +678,7 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
   }
 
   return (
-    <section className={getShellClass(theme)}>
+    <section className={getShellClass()}>
       <header className="border-b border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

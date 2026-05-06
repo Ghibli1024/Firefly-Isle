@@ -12,12 +12,22 @@ import { ReportPreviewFrame } from '@/components/workspace/report-preview-frame'
 import { LocaleProvider } from '@/lib/locale'
 import type { PatientRecord } from '@/types/patient'
 
+import {
+  getConfirmedOcrText,
+  getFailedOcrImportPatch,
+  getFollowUpPersistenceFailurePatch,
+  getWorkspaceComposerMode,
+} from './workspace-page'
+
 describe('WorkspacePage metrics and record mode contracts', () => {
   it('makes existing-record input mode explicit and exposes a separate new-record extraction action', () => {
+    expect(getWorkspaceComposerMode({ treatmentLines: [] })).toBe('edit')
+    expect(getWorkspaceComposerMode(null)).toBe('extract')
+
     const markup = renderToStaticMarkup(
       <LocaleProvider>
         <ExtractionComposer
-          composerMode="edit"
+          composerMode={getWorkspaceComposerMode({ treatmentLines: [] })}
           error={null}
           extractionInput="把身高改成 168，体重改成 62"
           isExtracting={false}
@@ -36,6 +46,38 @@ describe('WorkspacePage metrics and record mode contracts', () => {
     expect(markup).toContain('应用病历修改')
     expect(markup).toContain('作为新病历提取')
     expect(markup).not.toContain('开始结构化提取')
+  })
+
+  it('builds a follow-up persistence failure patch that restores the previous record', () => {
+    const previousRecord: PatientRecord = {
+      basicInfo: { age: 63 },
+      treatmentLines: [{ lineNumber: 1, regimen: '奥希替尼' }],
+    }
+    const patch = getFollowUpPersistenceFailurePatch(previousRecord, '补充回答', 1, 'zh')
+
+    expect(patch.record).toBe(previousRecord)
+    expect(patch.remainingMissing).toEqual(['tumorType', 'stage'])
+    expect(patch.retryAnswer).toBe('补充回答')
+    expect(patch.retryMode).toBe('follow-up')
+  })
+
+  it('builds a failed OCR patch without mutating the current patient record', () => {
+    const current = {
+      record: { basicInfo: { tumorType: '乳腺癌' }, treatmentLines: [] },
+      remainingMissing: ['分期'],
+    } satisfies { record: PatientRecord; remainingMissing: string[] }
+    const patch = getFailedOcrImportPatch(current, new Error('network'), 'zh')
+
+    expect(patch.record).toBe(current.record)
+    expect(patch.remainingMissing).toBe(current.remainingMissing)
+    expect(patch.ocr).toMatchObject({ isProcessing: false, text: null })
+    expect(patch.ocr.error).toBeTruthy()
+  })
+
+  it('normalizes confirmed OCR text before extraction', () => {
+    expect(getConfirmedOcrText('  影像报告文本  ')).toBe('影像报告文本')
+    expect(getConfirmedOcrText('   ')).toBeNull()
+    expect(getConfirmedOcrText(null)).toBeNull()
   })
 
   it('renders editable height and weight with calculated BMI in the workspace preview', () => {

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/record-editing 的自然语言编辑边界，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
- * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
+ * [OUTPUT]: 对外提供 WorkspacePage 组件与工作区状态补丁 helpers，对应 /app。
  * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复、显式新病历提取分流与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -71,6 +71,47 @@ function getNextQuestion(missingFields: string[], followUpCount: number) {
   }
 
   return buildFollowUpQuestion(missingFields)
+}
+
+export function getFollowUpPersistenceFailurePatch(previousRecord: PatientRecord, answer: string, followUpCount: number, locale: 'zh' | 'en') {
+  const remainingMissing = getMissingCriticalFields(previousRecord)
+
+  return {
+    currentQuestion: getNextQuestion(remainingMissing, followUpCount),
+    editFeedback: null,
+    error: getCopy(copy.workspace.errors.savePatient, locale),
+    isExtracting: false,
+    record: previousRecord,
+    remainingMissing,
+    retryAnswer: answer,
+    retryMode: 'follow-up' as const,
+  }
+}
+
+export function getFailedOcrImportPatch(
+  current: Pick<ExtractionState, 'record' | 'remainingMissing'>,
+  error: unknown,
+  locale: 'zh' | 'en',
+) {
+  return {
+    error: null,
+    ocr: {
+      error: getMedicalDocumentOcrMessage(error, locale),
+      isProcessing: false,
+      text: null,
+    },
+    record: current.record,
+    remainingMissing: current.remainingMissing,
+  }
+}
+
+export function getConfirmedOcrText(text: string | null | undefined) {
+  const confirmedText = text?.trim()
+  return confirmedText || null
+}
+
+export function getWorkspaceComposerMode(record: PatientRecord | null) {
+  return record ? 'edit' : 'extract'
 }
 
 function useExtractionState() {
@@ -258,14 +299,7 @@ function useExtractionState() {
       } catch {
         setState((current) => ({
           ...current,
-          currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
-          editFeedback: null,
-          error: getCopy(copy.workspace.errors.savePatient, locale),
-          isExtracting: false,
-          record: previousRecord,
-          remainingMissing: getMissingCriticalFields(previousRecord),
-          retryAnswer: answer,
-          retryMode: 'follow-up',
+          ...getFollowUpPersistenceFailurePatch(previousRecord, answer, current.followUpAnswers.length, locale),
         }))
       }
     } catch (error) {
@@ -402,20 +436,13 @@ function useExtractionState() {
     } catch (error) {
       setState((current) => ({
         ...current,
-        error: null,
-        ocr: {
-          error: getMedicalDocumentOcrMessage(error, locale),
-          isProcessing: false,
-          text: null,
-        },
-        record: current.record,
-        remainingMissing: current.remainingMissing,
+        ...getFailedOcrImportPatch(current, error, locale),
       }))
     }
   }
 
   async function confirmOcrText() {
-    const ocrText = state.ocr.text?.trim()
+    const ocrText = getConfirmedOcrText(state.ocr.text)
 
     if (!ocrText) {
       return
@@ -555,7 +582,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="dark" tone="base">
           <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
-              composerMode={record ? 'edit' : 'extract'}
+              composerMode={getWorkspaceComposerMode(record)}
               error={error}
               feedback={editFeedback}
               extractionInput={extractionInput}
@@ -641,7 +668,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="light" tone="base">
           <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
-              composerMode={record ? 'edit' : 'extract'}
+              composerMode={getWorkspaceComposerMode(record)}
               error={error}
               feedback={editFeedback}
               extractionInput={extractionInput}
