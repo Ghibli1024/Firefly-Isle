@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 LocaleProvider，依赖 workspace 的 ExtractionComposer 与 ReportPreviewFrame。
- * [OUTPUT]: 对外提供已有病历编辑/新病历提取分流与工作台身高体重 BMI 展示回归测试。
- * [POS]: routes 的工作区局部合同测试，承接 workspace-page.test.tsx 的体格指标和模式分流断言，保持主测试文件不越过 800 行结构门禁。
+ * [OUTPUT]: 对外提供已有病历编辑/新病历提取分流、工作台身高体重 BMI 展示与预览提示条显隐回归测试。
+ * [POS]: routes 的工作区局部合同测试，承接 workspace-page.test.tsx 的体格指标、模式分流和预览提示条断言，保持主测试文件不越过 800 行结构门禁。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -64,5 +64,57 @@ describe('WorkspacePage metrics and record mode contracts', () => {
     expect(markup).toContain('62 kg')
     expect(markup).toContain('BMI')
     expect(markup).toContain('22.0')
+  })
+
+  it('hides completed missing-field and follow-up badges from the preview header', () => {
+    const record: PatientRecord = {
+      basicInfo: { stage: 'IA期', tumorType: '乳腺癌' },
+      treatmentLines: [{ lineNumber: 1, regimen: '阿贝西利+氟维司群' }],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LocaleProvider>
+        <ReportPreviewFrame
+          followUpCount={0}
+          isExtracting={false}
+          isSaving={false}
+          onCommitField={() => undefined}
+          record={record}
+          remainingMissing={[]}
+          setReportRef={() => undefined}
+          theme="light"
+        />
+      </LocaleProvider>,
+    )
+
+    expect(markup).not.toContain('必填字段 / 缺失字段')
+    expect(markup).not.toContain('chat_bubble')
+    expect(markup).not.toContain('0 项 · 第')
+  })
+
+  it('keeps the follow-up progress badge only while missing fields remain', () => {
+    const record: PatientRecord = {
+      basicInfo: { tumorType: '乳腺癌' },
+      treatmentLines: [],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LocaleProvider>
+        <ReportPreviewFrame
+          followUpCount={1}
+          isExtracting={false}
+          isSaving={false}
+          onCommitField={() => undefined}
+          record={record}
+          remainingMissing={['分期', '治疗方案']}
+          setReportRef={() => undefined}
+          theme="light"
+        />
+      </LocaleProvider>,
+    )
+
+    expect(markup).not.toContain('必填字段 / 缺失字段')
+    expect(markup).toContain('待补充')
+    expect(markup).toContain('/3 轮追问')
   })
 })

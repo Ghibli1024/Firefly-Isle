@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react-router-dom 的 Link，依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy、locale 与 patient-metrics 文案/指标工具，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group、.t-missing-pulse 与 .t-edit-flip 动效合同。
- * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、身高体重 BMI、真实治疗时间线、正式档案入口、缺失字段告警、临床备注与验证状态带。
+ * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、身高体重 BMI、真实治疗时间线、正式档案入口、按需追问进度提示、临床备注与验证状态带。
  * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord basicInfo 与 treatmentLines 投影为可读预览，同时保留 setReportRef 导出捕获点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -329,6 +329,7 @@ export function ReportPreviewFrame({
   const missingLabels =
     recordHasData && remainingMissing.length > 0 ? remainingMissing : recordHasData ? [] : placeholderMissing[locale]
   const missingCount = missingLabels.length
+  const shouldShowFollowUpStatus = missingCount > 0 || followUpCount > 0
   const timelineItems = getPreviewTimelineItems(record, locale)
   const notePlaceholder =
     locale === 'zh' ? '可在此记录关键临床备注或补充说明...' : 'Record key clinical notes or supplemental comments...'
@@ -347,27 +348,22 @@ export function ReportPreviewFrame({
             </span>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
-              <span className="material-symbols-outlined text-xl">warning</span>
-              <span>
-                {locale === 'zh' ? '必填字段 / 缺失字段：' : 'Required / Missing: '}
-                {missingLabels.length > 0 ? missingLabels.join(locale === 'zh' ? ' / ' : ' / ') : locale === 'zh' ? '无' : 'None'}
-              </span>
-            </div>
-            <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
-              <span className="material-symbols-outlined text-xl">chat_bubble</span>
-              <span>
-                {locale === 'zh' ? (
-                  <>
-                    待补充 <AnimatedNumber value={missingCount} /> 项 · 第 <AnimatedNumber value={followUpCount} />/3 轮追问
-                  </>
-                ) : (
-                  <>
-                    <AnimatedNumber value={missingCount} /> missing · round <AnimatedNumber value={followUpCount} />/3
-                  </>
-                )}
-              </span>
-            </div>
+            {shouldShowFollowUpStatus ? (
+              <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
+                <span className="material-symbols-outlined text-xl">chat_bubble</span>
+                <span>
+                  {locale === 'zh' ? (
+                    <>
+                      待补充 <AnimatedNumber value={missingCount} /> 项 · 第 <AnimatedNumber value={followUpCount} />/3 轮追问
+                    </>
+                  ) : (
+                    <>
+                      <AnimatedNumber value={missingCount} /> missing · round <AnimatedNumber value={followUpCount} />/3
+                    </>
+                  )}
+                </span>
+              </div>
+            ) : null}
             {recordDetailsHref ? (
               <Link
                 className="t-control-press inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
