@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR 状态，依赖 transitions-dev.css 的 .t-icon-swap、.t-text-swap、.t-control-press 与 .t-popover 动效合同。
- * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口与外层容器旋转的 loading icon 唯一主提取动作。
+ * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR/编辑模式状态，依赖 transitions-dev.css 的 .t-icon-swap、.t-text-swap、.t-control-press 与 .t-popover 动效合同。
+ * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口、已有病历编辑主动作与新病历提取分流动作。
  * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、模型设置、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,6 +13,7 @@ import { ActionSurface, PanelSurface } from '@/components/system/surfaces'
 import { LlmProviderSettingsPanel } from '@/components/workspace/llm-provider-settings-panel'
 
 type ExtractionComposerProps = {
+  composerMode?: 'extract' | 'edit'
   error: string | null
   extractionInput: string
   feedback?: string | null
@@ -22,6 +23,7 @@ type ExtractionComposerProps = {
   onConfirmOcrText?: () => void
   onDiscardOcrText?: () => void
   onExtract: () => void
+  onExtractAsNew?: () => void
   onImportFile?: (file: File) => void
   onInputChange: (value: string) => void
   onRetry: () => void
@@ -47,6 +49,7 @@ function getUploadTitle(locale: 'zh' | 'en') {
 }
 
 export function ExtractionComposer({
+  composerMode = 'extract',
   error,
   extractionInput,
   feedback = null,
@@ -56,6 +59,7 @@ export function ExtractionComposer({
   onConfirmOcrText,
   onDiscardOcrText,
   onExtract,
+  onExtractAsNew,
   onImportFile,
   onInputChange,
   onRetry,
@@ -66,14 +70,15 @@ export function ExtractionComposer({
   const { locale } = useLocale()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const disabled = isExtracting || isSaving || ocrState.isProcessing
+  const isEditMode = composerMode === 'edit'
   const statusLabel = isExtracting
     ? getCopy(copy.workspace.composer.analyzing, locale)
     : remainingMissingCount > 0
       ? `${locale === 'zh' ? '待补充' : 'Missing'} ${remainingMissingCount}`
       : getCopy(copy.workspace.composer.ready, locale)
   const extractLabel = isExtracting
-    ? getCopy(copy.workspace.composer.extracting, locale)
-    : getCopy(copy.workspace.composer.extract, locale)
+    ? getCopy(isEditMode ? copy.workspace.composer.editing : copy.workspace.composer.extracting, locale)
+    : getCopy(isEditMode ? copy.workspace.composer.applyEdit : copy.workspace.composer.extract, locale)
   const [visibleExtractLabel, setVisibleExtractLabel] = useState(extractLabel)
   const [textSwapState, setTextSwapState] = useState('')
   const [toolMessage, setToolMessage] = useState<string | null>(null)
@@ -226,21 +231,31 @@ export function ExtractionComposer({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {retryMode ? (
-          <button
-            className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-5 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
-            onClick={onRetry}
-            type="button"
-          >
-            {retryMode === 'follow-up'
-              ? getCopy(copy.workspace.composer.retryFollowUp, locale)
-              : retryMode === 'edit'
-                ? getCopy(copy.workspace.composer.retryEdit, locale)
-              : getCopy(copy.workspace.composer.retryInitial, locale)}
-          </button>
-        ) : (
-          <span aria-hidden="true" />
-        )}
+        <div className="flex flex-wrap gap-2">
+          {retryMode ? (
+            <button
+              className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-5 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
+              onClick={onRetry}
+              type="button"
+            >
+              {retryMode === 'follow-up'
+                ? getCopy(copy.workspace.composer.retryFollowUp, locale)
+                : retryMode === 'edit'
+                  ? getCopy(copy.workspace.composer.retryEdit, locale)
+                  : getCopy(copy.workspace.composer.retryInitial, locale)}
+            </button>
+          ) : null}
+          {isEditMode && onExtractAsNew ? (
+            <button
+              className="t-control-press inline-flex h-12 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-5 font-[var(--ff-font-ui)] text-sm font-semibold text-[var(--ff-text-secondary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={disabled || inputTooLong}
+              onClick={onExtractAsNew}
+              type="button"
+            >
+              {getCopy(copy.workspace.composer.extractAsNew, locale)}
+            </button>
+          ) : null}
+        </div>
         <button
           className="t-control-press inline-flex h-12 items-center justify-center gap-3 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-6 font-[var(--ff-font-ui)] text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled || inputTooLong}

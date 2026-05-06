@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-line-labels 的中文线别与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供 record labels、含癌种的 demo summaryMetrics 与 00 起算/中文线别/补充资料归一的逐线演示时间线文案。
+ * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位的 demo summaryMetrics 与 00 起算/中文线别/补充资料归一的逐线演示时间线文案。
  * [POS]: components/record 的静态文案模块，被 RecordDossier 和路由错误态复用；默认病例原始数据留在 demo-record，本文只做文案与 timeline 组装。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -58,6 +58,9 @@ export const summaryMetrics = {
     { label: 'Cancer Type', value: 'Breast cancer' },
     { label: 'Gender', value: 'Female' },
     { label: 'Age', value: 'Not provided' },
+    { label: 'Height', value: '--' },
+    { label: 'Weight', value: '--' },
+    { label: 'BMI', value: '--' },
     { label: 'Tumor Stage', value: 'Relapsed advanced' },
     { label: 'Follow-up Status', value: 'In treatment' },
     { label: 'Diagnosis Date', value: '2021.07' },
@@ -69,6 +72,9 @@ export const summaryMetrics = {
     { label: '癌种', value: '乳腺癌' },
     { label: '性别', value: '女' },
     { label: '年龄', value: '未提供' },
+    { label: '身高', value: '--' },
+    { label: '体重', value: '--' },
+    { label: 'BMI', value: '--' },
     { label: '肿瘤分期', value: '复发/晚期' },
     { label: '随访状态', value: '治疗中' },
     { label: '诊断日期', value: '2021.07' },

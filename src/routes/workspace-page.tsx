@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/record-editing 的自然语言编辑边界，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件，对应 /app。
- * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
+ * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 提取、追问、解析错误恢复、显式新病历提取分流与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -22,7 +22,7 @@ import {
 } from '@/lib/extraction'
 import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
 import { loadLatestPatientRecord, persistPatientRecord } from '@/lib/patient-record-storage'
-import { applyPatientRecordEdit, applyPatientRecordEdits, extractPatientRecordEdits } from '@/lib/record-editing'
+import { RecordEditParseError, applyPatientRecordEdit, applyPatientRecordEdits, extractPatientRecordEdits } from '@/lib/record-editing'
 import { useTheme } from '@/lib/theme'
 import { shellContentWidthClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 import type { PatientFieldTarget, PatientRecord } from '@/types/patient'
@@ -322,9 +322,24 @@ function useExtractionState() {
       retryMode: null,
     }))
 
+    let nextRecord: PatientRecord
+
     try {
-      const edits = await extractPatientRecordEdits(editCommand, previousRecord)
-      const nextRecord = applyPatientRecordEdits(previousRecord, edits)
+      nextRecord = applyPatientRecordEdits(previousRecord, await extractPatientRecordEdits(editCommand, previousRecord))
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        editFeedback: null,
+        error: getCopy(error instanceof RecordEditParseError ? copy.workspace.errors.editParse : copy.workspace.errors.editRequest, locale),
+        isExtracting: false,
+        record: previousRecord,
+        retryAnswer: editCommand,
+        retryMode: 'edit',
+      }))
+      return
+    }
+
+    try {
       const persistedRecord = await persistField(nextRecord)
       const nextMissing = getMissingCriticalFields(persistedRecord)
 
@@ -344,7 +359,7 @@ function useExtractionState() {
       setState((current) => ({
         ...current,
         editFeedback: null,
-        error: locale === 'zh' ? '修改解析或保存失败，请重试。' : 'Edit parsing or saving failed. Please retry.',
+        error: getCopy(copy.workspace.errors.editSave, locale),
         isExtracting: false,
         record: previousRecord,
         retryAnswer: editCommand,
@@ -518,6 +533,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     retryLastAction,
     retryMode,
     runFollowUpExtraction,
+    runInitialExtraction,
     submitComposerInput,
     setExtractionInput,
   } = useExtractionState()
@@ -539,6 +555,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="dark" tone="base">
           <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
+              composerMode={record ? 'edit' : 'extract'}
               error={error}
               feedback={editFeedback}
               extractionInput={extractionInput}
@@ -548,6 +565,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
               onConfirmOcrText={() => void confirmOcrText()}
               onDiscardOcrText={discardOcrText}
               onExtract={() => void submitComposerInput()}
+              onExtractAsNew={record ? () => void runInitialExtraction() : undefined}
               onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}
@@ -601,6 +619,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
     retryLastAction,
     retryMode,
     runFollowUpExtraction,
+    runInitialExtraction,
     submitComposerInput,
     setExtractionInput,
   } = useExtractionState()
@@ -622,6 +641,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="light" tone="base">
           <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
             <ExtractionComposer
+              composerMode={record ? 'edit' : 'extract'}
               error={error}
               feedback={editFeedback}
               extractionInput={extractionInput}
@@ -631,6 +651,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
               onConfirmOcrText={() => void confirmOcrText()}
               onDiscardOcrText={discardOcrText}
               onExtract={() => void submitComposerInput()}
+              onExtractAsNew={record ? () => void runInitialExtraction() : undefined}
               onImportFile={(file) => void importMedicalDocument(file)}
               onInputChange={setExtractionInput}
               onRetry={() => void retryLastAction()}

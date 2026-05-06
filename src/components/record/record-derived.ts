@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 @/types/patient 的 PatientRecord 与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供真实 PatientRecord 到含癌种 summary metrics 与 00 起算/中文线别/补充资料归一的紧凑 timeline entries 派生函数。
- * [POS]: components/record 的展示数据转换层，使 dossier JSX 不直接理解 PatientRecord 内部结构，并统一真实记录的中文治疗线别与详情格式，避免把基础信息和治疗线编号重复塞入时间线。
+ * [INPUT]: 依赖 @/types/patient 的 PatientRecord、@/lib/patient-metrics 的体格指标格式化与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供真实 PatientRecord 到含癌种/身高/体重/BMI summary metrics 与 00 起算/中文线别/补充资料归一的紧凑 timeline entries 派生函数。
+ * [POS]: components/record 的展示数据转换层，使 dossier JSX 不直接理解 PatientRecord 内部结构，并统一真实记录的中文治疗线别、BMI 与详情格式，避免把基础信息和治疗线编号重复塞入时间线。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
+import { formatBmi, formatHeight, formatWeight } from '@/lib/patient-metrics'
 import type { PatientRecord } from '@/types/patient'
 
 import type { Metric, TimelineEntry } from './types'
@@ -73,6 +74,9 @@ export function getRecordSummaryMetrics(record: PatientRecord, locale: Locale): 
         { label: '癌种', value: displayValue(basicInfo?.tumorType) },
         { label: '年龄', value: displayRecordAge(basicInfo?.age, locale) },
         { label: '性别', value: displayValue(basicInfo?.gender) },
+        { label: '身高', value: formatHeight(basicInfo?.height) },
+        { label: '体重', value: formatWeight(basicInfo?.weight) },
+        { label: 'BMI', value: formatBmi(basicInfo?.height, basicInfo?.weight) },
         { label: '肿瘤分期', value: displayValue(basicInfo?.stage) },
         { label: '随访状态', value: record.treatmentLines.length > 0 ? '治疗中' : '待补充' },
         { label: '诊断日期', value: displayValue(basicInfo?.diagnosisDate) },
@@ -84,6 +88,9 @@ export function getRecordSummaryMetrics(record: PatientRecord, locale: Locale): 
         { label: 'Cancer Type', value: displayValue(basicInfo?.tumorType) },
         { label: 'Age', value: displayRecordAge(basicInfo?.age, locale) },
         { label: 'Gender', value: displayValue(basicInfo?.gender) },
+        { label: 'Height', value: formatHeight(basicInfo?.height) },
+        { label: 'Weight', value: formatWeight(basicInfo?.weight) },
+        { label: 'BMI', value: formatBmi(basicInfo?.height, basicInfo?.weight) },
         { label: 'Tumor Stage', value: displayValue(basicInfo?.stage) },
         { label: 'Follow-up Status', value: record.treatmentLines.length > 0 ? 'In treatment' : 'Missing' },
         { label: 'Diagnosis Date', value: displayValue(basicInfo?.diagnosisDate) },

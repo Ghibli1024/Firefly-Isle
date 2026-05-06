@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
- * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑反馈与重试按钮文案，禁止组件继续内联双语字符串。
+ * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑/新病历动作、BMI 标签与重试按钮文案，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -144,6 +144,9 @@ export const copy = {
       voiceInput: text('语音输入', 'Voice input'),
       extract: text('开始结构化提取', 'Start Structured Extraction'),
       extracting: text('提取中…', 'Extracting…'),
+      applyEdit: text('应用病历修改', 'Apply Record Edit'),
+      editing: text('修改中…', 'Editing…'),
+      extractAsNew: text('作为新病历提取', 'Extract as New Record'),
       editSaved: text('病历修改已保存', 'Record edit saved'),
       retryInitial: text('重试提取', 'Retry Extraction'),
       retryFollowUp: text('重试这轮补充', 'Retry Follow-up'),
@@ -199,6 +202,9 @@ export const copy = {
       missingInput: text('请先输入病情描述，再开始提取。', 'Enter the patient history before starting extraction.'),
       savePatient: text('患者记录保存失败，请稍后重试。', 'Saving the patient record failed. Please try again later.'),
       saveTreatmentLine: text('治疗线保存失败，请稍后重试。', 'Saving the treatment line failed. Please try again later.'),
+      editParse: text('这次内容没有被识别为对当前病历的修改。如果是整份新病史，请点“作为新病历提取”。', 'This was not recognized as an edit to the current record. For a full new history, choose "Extract as New Record".'),
+      editSave: text('修改已解析，但保存失败，请稍后重试。', 'The edit was parsed, but saving failed. Please try again later.'),
+      editRequest: text('模型暂时没有返回可用修改，请测试服务连通性后重试。', 'The model did not return a usable edit. Test provider connectivity and retry.'),
     },
   },
   timeline: {
@@ -210,6 +216,7 @@ export const copy = {
     age: text('年龄', 'Age'),
     height: text('身高', 'Height'),
     weight: text('体重', 'Weight'),
+    bmi: text('BMI', 'BMI'),
     tumorType: text('肿瘤类型', 'Tumor Type'),
     diagnosisDate: text('诊断日期', 'Diagnosis Date'),
     stage: text('分期', 'Stage'),

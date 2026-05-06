@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、中文线别、时间线编号/标题/补充资料去重、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、中文治疗线别、档案/Gantt 动效与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、体格指标概要、中文线别、时间线编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、身高体重 BMI、中文治疗线别、档案/Gantt 动效与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -341,6 +341,27 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('癌种')
     expect(markup).toContain('黑色素瘤')
     expect(markup).not.toContain('黑色素瘤 · IV期')
+  })
+
+  it('renders persisted height, weight and calculated BMI in the record summary metrics', () => {
+    const markup = renderRecordContent({
+      record: {
+        basicInfo: {
+          height: 168,
+          weight: 62,
+        },
+        id: 'patient-42',
+        treatmentLines: [],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('身高')
+    expect(markup).toContain('168 cm')
+    expect(markup).toContain('体重')
+    expect(markup).toContain('62 kg')
+    expect(markup).toContain('BMI')
+    expect(markup).toContain('22.0')
   })
 
   it('does not repeat persisted basic info inside the initial timeline meta grid', () => {

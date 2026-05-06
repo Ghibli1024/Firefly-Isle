@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 vitest 的 LLM mock，依赖 ./record-editing 的自然语言病历编辑解析与 merge 工具。
- * [OUTPUT]: 对外提供 basicInfo、initialOnset、treatmentLine、清空字段、无效目标与提示词合同回归测试。
- * [POS]: lib 的 conversational editing 纯逻辑测试，约束自然语言编辑只修改显式目标字段。
+ * [OUTPUT]: 对外提供 basicInfo、initialOnset、treatmentLine、清空字段、带单位数值、无效目标与提示词合同回归测试。
+ * [POS]: lib 的 conversational editing 纯逻辑测试，约束自然语言编辑只修改显式目标字段，并允许身高体重等数值字段携带展示单位。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -109,6 +109,18 @@ describe('conversational PatientRecord editing', () => {
       endDate: undefined,
       lineNumber: 1,
       regimen: '奥希替尼',
+    })
+  })
+
+  it('keeps numeric basicInfo edits when the value includes display units', () => {
+    const edits = parsePatientRecordEditResponse(
+      '{"edits":[{"target":{"section":"basicInfo","field":"height"},"value":"168 cm"},{"target":{"section":"basicInfo","field":"weight"},"value":"62 kg"}]}',
+      baseRecord,
+    )
+
+    expect(applyPatientRecordEdits(baseRecord, edits).basicInfo).toMatchObject({
+      height: 168,
+      weight: 62,
     })
   })
 

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/llm 的 chat 边界、@/types/patient 的 PatientRecord 与 PatientFieldTarget。
  * [OUTPUT]: 对外提供 RecordEditParseError、buildRecordEditPrompt、parsePatientRecordEditResponse、extractPatientRecordEdits、applyPatientRecordEdit 与 applyPatientRecordEdits。
- * [POS]: lib 的自然语言病历编辑边界，把 LLM 输出限制为字段级 patch，并复用逐格编辑的字段归一化语义。
+ * [POS]: lib 的自然语言病历编辑边界，把 LLM 输出限制为字段级 patch，并复用逐格编辑的字段归一化语义，允许身高体重等数值字段携带展示单位。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { chat } from '@/lib/llm'
@@ -58,7 +58,7 @@ function parseNumericField(value: string) {
   if (!trimmed) {
     return undefined
   }
-  const normalized = Number(trimmed)
+  const normalized = Number(trimmed.match(/^-?\d+(?:\.\d+)?/)?.[0])
   return Number.isFinite(normalized) ? normalized : undefined
 }
 

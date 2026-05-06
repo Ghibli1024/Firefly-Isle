@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react-router-dom 的 Link，依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy 与 locale 文案，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group、.t-missing-pulse 与 .t-edit-flip 动效合同。
- * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、真实治疗时间线、正式档案入口、缺失字段告警、临床备注与验证状态带。
- * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord treatmentLines 投影为可读预览，同时保留 setReportRef 导出捕获点。
+ * [INPUT]: 依赖 react-router-dom 的 Link，依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy、locale 与 patient-metrics 文案/指标工具，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group、.t-missing-pulse 与 .t-edit-flip 动效合同。
+ * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、身高体重 BMI、真实治疗时间线、正式档案入口、缺失字段告警、临床备注与验证状态带。
+ * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord basicInfo 与 treatmentLines 投影为可读预览，同时保留 setReportRef 导出捕获点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react'
@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'
 import { PanelSurface } from '@/components/system/surfaces'
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale, type Locale } from '@/lib/locale'
+import { formatBmi, formatHeight, formatWeight } from '@/lib/patient-metrics'
 import type { PatientFieldTarget, PatientRecord } from '@/types/patient'
 
 type ReportPreviewFrameProps = {
@@ -381,7 +382,7 @@ export function ReportPreviewFrame({
 
         <h3 className={`mb-2 ${previewSectionTitleClass}`}>{getCopy(copy.timeline.basicInfoTitle, locale)}</h3>
         <div className="grid gap-2 lg:grid-cols-[1.08fr_1fr]">
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3 lg:col-span-2">
             <DisplayCell label={locale === 'zh' ? '姓名' : 'Name'} value="--" />
             <EditableCell
               disabled={disabled}
@@ -397,6 +398,21 @@ export function ReportPreviewFrame({
               target={{ field: 'age', section: 'basicInfo' }}
               value={displayAge(basicInfo?.age, locale)}
             />
+            <EditableCell
+              disabled={disabled}
+              label={getCopy(copy.timeline.height, locale)}
+              onCommitField={onCommitField}
+              target={{ field: 'height', section: 'basicInfo' }}
+              value={formatHeight(basicInfo?.height)}
+            />
+            <EditableCell
+              disabled={disabled}
+              label={getCopy(copy.timeline.weight, locale)}
+              onCommitField={onCommitField}
+              target={{ field: 'weight', section: 'basicInfo' }}
+              value={formatWeight(basicInfo?.weight)}
+            />
+            <DisplayCell label={getCopy(copy.timeline.bmi, locale)} value={formatBmi(basicInfo?.height, basicInfo?.weight)} />
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
             <EditableCell
