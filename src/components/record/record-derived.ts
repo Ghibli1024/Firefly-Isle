@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/types/patient 的 PatientRecord、@/lib/patient-metrics 的体格指标格式化与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供真实 PatientRecord 到含癌种/身高/体重/BMI summary metrics 与 00 起算/中文线别/补充资料归一的紧凑 timeline entries 派生函数。
- * [POS]: components/record 的展示数据转换层，使 dossier JSX 不直接理解 PatientRecord 内部结构，并统一真实记录的中文治疗线别、BMI 与详情格式，避免把基础信息和治疗线编号重复塞入时间线。
+ * [INPUT]: 依赖 @/types/patient 的 PatientRecord、@/lib/patient-metrics 的体格指标格式化、record-timeline-time 的 rail 时间段/PFS facade 与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供真实 PatientRecord 到含癌种/身高/体重/BMI summary metrics 与 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一的紧凑 timeline entries 派生函数。
+ * [POS]: components/record 的展示数据转换层，使 dossier JSX 不直接理解 PatientRecord 内部结构，并统一真实记录的中文治疗线别、BMI、每线 PFS 与详情格式，避免把基础信息重复塞入时间线。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -10,6 +10,7 @@ import type { PatientRecord } from '@/types/patient'
 
 import type { Metric, TimelineEntry } from './types'
 import { getTreatmentLineSubtitle } from './record-line-labels'
+import { formatTreatmentLinePfsLabel, getTimelineRailDate, getTimelineRailRange } from './record-timeline-time'
 
 function hasValue(value: unknown) {
   return typeof value === 'string' ? value.trim().length > 0 : value !== undefined && value !== null
@@ -102,8 +103,11 @@ export function getRecordSummaryMetrics(record: PatientRecord, locale: Locale): 
 
 export function getRecordTimelineEntries(record: PatientRecord, locale: Locale): TimelineEntry[] {
   const entries: TimelineEntry[] = []
+  const orderedLines = record.treatmentLines.slice().sort((left, right) => left.lineNumber - right.lineNumber)
 
   if (record.initialOnset) {
+    const railDate = getTimelineRailRange(record.initialOnset.triggerDate, orderedLines[0]?.startDate, locale)
+
     entries.push({
       body: [],
       cards: [
@@ -115,21 +119,19 @@ export function getRecordTimelineEntries(record: PatientRecord, locale: Locale):
           title: locale === 'zh' ? '补充资料' : 'Supplement',
         },
       ],
-      index: '00',
+      index: 'BL',
       meta: [],
+      railDate,
       subtitle: locale === 'zh' ? '基线' : 'Baseline',
-      timeframe: displayValue(record.initialOnset.triggerDate),
+      timeframe: getTimelineRailRange(record.initialOnset.triggerDate, orderedLines[0]?.startDate, locale, ' - ') ?? displayValue(record.initialOnset.triggerDate),
       title: locale === 'zh' ? '初发诊断' : 'Initial Diagnosis',
       treatment: displayValue(record.initialOnset.treatment, locale === 'zh' ? '初发治疗待补充' : 'Initial treatment missing'),
     })
   }
 
-  record.treatmentLines
-    .slice()
-    .sort((left, right) => left.lineNumber - right.lineNumber)
+  orderedLines
     .forEach((line) => {
       const evidenceItems = getTreatmentLineEvidenceItems(line, locale)
-
       entries.push({
         badge: locale === 'zh' ? '已保存' : 'Saved',
         body: [],
@@ -141,10 +143,12 @@ export function getRecordTimelineEntries(record: PatientRecord, locale: Locale):
               },
             ]
           : [],
-        index: String(line.lineNumber).padStart(2, '0'),
+        index: `L${line.lineNumber}`,
         meta: [],
+        railDate: getTimelineRailRange(line.startDate, line.endDate, locale) ?? getTimelineRailDate(line.startDate),
+        railMeta: formatTreatmentLinePfsLabel(line.startDate, line.endDate, locale),
         subtitle: getTreatmentLineSubtitle(line.lineNumber, locale),
-        timeframe: [line.startDate, line.endDate].filter(hasValue).join(' - ') || '--',
+        timeframe: getTimelineRailRange(line.startDate, line.endDate, locale, ' - ') ?? '--',
         title: locale === 'zh' ? '治疗' : 'Therapy',
         treatment: displayValue(line.regimen, locale === 'zh' ? '治疗方案待补充' : 'Regimen missing'),
       })
@@ -158,7 +162,7 @@ export function getRecordTimelineEntries(record: PatientRecord, locale: Locale):
     {
       body: [locale === 'zh' ? '这份病历还没有治疗线信息。' : 'No treatment-line information has been saved yet.'],
       cards: [],
-      index: '00',
+      index: 'BL',
       meta: [],
       subtitle: locale === 'zh' ? '待补充' : 'Missing',
       timeframe: '--',

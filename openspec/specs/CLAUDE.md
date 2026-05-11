@@ -9,7 +9,7 @@ background-audio/spec.md: 应用级背景音乐控制器、播放偏好、自动
 background-audio-playlist/spec.md: 本地授权背景歌单、曲目选择持久化、切歌与资源边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 commit-history/spec.md: docs/log 提交日志粒度、证据来源与置信度标注的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 deployment/spec.md: 部署入口、Cloudflare Pages 与发布控制的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-editing/spec.md: 时间线表格字段编辑、blur 保存、空白高亮与布局稳定性的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+editing/spec.md: 时间线表格字段编辑、blur 保存、空白高亮、布局稳定性、工作台最新检测摘要、既往检测历史、诊断日期前置与紧凑病程轨道的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export/spec.md: 正式档案导出、PDF/PNG 行为与导出边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 info-extraction/spec.md: 自然语言/OCR 确认文本提取、关键字段追问、三轮上限、紧凑 JSON 字段合同、JSON mode 上游失败降级重试与 502 Gemini 系统兜底的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 llm-adapter/spec.md: chat 适配器、Edge Function 代理、模型参数与错误处理的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

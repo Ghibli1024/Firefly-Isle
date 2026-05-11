@@ -29,37 +29,47 @@ colors:
   login-light-border: "#CBDCDE"
 typography:
   display:
-    fontFamily: "New York, Songti SC, STSong, Times New Roman, serif"
+    fontFamily: "var(--ff-font-display)"
+    zhFontFamily: "Songti SC, STSong, New York, Times New Roman, serif"
+    enFontFamily: "Fraunces, New York, Times New Roman, serif"
     fontSize: 56px
     fontWeight: 700
     lineHeight: 1.08
     letterSpacing: 0em
   title:
-    fontFamily: "New York, Songti SC, STSong, Times New Roman, serif"
+    fontFamily: "var(--ff-font-display)"
+    zhFontFamily: "Songti SC, STSong, New York, Times New Roman, serif"
+    enFontFamily: "Fraunces, New York, Times New Roman, serif"
     fontSize: 28px
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: 0em
   section:
-    fontFamily: "New York, Songti SC, STSong, Times New Roman, serif"
+    fontFamily: "var(--ff-font-display)"
+    zhFontFamily: "Songti SC, STSong, New York, Times New Roman, serif"
+    enFontFamily: "Fraunces, New York, Times New Roman, serif"
     fontSize: 22px
     fontWeight: 650
     lineHeight: 1.28
     letterSpacing: 0em
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, PingFang SC, Hiragino Sans GB, Helvetica Neue, sans-serif"
+    fontFamily: "var(--ff-font-ui)"
+    zhFontFamily: "PingFang SC, Hiragino Sans GB, -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif"
+    enFontFamily: "Inter, -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif"
     fontSize: 16px
     fontWeight: 400
     lineHeight: 1.65
     letterSpacing: 0em
   label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, PingFang SC, Hiragino Sans GB, Helvetica Neue, sans-serif"
+    fontFamily: "var(--ff-font-ui)"
+    zhFontFamily: "PingFang SC, Hiragino Sans GB, -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif"
+    enFontFamily: "Inter, -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif"
     fontSize: 13px
     fontWeight: 500
     lineHeight: 1.35
     letterSpacing: 0em
   mono:
-    fontFamily: "SFMono-Regular, SF Mono, ui-monospace, monospace"
+    fontFamily: "IBM Plex Mono, SFMono-Regular, SF Mono, ui-monospace, monospace"
     fontSize: 13px
     fontWeight: 500
     lineHeight: 1.45
@@ -71,10 +81,10 @@ spacing:
   lg: 24px
   xl: 32px
   xxl: 48px
-  sidebar-expanded: 148px
+  sidebar-expanded: 220px
   sidebar-min: 72px
   sidebar-max: 296px
-  sidebar-label-threshold: 148px
+  sidebar-label-threshold: 204px
   sidebar-collapsed: 72px
   shell-gutter: 24px
   panel-padding: 24px
@@ -182,15 +192,14 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 
 禁止把橙色扩散成背景氛围色。它只能出现在用户需要看见动作、风险或当前所在位置的地方。
 
-## Typography
+## Localized Typography System
 
-字体策略是 **Apple Editorial + Clinical UI**。标题使用 `New York / Songti SC / STSong / Times New Roman` 一类 editorial serif，正文与控件使用 Apple system UI 与中文系统黑体，技术状态和英文代号使用 SF Mono 系列等宽字体。
+字体策略是 **Localized Typography System + Clinical UI**。中文与英文都是一等语言，不再只靠同一条 fallback 栈被动显示；`LocaleProvider` 会把当前语言同步到 `html[data-locale]`，CSS 再通过 `--ff-font-display` 与 `--ff-font-ui` 切换对应 token。英文 display/UI/mono 字体通过 `@fontsource` 的 latin 子集自托管进入前端 bundle，不新增 Google Fonts 外链。
 
-- **Display:** 登录页和病历详情大标题，字重高、行距紧，承载品牌和页面身份。
-- **Title / Section:** 面板标题、病史输入、治疗时间线等模块标题，保持左对齐。
-- **Body:** 病历叙述、治疗说明、临床备注，使用系统无衬线，必须适合长时间阅读。
-- **Label:** 表单标签、按钮、状态说明、侧栏 tooltip，保持短句，不使用负字距。
-- **Mono:** `CLINICAL HISTORY DOSSIER`、系统版本、英文代号、日期、模型/置信度等机器感信息。
+- **Display / Title / Section:** 中文 locale 使用 `Songti SC / STSong / New York / Times New Roman`，英文 locale 使用 `Fraunces / New York / Times New Roman`。登录页、病历详情大标题、面板标题和治疗时间线标题都只消费 `--ff-font-display`。
+- **Body / Label:** 中文 locale 使用 `PingFang SC / Hiragino Sans GB / Apple system`，英文 locale 使用 `Inter / Apple system / Helvetica Neue`。病历叙述、治疗说明、临床备注、按钮和表单控件都只消费 `--ff-font-ui`。
+- **Medical mixed text:** 医学缩写、药名、基因突变、指标名和百分比默认仍属于正文或数据内容，例如 `HER2 1(+)`、`EGFR L858R`、`Osimertinib`、`PD-L1 TPS 45%`；不要因为它们是英文就自动改成 display 或 mono。
+- **Mono:** `CLINICAL HISTORY DOSSIER`、系统版本、英文代号、日期、模型/置信度等机器感信息使用 `IBM Plex Mono / SF Mono` 栈。`@fontsource/ibm-plex-mono` 的 latin 子集已随 bundle 加载；加载失败时回退到 SF Mono / ui-monospace。
 
 所有字号随组件层级固定，不按 viewport 宽度缩放。标题的冲击力来自版面比例和留白，不来自无限放大。
 
@@ -198,9 +207,9 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 
 布局遵循“可变侧栏 + 纵向病历长卷”的骨架。
 
-- **Shell:** 左侧导航默认展开，约 148px，默认即为 icon-only 窄栏；右侧边界线中部的无文字胶囊柄负责三态点击与拖拽调整宽度，最大约 296px；拖宽到 148px 以上才显示标签，回到 148px 及以下时标签文字自动隐藏，只保留 mark、图标、状态点和恢复控制；继续向左拖并越过隐藏浮标宽度后完全隐藏。隐藏后左边缘只保留一个小浮标用于点击恢复，同时支持从左边缘向右渐进拉出菜单。主内容与顶部状态条必须跟随同一个 sidebar offset。
+- **Shell:** 左侧导航默认展开约 220px，刚好水平容纳 52px mark、水平品牌字标与短导航标签；主导航使用 50px 稳定行盒，active 态只允许细左标和低强度橙色行面，不做厚重卡片；右侧边界线中部的无文字胶囊柄负责三态点击与拖拽调整宽度，最大约 296px；拖宽到 204px 以上显示标签，回到 204px 及以下时标签文字自动隐藏，只保留 mark、图标、状态点和恢复控制；继续向左拖并越过 52px 隐藏浮标宽度后完全隐藏。隐藏后左边缘只保留一个小浮标用于点击恢复，同时支持从左边缘向右渐进拉出菜单。主内容与顶部状态条必须跟随同一个 sidebar offset。
 - **Top bar:** 顶部只承载页面名、系统状态、帮助和设置，不塞入业务表单。
-- **Workspace `/app`:** 病史输入在最上，导出与提取动作紧跟输入区；下方直接进入治疗时间线表格和缺失字段提示。
+- **Workspace `/app`:** 病史输入在最上，导出与提取动作紧跟输入区；下方的病历预览采用 Dense Clinical Ledger：基本信息以连续 1px 台账格呈现，缺失字段只使用细橙左条、小感叹号和低强度橙底，治疗时间线保持横向病程轨，不回到厚重卡片堆叠。
 - **Record `/record/:id`:** 详情页必须是可滚动长卷，顶部概要之后进入纵向治疗时间轴，右侧卡片承载免疫组化、基因检测、疗效评估。
 - **Login `/login`:** 全屏品牌入口场景，首屏显示 Firefly mark、品牌名、价值陈述、安全状态和唯一“登录” CTA；认证表单不是右侧常驻栏，而是点击 CTA 后出现的居中 modal。暗亮主题共享同一信息架构和 modal 行为，只替换背景图、材料明暗与文字语气。
 - **Component strip:** 组件状态必须成组出现，覆盖 active、hover、normal、disabled，避免实现时只做默认态。

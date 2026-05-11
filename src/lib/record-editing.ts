@@ -1,14 +1,15 @@
 /**
  * [INPUT]: 依赖 @/lib/llm 的 chat 边界、@/types/patient 的 PatientRecord 与 PatientFieldTarget。
  * [OUTPUT]: 对外提供 RecordEditParseError、buildRecordEditPrompt、parsePatientRecordEditResponse、extractPatientRecordEdits、applyPatientRecordEdit 与 applyPatientRecordEdits。
- * [POS]: lib 的自然语言病历编辑边界，把 LLM 输出限制为字段级 patch，并复用逐格编辑的字段归一化语义，允许身高体重等数值字段携带展示单位。
+ * [POS]: lib 的自然语言病历编辑边界，把 LLM 输出限制为字段级 patch，并复用逐格编辑的字段归一化语义，允许姓名、临床备注、身高体重等字段共用同一编辑路径。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { chat } from '@/lib/llm'
 import type { Message } from '@/lib/llm/types'
 import type { BasicInfo, InitialOnset, PatientFieldTarget, PatientRecord, TreatmentLine } from '@/types/patient'
 
-const BASIC_INFO_FIELDS = new Set<keyof BasicInfo>(['gender', 'age', 'height', 'weight', 'tumorType', 'diagnosisDate', 'stage'])
+const BASIC_INFO_FIELDS = new Set<keyof BasicInfo>(['name', 'gender', 'age', 'height', 'weight', 'tumorType', 'diagnosisDate', 'stage'])
+const BASIC_INFO_NUMERIC_FIELDS = new Set<keyof BasicInfo>(['age', 'height', 'weight'])
 const INITIAL_ONSET_FIELDS = new Set<keyof InitialOnset>(['triggerDate', 'treatment', 'immunohistochemistry', 'geneticTest'])
 const TREATMENT_LINE_FIELDS = new Set<Exclude<keyof TreatmentLine, 'lineNumber'>>([
   'startDate',
@@ -18,6 +19,7 @@ const TREATMENT_LINE_FIELDS = new Set<Exclude<keyof TreatmentLine, 'lineNumber'>
   'immunohistochemistry',
   'geneticTest',
 ])
+const RECORD_FIELDS = new Set(['clinicalNotes'])
 
 type RawEdit = {
   target?: {
@@ -67,11 +69,8 @@ function parseTextField(value: string) {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-function normalizeFieldValue(target: PatientFieldTarget, value: string) {
-  if (target.section === 'basicInfo' && ['age', 'height', 'weight'].includes(target.field)) {
-    return parseNumericField(value)
-  }
-  return parseTextField(value)
+function isNumericBasicInfoField(field: keyof BasicInfo): field is 'age' | 'height' | 'weight' {
+  return BASIC_INFO_NUMERIC_FIELDS.has(field)
 }
 
 function ensurePatientShell(record: PatientRecord): PatientRecord {
@@ -94,6 +93,10 @@ function normalizeEditValue(value: unknown) {
 function validateTarget(edit: RawEdit, record: PatientRecord): PatientFieldTarget {
   const section = edit.target?.section
   const field = edit.target?.field
+
+  if (section === 'record' && typeof field === 'string' && RECORD_FIELDS.has(field)) {
+    return { section, field: 'clinicalNotes' }
+  }
 
   if (section === 'basicInfo' && typeof field === 'string' && BASIC_INFO_FIELDS.has(field as keyof BasicInfo)) {
     return { section, field: field as keyof BasicInfo }
@@ -146,15 +149,27 @@ export function parsePatientRecordEditResponse(response: string, record: Patient
 export function applyPatientRecordEdit(record: PatientRecord, edit: PatientRecordEdit): PatientRecord {
   const baseRecord = ensurePatientShell(record)
   const target = edit.target
-  const value = normalizeFieldValue(target, edit.value)
 
   if (target.section === 'basicInfo') {
+    const basicInfo = { ...baseRecord.basicInfo }
+    if (isNumericBasicInfoField(target.field)) {
+      basicInfo[target.field] = parseNumericField(edit.value)
+    } else {
+      basicInfo[target.field] = parseTextField(edit.value)
+    }
+
     return {
       ...baseRecord,
-      basicInfo: {
-        ...baseRecord.basicInfo,
-        [target.field]: value,
-      },
+      basicInfo,
+    }
+  }
+
+  const value = parseTextField(edit.value)
+
+  if (target.section === 'record') {
+    return {
+      ...baseRecord,
+      [target.field]: value,
     }
   }
 
@@ -190,7 +205,7 @@ export function buildRecordEditPrompt(command: string, record: PatientRecord) {
     'You parse Chinese or English clinical record edit commands into field-level edit intents.',
     'Return JSON only. Do not return markdown. Do not return a full PatientRecord replacement.',
     'Writable target schema:',
-    "type PatientFieldTarget = { section: 'basicInfo'; field: 'gender' | 'age' | 'height' | 'weight' | 'tumorType' | 'diagnosisDate' | 'stage' } | { section: 'initialOnset'; field: 'triggerDate' | 'treatment' | 'immunohistochemistry' | 'geneticTest' } | { section: 'treatmentLine'; lineNumber: number; field: 'startDate' | 'endDate' | 'regimen' | 'biopsy' | 'immunohistochemistry' | 'geneticTest' }",
+    "type PatientFieldTarget = { section: 'record'; field: 'clinicalNotes' } | { section: 'basicInfo'; field: 'name' | 'gender' | 'age' | 'height' | 'weight' | 'tumorType' | 'diagnosisDate' | 'stage' } | { section: 'initialOnset'; field: 'triggerDate' | 'treatment' | 'immunohistochemistry' | 'geneticTest' } | { section: 'treatmentLine'; lineNumber: number; field: 'startDate' | 'endDate' | 'regimen' | 'biopsy' | 'immunohistochemistry' | 'geneticTest' }",
     'Output schema: { "edits": [{ "target": PatientFieldTarget, "value": string | number | null }] }',
     'Use null or empty string only when the user explicitly asks to delete, clear, remove, or erase a field.',
     'Only include fields explicitly mentioned by the user. Omitted fields must remain unchanged.',

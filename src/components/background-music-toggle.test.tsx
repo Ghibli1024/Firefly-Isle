@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 MemoryRouter、ThemeProvider、LocaleProvider、BackgroundAudioProvider、LoginPageView 与 ClinicalTopBar。
- * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、移动端满宽顶栏、短侧舱收回交互、透明材质与弹出动效回归测试。
- * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、移动端满宽顶栏、当前曲目、上一首/下一首入口、暂停文案、离开收回与半透明弹出短侧舱。
+ * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、窄屏可用顶栏、短侧舱收回交互、透明材质与弹出动效回归测试。
+ * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、窄屏可用顶栏、当前曲目、上一首/下一首入口、暂停文案、离开收回与半透明弹出短侧舱。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -106,7 +106,7 @@ describe('BackgroundMusicToggle shell placement', () => {
   it('renders in the authenticated top bar as a collapsed short dock trigger', () => {
     const markup = withProviders(<ClinicalTopBar theme="light" title="病程整理台" withRail />)
 
-    expect(markup).toContain('left-0 w-screen md:left-[var(--ff-sidebar-offset)] md:w-[calc(100%-var(--ff-sidebar-offset))]')
+    expect(markup).toContain('left-0 right-0 md:left-[var(--ff-sidebar-offset)]')
     expect(markup).toContain('data-testid="background-music-toggle"')
     expect(markup).toContain('aria-label="打开背景音乐控制"')
     expect(markup).toContain('aria-haspopup="dialog"')
@@ -120,5 +120,20 @@ describe('BackgroundMusicToggle shell placement', () => {
     expect(markup).not.toContain('Nagisa Sakano Shitano Wakare')
     expect(markup).not.toContain('aria-label="上一首背景音乐"')
     expect(markup).not.toContain('aria-label="下一首背景音乐"')
+  })
+
+  it('keeps the authenticated top bar usable in very narrow browser widths', () => {
+    const markup = withProviders(<ClinicalTopBar theme="dark" title="病程整理台" withRail />)
+
+    expect(markup).toContain('items-center justify-start gap-2 px-3')
+    expect(markup).toContain('sm:justify-between sm:gap-0')
+    expect(markup).toContain('sm:px-5 md:px-8')
+    expect(markup).toContain('flex min-w-0 items-center gap-2 pr-1')
+    expect(markup).toContain('sm:flex-1')
+    expect(markup).toContain('text-base font-black leading-tight tracking-normal')
+    expect(markup).toContain('max-[360px]:sr-only')
+    expect(markup).toContain('relative flex shrink-0 items-center gap-1 sm:gap-3')
+    expect(markup).toContain('h-10 w-10')
+    expect(markup).toContain('sm:h-11 sm:w-11')
   })
 })

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 useRef/useState，依赖 @/lib/theme 的 Theme，依赖 @/types/patient 的 PatientRecord、PatientFieldTarget、各区块类型与 getPatientArchetype。
- * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock、TreatmentLineBlock 与 blur 取消提交 helpers。
- * [POS]: components/timeline 的正式时间线表格渲染器，负责三种 archetype 的区块布局、关键缺失字段高亮与行内编辑入口。
+ * [OUTPUT]: 对外提供 TimelineTable、BasicInfoBlock、InitialOnsetBlock、TreatmentLineBlock 与 blur 取消提交 helpers，不对用户展示晚期/非晚期分类标签。
+ * [POS]: components/timeline 的正式时间线表格渲染器，内部按记录结构组织区块，负责关键缺失字段高亮与行内编辑入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useRef, useState } from 'react'
@@ -13,7 +13,6 @@ import {
   getPatientArchetype,
   type BasicInfo,
   type InitialOnset,
-  type PatientArchetype,
   type PatientFieldTarget,
   type PatientRecord,
   type TreatmentLine,
@@ -85,18 +84,6 @@ type CellProps = {
 
 function padOrder(order: number) {
   return String(order).padStart(2, '0')
-}
-
-function getArchetypeLabel(archetype: PatientArchetype, locale: 'zh' | 'en') {
-  if (archetype === 'de-novo-advanced') {
-    return getCopy(copy.timeline.archetypeLabels.deNovoAdvanced, locale)
-  }
-
-  if (archetype === 'relapsed-advanced') {
-    return getCopy(copy.timeline.archetypeLabels.relapsedAdvanced, locale)
-  }
-
-  return getCopy(copy.timeline.archetypeLabels.nonAdvanced, locale)
 }
 
 function getInitialOnsetSubtitle(locale: 'zh' | 'en') {
@@ -680,27 +667,15 @@ export function TimelineTable({ disabled = false, onCommitField, record, theme }
   return (
     <section className={getShellClass()}>
       <header className="border-b border-[var(--ff-timeline-shell-border)] px-6 py-6 sm:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className={getLabelClass()}>{getCopy(copy.timeline.tableKey, locale)}</div>
-            <h1
-              className={
-                "mt-3 font-[var(--ff-font-display)] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
-              }
-            >
-              {getCopy(copy.timeline.tableTitle, locale)}
-            </h1>
-          </div>
-          <div className="rounded-[var(--ff-radius-md)] border border-[var(--ff-timeline-section-border)] bg-[var(--ff-timeline-header-panel-bg)] px-4 py-3 text-right">
-            <div className={getLabelClass()}>{getCopy(copy.timeline.archetypeKey, locale)}</div>
-            <div
-              className={
-                "mt-2 font-[var(--ff-font-mono)] text-[12px] font-bold tracking-[0.18em] text-[var(--ff-timeline-accent)]"
-              }
-            >
-              {getArchetypeLabel(archetype, locale)}
-            </div>
-          </div>
+        <div>
+          <div className={getLabelClass()}>{getCopy(copy.timeline.tableKey, locale)}</div>
+          <h1
+            className={
+              "mt-3 font-[var(--ff-font-display)] text-4xl font-bold tracking-tight text-[var(--ff-timeline-text-strong)] sm:text-5xl"
+            }
+          >
+            {getCopy(copy.timeline.tableTitle, locale)}
+          </h1>
         </div>
       </header>
 

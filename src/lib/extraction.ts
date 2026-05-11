@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/lib/llm 的 chat 边界、@/lib/extractionPrompt、@/types/patient。
- * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、getExtractionFailureMessage、extractPatientRecord 与 runExtractionWithFollowUps，保留模型 id 清洗、labResults 独立结构、中文/点号日期归一化、错误文案分流、单消息 JSON mode 降级重试与 502 Gemini 系统兜底。
+ * [OUTPUT]: 对外提供 MAX_FOLLOW_UP_ROUNDS、ExtractionParseError、normalizePatientRecord、getMissingCriticalFields、mergePatientRecord、buildFollowUpQuestion、parsePatientRecordResponse、getExtractionFailureMessage、extractPatientRecord 与 runExtractionWithFollowUps，保留姓名/性别/年龄/身高/体重确定性补全、临床备注、模型 id 清洗、labResults 独立结构、中文/点号日期归一化、错误文案分流、单消息 JSON mode 降级重试与 502 Gemini 系统兜底。
  * [POS]: src/lib 的信息提取主链路，把解析、归一化、缺失字段检测与追问 merge 收敛在一处。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,7 +8,7 @@ import { buildExtractionPrompt } from '@/lib/extractionPrompt'
 import { ChatError, chat } from '@/lib/llm'
 import type { Locale } from '@/lib/locale'
 import { type Message } from '@/lib/llm/types'
-import type { LabResult, LabResultCategory, LabResultSource, PatientRecord, TreatmentLine } from '@/types/patient'
+import type { BasicInfo, LabResult, LabResultCategory, LabResultSource, PatientRecord, TreatmentLine } from '@/types/patient'
 
 const CRITICAL_FIELDS = ['tumorType', 'stage', 'regimen'] as const
 const DATE_PATTERN = /^\d{4}-(\d{2})(-\d{2})?$/
@@ -113,6 +113,75 @@ function normalizeString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
+function numberFromMatch(match: RegExpMatchArray | null) {
+  return normalizeNumber(match?.[1])
+}
+
+function inRange(value: number | undefined, min: number, max: number) {
+  return value !== undefined && value >= min && value <= max ? value : undefined
+}
+
+function extractDemographicName(input: string) {
+  const explicit = input.match(/(?:患者姓名|病人姓名|姓名)[:：]?\s*([\u4e00-\u9fa5A-Za-z·]{2,12})/)
+
+  if (explicit?.[1]) {
+    return explicit[1].trim()
+  }
+
+  for (const line of input.split(/\n+/).map((item) => item.trim())) {
+    if (!/\d{1,3}\s*岁/.test(line) || !/(^|[，,、\s])(男|女)(?=$|[，,。；;\s])/.test(line)) {
+      continue
+    }
+
+    const inferred = line.match(/^([\u4e00-\u9fa5A-Za-z·]{2,12})[，,、\s]+(?:\d{1,3}\s*岁|男|女)/)
+    if (inferred?.[1]) {
+      return inferred[1].trim()
+    }
+  }
+
+  return undefined
+}
+
+function extractBasicInfoFromText(input: string): Partial<BasicInfo> | undefined {
+  const age = inRange(numberFromMatch(input.match(/(?:年龄[:：]?\s*)?(\d{1,3})\s*岁/)), 0, 130)
+  const height = inRange(
+    numberFromMatch(input.match(/身高[:：]?\s*(\d{2,3}(?:\.\d+)?)\s*(?:厘米|cm)?/i)) ??
+      numberFromMatch(input.match(/(\d{2,3}(?:\.\d+)?)\s*(?:厘米|cm)/i)),
+    40,
+    260,
+  )
+  const weight = inRange(
+    numberFromMatch(input.match(/体重[:：]?\s*(\d{2,3}(?:\.\d+)?)\s*(?:千克|公斤|kg)?/i)) ??
+      numberFromMatch(input.match(/(\d{2,3}(?:\.\d+)?)\s*(?:千克|公斤|kg)/i)),
+    1,
+    300,
+  )
+  const gender = input.match(/(?:^|[，,。；;\s])(男|女)(?=$|[，,。；;\s])/)?.[1]
+  const basicInfo: Partial<BasicInfo> = {
+    age,
+    gender,
+    height,
+    name: extractDemographicName(input),
+    weight,
+  }
+  const entries = Object.entries(basicInfo).filter(([, value]) => value !== undefined)
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+function applySourceTextBasicInfo(record: PatientRecord, input: string): PatientRecord {
+  const basicInfo = extractBasicInfoFromText(input)
+
+  if (!basicInfo) {
+    return record
+  }
+
+  return normalizePatientRecord({
+    ...record,
+    basicInfo: mergeDefinedFields(record.basicInfo, basicInfo),
+  })
+}
+
 function normalizeLabCategory(value: unknown): LabResultCategory | undefined {
   return typeof value === 'string' && LAB_CATEGORIES.has(value as LabResultCategory) ? (value as LabResultCategory) : undefined
 }
@@ -157,6 +226,10 @@ export function normalizePatientRecord(input: Partial<PatientRecord>, options: N
     id: preserveId && typeof input.id === 'string' && input.id.trim() ? input.id.trim() : undefined,
     basicInfo: input.basicInfo
       ? {
+          name:
+            typeof input.basicInfo.name === 'string' && input.basicInfo.name.trim()
+              ? input.basicInfo.name.trim()
+              : undefined,
           gender:
             typeof input.basicInfo.gender === 'string' && input.basicInfo.gender.trim()
               ? input.basicInfo.gender.trim()
@@ -173,8 +246,9 @@ export function normalizePatientRecord(input: Partial<PatientRecord>, options: N
             typeof input.basicInfo.stage === 'string' && input.basicInfo.stage.trim()
               ? input.basicInfo.stage.trim()
               : undefined,
-        }
+      }
       : undefined,
+    clinicalNotes: normalizeString(input.clinicalNotes),
     initialOnset: input.initialOnset
       ? {
           triggerDate: normalizeDate(input.initialOnset.triggerDate),
@@ -269,6 +343,7 @@ export function mergePatientRecord(current: PatientRecord, incoming: Partial<Pat
   return normalizePatientRecord({
     ...current,
     basicInfo: mergeDefinedFields(current.basicInfo, normalizedIncoming.basicInfo),
+    clinicalNotes: normalizedIncoming.clinicalNotes ?? current.clinicalNotes,
     initialOnset: mergeDefinedFields(current.initialOnset, normalizedIncoming.initialOnset),
     labResults: mergeLabResults(current.labResults, normalizedIncoming.labResults),
     treatmentLines: mergeTreatmentLines(current.treatmentLines, normalizedIncoming.treatmentLines),
@@ -381,7 +456,7 @@ export async function extractPatientRecord(input: string, existingRecord?: Patie
   ]
   const response = await requestPatientRecordJson(messages)
 
-  const normalized = parsePatientRecordResponse(response)
+  const normalized = applySourceTextBasicInfo(parsePatientRecordResponse(response), input)
 
   return existingRecord ? mergePatientRecord(existingRecord, normalized) : normalized
 }

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabResult 数据模型。
- * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具，并校验传入 patient id 的归属。
- * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行或新建行。
+ * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具，并校验传入 patient id 的归属；远端未部署 clinical_notes / lab_results 时降级不中断主病历。
+ * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、clinical_notes、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行或新建行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
@@ -9,6 +9,7 @@ import type { LabResult, PatientRecord, TreatmentLine } from '@/types/patient'
 
 type PatientRow = {
   basic_info: PatientRecord['basicInfo'] | null
+  clinical_notes?: string | null
   id: string
   initial_onset: PatientRecord['initialOnset'] | null
 }
@@ -30,6 +31,11 @@ type SupabaseQueryError = {
   message?: string
 }
 
+type PatientSingleResult = {
+  data: PatientRow | null
+  error: SupabaseQueryError | null
+}
+
 export type LabResultRow = {
   category: LabResult['category']
   id?: string
@@ -44,11 +50,24 @@ export type LabResultRow = {
   value: number
 }
 
-function getPatientPayload(record: PatientRecord) {
-  return {
+const PATIENT_COLUMNS_WITH_NOTES = 'id, basic_info, clinical_notes, initial_onset'
+const PATIENT_COLUMNS_WITHOUT_NOTES = 'id, basic_info, initial_onset'
+
+function getPatientPayload(record: PatientRecord, includeClinicalNotes = true) {
+  const payload: {
+    basic_info: PatientRecord['basicInfo']
+    clinical_notes?: string | null
+    initial_onset: PatientRecord['initialOnset'] | null
+  } = {
     basic_info: record.basicInfo ?? {},
     initial_onset: record.initialOnset ? record.initialOnset : null,
   }
+
+  if (includeClinicalNotes) {
+    payload.clinical_notes = record.clinicalNotes ?? null
+  }
+
+  return payload
 }
 
 function getTreatmentLinePayload(line: TreatmentLine, patientId: string) {
@@ -111,11 +130,36 @@ function isMissingLabResultsTableError(error: SupabaseQueryError) {
   return error.code === 'PGRST205' && /lab_results/i.test(error.message ?? '')
 }
 
+function isMissingClinicalNotesColumnError(error: SupabaseQueryError) {
+  return error.code === '42703' && /clinical_notes/i.test(error.message ?? '')
+}
+
+async function loadPatientRowWithFallback(query: (columns: string) => PromiseLike<PatientSingleResult>) {
+  const result = await query(PATIENT_COLUMNS_WITH_NOTES)
+
+  if (!result.error) {
+    return result.data
+  }
+
+  if (!isMissingClinicalNotesColumnError(result.error)) {
+    throw result.error
+  }
+
+  const fallback = await query(PATIENT_COLUMNS_WITHOUT_NOTES)
+
+  if (fallback.error) {
+    throw fallback.error
+  }
+
+  return fallback.data
+}
+
 function mapPatientRow(patient: PatientRow, lines: TreatmentLineRow[], labRows: LabResultRow[]): PatientRecord {
   const labResults = labRows.map(mapLabResultRow)
 
   return {
     basicInfo: patient.basic_info ?? undefined,
+    clinicalNotes: patient.clinical_notes ?? undefined,
     id: patient.id,
     initialOnset: patient.initial_onset ?? undefined,
     labResults: labResults.length > 0 ? labResults : undefined,
@@ -162,33 +206,29 @@ export async function loadPatientRecordById(recordId: string): Promise<PatientRe
     throw authError ?? new Error('Missing authenticated user.')
   }
 
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('id, basic_info, initial_onset')
-    .eq('id', recordId)
-    .eq('user_id', authData.user.id)
-    .maybeSingle<PatientRow>()
-
-  if (patientError) {
-    throw patientError
-  }
+  const patient = await loadPatientRowWithFallback((columns) =>
+    supabase
+      .from('patients')
+      .select(columns)
+      .eq('id', recordId)
+      .eq('user_id', authData.user.id)
+      .maybeSingle<PatientRow>(),
+  )
 
   return patient ? loadPatientChildren(patient) : null
 }
 
 export async function loadLatestPatientRecord(userId: string) {
   const supabase = getSupabaseClient()
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('id, basic_info, initial_onset')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<PatientRow>()
-
-  if (patientError) {
-    throw patientError
-  }
+  const patient = await loadPatientRowWithFallback((columns) =>
+    supabase
+      .from('patients')
+      .select(columns)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<PatientRow>(),
+  )
 
   return patient ? loadPatientChildren(patient) : null
 }
@@ -227,20 +267,41 @@ async function findOwnedPatientId(recordId: string, userId: string) {
 
 async function insertPatientRecord(record: PatientRecord, userId: string) {
   const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('patients')
-    .insert({
-      ...getPatientPayload(record),
-      user_id: userId,
-    })
-    .select('id')
-    .single()
+  const insert = (includeClinicalNotes: boolean) =>
+    supabase
+      .from('patients')
+      .insert({
+        ...getPatientPayload(record, includeClinicalNotes),
+        user_id: userId,
+      })
+      .select('id')
+      .single()
+  let { data, error } = await insert(true)
 
-  if (error) {
+  if (error && isMissingClinicalNotesColumnError(error)) {
+    ;({ data, error } = await insert(false))
+  }
+
+  if (error || !data) {
     throw error
   }
 
   return data.id
+}
+
+async function updatePatientRecord(patientId: string, record: PatientRecord) {
+  const supabase = getSupabaseClient()
+  const update = (includeClinicalNotes: boolean) =>
+    supabase.from('patients').update(getPatientPayload(record, includeClinicalNotes)).eq('id', patientId)
+  let { error } = await update(true)
+
+  if (error && isMissingClinicalNotesColumnError(error)) {
+    ;({ error } = await update(false))
+  }
+
+  if (error) {
+    throw error
+  }
 }
 
 export async function persistPatientRecord(record: PatientRecord, userId: string) {
@@ -248,11 +309,7 @@ export async function persistPatientRecord(record: PatientRecord, userId: string
   const persistedRecord = record.id === patientId ? record : { ...record, id: patientId }
   const supabase = getSupabaseClient()
 
-  const { error: patientError } = await supabase.from('patients').update(getPatientPayload(persistedRecord)).eq('id', patientId)
-
-  if (patientError) {
-    throw patientError
-  }
+  await updatePatientRecord(patientId, persistedRecord)
 
   if (persistedRecord.treatmentLines.length > 0) {
     const { error: lineError } = await supabase

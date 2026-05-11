@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染、vitest 断言、PatientRecord 与 ./TreatmentGanttView。
- * [OUTPUT]: 对外提供治疗方案甘特图组件渲染、窄屏紧凑列表与动效合同回归测试。
- * [POS]: components/timeline 的展示测试，约束窄屏治疗卡片、桌面左侧方案/PFS、中间独立拖动时间轴、右侧补充资料与空态在 DOM 中可读。
+ * [OUTPUT]: 对外提供治疗方案甘特图组件渲染、窄屏紧凑列表、L 标记与动效合同回归测试。
+ * [POS]: components/timeline 的展示测试，约束窄屏治疗卡片、桌面左侧方案/PFS/L 标记、中间独立拖动时间轴、右侧补充资料与空态在 DOM 中可读。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -55,7 +55,16 @@ describe('TreatmentGanttView', () => {
     expect(markup).toContain('时间 / 治疗方案')
     expect(markup).toContain('补充信息')
     expect(markup).toContain('PFS=15个月')
+    expect(markup).toContain('PFS=7个月')
     expect(markup).toContain('PFS=进行中')
+    expect(markup).toContain('2025.10.01-至今')
+    expect(markup).toContain('>BL</div>')
+    expect(markup).toContain('>L1</div>')
+    expect(markup).toContain('>L3</div>')
+    expect(markup).toContain('>L9</div>')
+    expect(markup).not.toContain('>00</div>')
+    expect(markup).not.toContain('>01</div>')
+    expect(markup).not.toContain('>03</div>')
     expect(markup).toContain('Luminal B')
     expect(markup).toContain('骨转')
     expect(markup).toContain('血液 NGS')

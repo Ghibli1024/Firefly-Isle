@@ -3,11 +3,11 @@
 定义 Supabase PostgreSQL 表结构、RLS 策略、部署区域与更新时间戳基础设施规则。
 ## Requirements
 ### Requirement: patients 表结构
-系统 SHALL 在 Supabase PostgreSQL 中创建 patients 表，存储 PatientRecord 的顶层信息与 basicInfo、initialOnset 字段。
+系统 SHALL 在 Supabase PostgreSQL 中创建 patients 表，存储 PatientRecord 的顶层信息与 basicInfo、clinicalNotes、initialOnset 字段。
 
 #### Scenario: patients 表字段定义
 - **WHEN** 创建 patients 表
-- **THEN** 表 SHALL 包含以下列：id（uuid, primary key, default gen_random_uuid()）、user_id（uuid, references auth.users）、basic_info（jsonb）、initial_onset（jsonb, nullable）、created_at（timestamptz, default now()）、updated_at（timestamptz, default now()）
+- **THEN** 表 SHALL 包含以下列：id（uuid, primary key, default gen_random_uuid()）、user_id（uuid, references auth.users）、basic_info（jsonb）、clinical_notes（text, nullable）、initial_onset（jsonb, nullable）、created_at（timestamptz, default now()）、updated_at（timestamptz, default now()）
 
 ### Requirement: treatment_lines 表结构
 系统 SHALL 创建 treatment_lines 表，存储各治疗线数据，通过 patient_id 外键关联 patients 表。

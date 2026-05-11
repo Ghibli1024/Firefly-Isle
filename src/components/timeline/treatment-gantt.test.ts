@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 vitest 的 describe/it/expect，依赖 PatientRecord 与 ./treatment-gantt 的 buildTreatmentGanttProjection。
  * [OUTPUT]: 对外提供治疗方案甘特数据归一化回归测试。
- * [POS]: components/timeline 的纯逻辑测试，约束初发+治疗线排序、PFS、间隔、时间轴比例与开放当前线判定。
+ * [POS]: components/timeline 的纯逻辑测试，约束初发 BL、治疗线 L 标记、排序、PFS、间隔、时间轴比例与开放当前线判定。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { describe, expect, it } from 'vitest'
@@ -32,7 +32,7 @@ describe('buildTreatmentGanttProjection', () => {
   it('builds the demo case as one baseline row plus nine treatment rows', () => {
     const projection = buildTreatmentGanttProjection(breastCancerRecord, 'zh')
 
-    expect(projection.rows.map((row) => row.marker)).toEqual(['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'])
+    expect(projection.rows.map((row) => row.marker)).toEqual(['BL', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9'])
     expect(projection.rows.map((row) => row.pfsLabel)).toEqual([
       'PFS=15个月',
       'PFS=7个月',
@@ -54,7 +54,7 @@ describe('buildTreatmentGanttProjection', () => {
     expect(projection.rows[9]).toMatchObject({
       isCurrent: true,
       plan: '氟唑帕利 + 哌柏西利 + 托瑞米芬',
-      rangeLabel: '2025.10.01 起',
+      rangeLabel: '2025.10.01-至今',
       status: 'ongoing',
     })
   })

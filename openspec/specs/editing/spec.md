@@ -1,6 +1,6 @@
 ## Purpose
 
-定义时间线表格字段编辑、自动保存、空白高亮与布局稳定性规则。
+定义时间线表格字段编辑、自动保存、空白高亮、工作台预览布局与布局稳定性规则。
 ## Requirements
 ### Requirement: 点击字段进入编辑模式
 系统 SHALL 支持用户点击表格中任意字段单元格，将其切换为可编辑的 input 或 textarea 控件。
@@ -45,6 +45,23 @@
 - **WHEN** 用户用自然语言修改已有 PatientRecord 字段
 - **THEN** 系统 SHALL 将修改归一为 PatientFieldTarget 支持的字段目标
 - **AND** 系统 SHALL 使用与逐格编辑相同的字段归一化和持久化逻辑保存修改
+
+#### Scenario: 工作台预览字段可编辑边界
+- **WHEN** 工作台预览渲染姓名、性别、年龄、身高、体重、肿瘤类型、分期、治疗方案、诊断日期、基因检测、免疫组化或临床备注
+- **THEN** 对应字段 SHALL 通过 PatientFieldTarget 进入可编辑状态
+- **AND** 工作台预览 SHALL 不渲染 BMI 编辑入口；BMI 由详情页根据身高体重自动计算展示
+- **AND** 工作台预览 SHALL 不渲染独立“其他信息”格，其他信息 SHALL 收敛到临床备注
+
+#### Scenario: 工作台预览最新检测摘要
+- **WHEN** PatientRecord 包含多次 geneticTest 或 immunohistochemistry 结果
+- **THEN** 工作台预览 SHALL 在基本信息区只展示最新一条“基因检测（最新）”与“免疫组化（最新）”结果
+- **AND** 旧的检测结果 SHALL 在临床备注下方以既往检测历史形式展示
+
+#### Scenario: 工作台预览基本信息与病程轨道布局
+- **WHEN** 工作台预览渲染基本信息与治疗时间线
+- **THEN** 诊断日期 SHALL 与肿瘤类型、分期同组展示，并位于治疗方案之前
+- **AND** 治疗方案 SHALL 与最新基因检测、最新免疫组化同组展示
+- **AND** 治疗时间线 SHALL 使用紧凑病程轨道展示初发治疗与治疗线顺序，不依赖横向滚动箭头 pill 串联
 
 #### Scenario: 自然语言清空字段
 - **WHEN** 用户明确要求删除或清空某个支持的字段

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，只描述 record dossier 展示层的数据形状。
- * [OUTPUT]: 对外提供 ExportFormat、Metric、EvidenceCard、TimelineEntry 等病例详情展示类型。
+ * [OUTPUT]: 对外提供 ExportFormat、Metric、EvidenceCard、含 rail 日期/PFS 的 TimelineEntry 等病例详情展示类型。
  * [POS]: components/record 的类型边界，被 dossier、文案与派生数据模块共享。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,6 +32,8 @@ export type TimelineEntry = {
   }
   index: string
   meta: Metric[]
+  railDate?: string
+  railMeta?: string
   subtitle: string
   timeframe: string
   title: string

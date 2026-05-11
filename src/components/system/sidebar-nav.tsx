@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、独立品牌 mark/中文行楷与英文 Snell Roundhand 手写艺术字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 图标与文字同色、统计占位提示、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、统计占位提示、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
@@ -26,9 +26,9 @@ import { cn } from '@/lib/utils'
 export const AVATAR_PLACEHOLDER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBkHYctOEhI9aqSSxbv-d8PP9dV4BClO1EwGd1OO2l69w9lThnnTLBoPBO8-Sp8GPx2ofiKOO9Rz4nJnWoYww9EvtQG4C_rkiLkEWq7mNrJA_kORudcZdPtTopsy8pz_pftXyqmsyYtOis4v5ZX7Kr6gaaWBVJvDrIoF6lQjiiiZTh8-p0cqSHkt-xkOoxKbgYH3PdgjKekdaoxQ0aBX7vgNmykPGaT4I8qqoehbA7cEzWKbIAt8uypCq6CEkAWaxaePc4BZA0Se3Ej'
 
-const SIDEBAR_EXPANDED_WIDTH_STORAGE_KEY = 'firefly-sidebar-expanded-width-v5'
+const SIDEBAR_EXPANDED_WIDTH_STORAGE_KEY = 'firefly-sidebar-expanded-width-v8'
 const POINTER_DRAG_THRESHOLD = 4
-const HIDDEN_EDGE_HIT_WIDTH = 40
+const HIDDEN_EDGE_HIT_WIDTH = 52
 const HIDDEN_SWIPE_VERTICAL_TOLERANCE = 44
 const MOBILE_SIDEBAR_QUERY = '(max-width: 767px)'
 type HiddenRevealId = number | 'mouse'
@@ -375,7 +375,7 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
     }
 
     event.preventDefault()
-    const direction = event.key === 'ArrowLeft' ? -16 : 16
+    const direction = event.key === 'ArrowLeft' ? -12 : 12
     const nextWidth = clampSidebarWidth(width + direction)
 
     setHidden(false)
@@ -434,44 +434,45 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
           className={cn(
             'fixed left-0 top-0 z-50 flex h-screen flex-col justify-between overflow-visible py-4 transition-[width,background-color,border-color] duration-200 ease-out',
             sidebarWidthClass,
-            compact ? 'items-center px-2' : 'px-5',
+            compact ? 'items-center px-2' : 'px-3',
           )}
           style={sidebarStyle}
           theme={themeName}
         >
-          <div className={cn('flex w-full flex-col gap-5', compact ? 'items-center' : 'items-stretch')}>
-            <div className={cn('flex w-full items-center', compact ? 'justify-center' : 'justify-start')}>
+          <div className={cn('flex w-full flex-col gap-3', compact ? 'items-center' : 'items-stretch')}>
+            <div className={cn('flex w-full items-center', compact ? 'justify-center' : 'min-h-[88px] justify-start pb-2 pt-1')}>
               <Link
                 aria-label={getCopy(copy.shell.brand.lightTitle, locale)}
                 className={cn(
-                  'group flex min-w-0 items-center rounded-[var(--ff-radius-md)] text-[var(--ff-text-primary)] outline-none transition-[color] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--ff-accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ff-surface-sidebar)]',
-                  compact ? 'justify-center' : 'justify-start gap-2',
+                  'group flex min-w-0 rounded-[var(--ff-radius-md)] text-[var(--ff-text-primary)] outline-none transition-[color] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--ff-accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ff-surface-sidebar)]',
+                  compact ? 'items-center justify-center' : 'items-end justify-start gap-1.5',
                 )}
                 to="/app"
               >
-                <FireflyMark className={compact ? undefined : '-my-2 -ml-2 h-[72px] w-[72px]'} size={compact ? 'rail' : 'large'} />
+                <FireflyMark className={compact ? undefined : 'h-[52px] w-[52px]'} size={compact ? 'rail' : 'large'} />
                 {renderBrandTitle()}
               </Link>
             </div>
 
-            <nav className={cn('flex w-full flex-col gap-2', compact ? 'items-center' : 'items-stretch')}>
+            <nav className={cn('flex w-full flex-col gap-1', compact ? 'items-center' : 'items-stretch')}>
               {navItems.map((item) => {
                 const active = 'href' in item ? isActive(location.pathname, item.href) : false
                 const label = getCopy(copy.shell.nav[item.labelKey], locale)
                 const itemClassName = cn(
-                  'group relative flex h-[58px] min-w-0 items-center rounded-[var(--ff-radius-sm)] border text-[var(--ff-text-secondary)]',
+                  'group relative flex h-[50px] min-w-0 items-center overflow-visible rounded-[var(--ff-radius-sm)] border text-[var(--ff-text-secondary)]',
                   themeTransitionClass,
-                  compact ? 'w-12 justify-center' : 'w-full justify-start gap-4 px-5',
+                  compact ? 'w-12 justify-center' : 'w-full justify-start gap-3 px-4',
                   active
-                    ? 'border-transparent text-[var(--ff-accent-primary)]'
+                    ? 'border-[color-mix(in_srgb,var(--ff-accent-primary)_24%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent-primary)_8%,transparent)] text-[var(--ff-accent-primary)]'
                     : 'border-transparent hover:border-[var(--ff-border-default)] hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-text-primary)]',
                 )
                 const itemContent = (
                   <>
-                    <span className={cn('material-symbols-outlined shrink-0 text-[26px]', active ? 'text-[var(--ff-accent-primary)]' : '')}>
+                    {active ? <span aria-hidden="true" className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)]" data-sidebar-active-marker="true" /> : null}
+                    <span className={cn('material-symbols-outlined shrink-0 text-[25px]', active ? 'text-[var(--ff-accent-primary)]' : '')}>
                       {item.icon}
                     </span>
-                    {renderLabel(label, cn('text-base font-semibold', active ? 'text-[var(--ff-accent-primary)]' : ''))}
+                    {renderLabel(label, cn('text-[16px] font-semibold leading-none', active ? 'text-[var(--ff-accent-primary)]' : ''))}
                     {'action' in item && comingSoonOpen ? null : iconOnlyTooltip(label)}
                     {'action' in item && comingSoonOpen ? (
                       <span
@@ -508,47 +509,47 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
             </nav>
           </div>
 
-          <div className={cn('flex w-full flex-col border-t border-[var(--ff-border-default)] pt-4', compact ? 'items-center gap-2' : 'items-stretch gap-2')}>
+          <div className={cn('flex w-full flex-col border-t border-[var(--ff-border-default)] pt-3', compact ? 'items-center gap-1.5' : 'items-stretch gap-1.5')}>
             <button
               aria-label={getCopy(copy.shell.nav.themeToggle, locale)}
               className={cn(
-                'group relative flex h-11 min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)]',
-                compact ? 'w-11 justify-center' : 'w-full gap-4 px-5',
+                'group relative flex h-[44px] min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)]',
+                compact ? 'w-11 justify-center' : 'w-full gap-3 px-4',
               )}
               onClick={toggleTheme}
               title={getCopy(copy.shell.nav.themeToggle, locale)}
               type="button"
             >
-              <span className="material-symbols-outlined shrink-0 text-[24px]">{dark ? 'light_mode' : 'dark_mode'}</span>
-              {renderLabel(getCopy(copy.shell.nav.themeToggle, locale), 'text-sm font-medium')}
+              <span className="material-symbols-outlined shrink-0 text-[23px]">{dark ? 'light_mode' : 'dark_mode'}</span>
+              {renderLabel(getCopy(copy.shell.nav.themeToggle, locale), 'text-[15px] font-medium')}
               {iconOnlyTooltip(getCopy(copy.shell.nav.themeToggle, locale))}
             </button>
 
             <button
               aria-label={getCopy(copy.shell.nav.languageToggle, locale)}
               className={cn(
-                'group relative flex h-11 min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)]',
-                compact ? 'w-11 justify-center' : 'w-full gap-4 px-5',
+                'group relative flex h-[44px] min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)]',
+                compact ? 'w-11 justify-center' : 'w-full gap-3 px-4',
               )}
               onClick={toggleLocale}
               title={getCopy(copy.shell.nav.languageToggle, locale)}
               type="button"
             >
-              <span className="material-symbols-outlined shrink-0 text-[24px]">g_translate</span>
-              {renderLabel(getCopy(copy.shell.nav.languageToggle, locale), 'text-sm font-medium')}
+              <span className="material-symbols-outlined shrink-0 text-[23px]">g_translate</span>
+              {renderLabel(getCopy(copy.shell.nav.languageToggle, locale), 'text-[15px] font-medium')}
               {iconOnlyTooltip(getCopy(copy.shell.nav.languageToggle, locale))}
             </button>
 
             <div
               aria-label={resolvedUserLabel}
               className={cn(
-                'group relative flex h-11 min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)]',
-                compact ? 'w-11 justify-center' : 'w-full gap-4 px-5',
+                'group relative flex h-[44px] min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)]',
+                compact ? 'w-11 justify-center' : 'w-full gap-3 px-4',
               )}
               title={resolvedUserLabel}
             >
-              <span className="material-symbols-outlined shrink-0 text-[24px]">{userIcon}</span>
-              {renderLabel(resolvedUserLabel, 'text-sm font-medium')}
+              <span className="material-symbols-outlined shrink-0 text-[23px]">{userIcon}</span>
+              {renderLabel(resolvedUserLabel, 'text-[15px] font-medium')}
               {iconOnlyTooltip(resolvedUserLabel)}
             </div>
 
@@ -556,16 +557,16 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
               <button
                 aria-label={isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale)}
                 className={cn(
-                  'group relative flex h-11 min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50',
-                  compact ? 'w-11 justify-center' : 'w-full gap-4 px-5',
+                  'group relative flex h-[44px] min-w-0 items-center rounded-[var(--ff-radius-sm)] text-[var(--ff-text-secondary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50',
+                  compact ? 'w-11 justify-center' : 'w-full gap-3 px-4',
                 )}
                 disabled={isSigningOut}
                 onClick={onSignOut}
                 title={isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale)}
                 type="button"
               >
-                <span className="material-symbols-outlined shrink-0 text-[24px]">logout</span>
-                {renderLabel(isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale), 'text-sm font-medium')}
+                <span className="material-symbols-outlined shrink-0 text-[23px]">logout</span>
+                {renderLabel(isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale), 'text-[15px] font-medium')}
                 {iconOnlyTooltip(isSigningOut ? getCopy(copy.shell.nav.signingOut, locale) : getCopy(copy.shell.nav.signOut, locale))}
               </button>
             ) : null}
@@ -601,8 +602,8 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
             }
           >
             <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[var(--ff-border-default)] transition-colors group-hover:bg-[var(--ff-accent-primary)] group-focus-visible:bg-[var(--ff-accent-primary)]" />
-            <span className="absolute left-1/2 top-1/2 flex h-16 w-[9px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[var(--ff-radius-full)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-shell)] shadow-[0_0_18px_rgba(0,0,0,0.32)] transition-[border-color,box-shadow] group-hover:border-[var(--ff-accent-primary)] group-hover:shadow-[0_0_22px_color-mix(in_srgb,var(--ff-accent-primary)_32%,transparent)] group-focus-visible:border-[var(--ff-accent-primary)]">
-              <span className="h-8 w-[3px] rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] opacity-80" />
+            <span className="absolute left-1/2 top-1/2 flex h-14 w-[8px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[var(--ff-radius-full)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-shell)] shadow-[0_0_14px_rgba(0,0,0,0.28)] transition-[border-color,box-shadow] group-hover:border-[var(--ff-accent-primary)] group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--ff-accent-primary)_30%,transparent)] group-focus-visible:border-[var(--ff-accent-primary)]">
+              <span className="h-7 w-[3px] rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] opacity-80" />
             </span>
           </div>
         </SidebarShell>

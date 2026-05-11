@@ -11,6 +11,11 @@ The system SHALL treat main-input commands as edits when an active PatientRecord
 - **THEN** the system SHALL update that target field
 - **AND** all unmentioned fields SHALL remain unchanged
 
+#### Scenario: Modify clinical notes
+- **WHEN** the user enters a command that changes other information or clinical notes on an existing record
+- **THEN** the system SHALL update `PatientRecord.clinicalNotes`
+- **AND** all unmentioned fields SHALL remain unchanged
+
 #### Scenario: Modify initialOnset field
 - **WHEN** the user enters a command that changes an initialOnset field on an existing record
 - **THEN** the system SHALL update that target field

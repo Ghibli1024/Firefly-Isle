@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 vitest 的 LLM mock，依赖 ./extraction 的 extractPatientRecord 与 getExtractionFailureMessage。
- * [OUTPUT]: 对外提供结构化提取对 LLM JSON 输出模式、模型 id 清洗、紧凑提示词合同、上游失败降级重试、Gemini 兜底、错误文案分流与日期归一化的回归测试。
- * [POS]: src/lib 的提取协议测试，确保病历结构化链路优先要求模型返回 JSON 对象、避免长 TypeScript schema/多消息提示词、接住上游 502、清除未持久化 id、区分 Auth/限流/超时/上游失败与中文/点号日期。
+ * [OUTPUT]: 对外提供结构化提取对 LLM JSON 输出模式、模型 id 清洗、密集病史末尾人口学信息补全、紧凑提示词合同、上游失败降级重试、Gemini 兜底、错误文案分流与日期归一化的回归测试。
+ * [POS]: src/lib 的提取协议测试，确保病历结构化链路优先要求模型返回 JSON 对象、避免长 TypeScript schema/多消息提示词、接住上游 502、清除未持久化 id、补回模型漏掉的姓名/性别/年龄/身高/体重、区分 Auth/限流/超时/上游失败与中文/点号日期。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -136,6 +136,92 @@ describe('extractPatientRecord', () => {
         tumorType: '乳腺癌',
       },
       treatmentLines: [{ lineNumber: 1, regimen: '阿贝西利+氟维司群' }],
+    })
+  })
+
+  it('normalizes patient name and clinical notes from extracted records', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        basicInfo: {
+          name: ' 林某 ',
+        },
+        clinicalNotes: ' 其他信息：患者自述乏力。 ',
+        treatmentLines: [],
+      }),
+    )
+
+    await expect(extractPatientRecord('姓名林某，其他信息为患者自述乏力。')).resolves.toMatchObject({
+      basicInfo: {
+        name: '林某',
+      },
+      clinicalNotes: '其他信息：患者自述乏力。',
+      treatmentLines: [],
+    })
+  })
+
+  it('recovers late demographic facts from dense clinical histories when the model omits them', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        basicInfo: {
+          stage: 'PT1N0M0',
+          tumorType: '乳腺癌',
+        },
+        treatmentLines: [
+          {
+            endDate: '2023年5月',
+            lineNumber: 1,
+            regimen: '阿贝西利+氟维司群+亮丙瑞林+地舒单抗',
+            startDate: '2022年10月',
+          },
+        ],
+      }),
+    )
+
+    await expect(
+      extractPatientRecord([
+        '初发：2021年7月，PT1N0M0；治疗方案：AC方案4次、放疗25+5。',
+        '复发：2022年10月骨转；2023年10月肝转单发。',
+        '| 1 | 2022年10月-2023年5月 | 阿贝西利+氟维司群+亮丙瑞林+地舒单抗； |',
+        '张三，60岁，女。',
+        '170厘米',
+        '60千克',
+      ].join('\n')),
+    ).resolves.toMatchObject({
+      basicInfo: {
+        age: 60,
+        gender: '女',
+        height: 170,
+        name: '张三',
+        weight: 60,
+      },
+    })
+  })
+
+  it('recovers compact demographic facts from the exact pasted tail format', async () => {
+    llmMocks.chat.mockResolvedValue(
+      JSON.stringify({
+        basicInfo: {
+          stage: 'PT1N0M0',
+          tumorType: '乳腺癌',
+        },
+        treatmentLines: [],
+      }),
+    )
+
+    await expect(
+      extractPatientRecord([
+        '初发：2021年7月，PT1N0M0；治疗方案：AC方案4次、放疗25+5；依西美坦+亮丙；',
+        '复发：2022年10月骨转；2023年10月肝转单发；2023年12月肝转多发；',
+        '张三，60岁，女。170厘米 60千克',
+      ].join('\n')),
+    ).resolves.toMatchObject({
+      basicInfo: {
+        age: 60,
+        gender: '女',
+        height: 170,
+        name: '张三',
+        weight: 60,
+      },
     })
   })
 

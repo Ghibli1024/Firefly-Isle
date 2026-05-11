@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、体格指标概要、中文线别、时间线编号/标题/补充资料去重、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、身高体重 BMI、中文治疗线别、档案/Gantt 动效与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI、档案/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -234,7 +234,9 @@ describe('RecordPage responsive dossier shell', () => {
 
     expect(markup).toContain('2024.01 - 2024.03')
     expect(markup).toContain('真实治疗方案')
-    expect(markup).toContain('/ 一线治疗')
+    expect(markup).toContain('>L1</span>')
+    expect(markup).toContain('PFS=2个月')
+    expect(markup).not.toContain('/ 一线治疗')
     expect(markup).toContain('免疫组化')
     expect(markup).toContain('基因检测')
     expect(markup).toContain('补充资料')
@@ -245,6 +247,43 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('1L 治疗')
     expect(markup).not.toContain('/ 治疗线 1')
     expect(markup).not.toContain('>补充资料</span><span')
+  })
+
+  it('renders persisted rail dates and treatment-line PFS on first-line start', () => {
+    const markup = renderRecordContent({
+      record: {
+        id: 'patient-42',
+        initialOnset: {
+          triggerDate: '2021.07',
+          treatment: '初发治疗方案',
+        },
+        treatmentLines: [
+          {
+            endDate: '2023.05',
+            lineNumber: 1,
+            regimen: '一线治疗方案',
+            startDate: '2022.10',
+          },
+          {
+            lineNumber: 2,
+            regimen: '二线治疗方案',
+            startDate: '2023.06',
+          },
+        ],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('data-timeline-rail-date="2021.07-2022.10"')
+    expect(markup).toContain('data-timeline-rail-date="2022.10-2023.05"')
+    expect(markup).toContain('data-timeline-rail-date="2023.06-至今"')
+    expect(markup).toContain('>BL</span>')
+    expect(markup).toContain('>L1</span>')
+    expect(markup).toContain('>L2</span>')
+    expect(markup).toContain('PFS=7个月')
+    expect(markup).toContain('PFS=进行中')
+    expect(markup).toContain('data-timeline-mobile-pfs="PFS=7个月"')
+    expect(markup).not.toContain('PFS=15个月')
   })
 
   it('does not render an empty lab trend placeholder for the demo dossier', () => {
@@ -264,14 +303,27 @@ describe('RecordPage responsive dossier shell', () => {
     })
 
     expect(markup).toContain('初发治疗')
-    expect(markup).toContain('>00</span>')
-    expect(markup).toContain('>01</span>')
-    expect(markup).toContain('>09</span>')
-    expect(markup).toContain('/ 基线')
-    expect(markup).toContain('/ 一线治疗')
-    expect(markup).toContain('/ 二线治疗')
-    expect(markup).toContain('/ 三线治疗')
-    expect(markup).toContain('/ 九线治疗')
+    expect(markup).toContain('>BL</span>')
+    expect(markup).toContain('>L1</span>')
+    expect(markup).toContain('>L2</span>')
+    expect(markup).toContain('>L9</span>')
+    expect(markup).not.toContain('>00</span>')
+    expect(markup).not.toContain('/ 基线')
+    expect(markup).not.toContain('/ 一线治疗')
+    expect(markup).not.toContain('/ 二线治疗')
+    expect(markup).not.toContain('/ 三线治疗')
+    expect(markup).not.toContain('/ 九线治疗')
+    expect(markup).toContain('data-timeline-rail-date="2021.07-2022.10"')
+    expect(markup).toContain('data-timeline-rail-date="2022.10-2023.05"')
+    expect(markup).toContain('data-timeline-rail-date="2023.05-2023.10"')
+    expect(markup).toContain('data-timeline-rail-date="2023.10-2023.11"')
+    expect(markup).toContain('data-timeline-rail-date="2025.10.01-至今"')
+    expect(markup).toContain('md:grid-cols-[56px_12rem_minmax(0,1fr)]')
+    expect(markup).toContain('whitespace-nowrap')
+    expect(markup).toContain('PFS=7个月')
+    expect(markup).toContain('PFS=5个月')
+    expect(markup).toContain('PFS=进行中')
+    expect(markup).toContain('data-timeline-mobile-pfs="PFS=进行中"')
     expect(markup).toContain('Luminal B；ER / PR 90%+ / 90%+；HER2 0；Ki67 60%')
     expect(markup).toContain('阿贝西利 + 氟维司群 + 亮丙瑞林 + 地舒单抗')
     expect(markup).toContain('氟唑帕利 + 哌柏西利 + 托瑞米芬')
@@ -285,6 +337,9 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('7L 治疗')
     expect(markup).not.toContain('8L 治疗')
     expect(markup).not.toContain('9L 治疗')
+    expect(markup).not.toContain('>01</span>')
+    expect(markup).not.toContain('>02</span>')
+    expect(markup).not.toContain('PFS=15个月')
     expect(markup).not.toContain('/ 治疗线')
     expect(markup).not.toContain('治疗线 1-6')
     expect(markup).not.toContain('治疗线 7-9')
@@ -343,12 +398,14 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('黑色素瘤 · IV期')
   })
 
-  it('renders persisted height, weight and calculated BMI in the record summary metrics', () => {
+  it('renders persisted demographics and calculated BMI in the record summary metrics', () => {
     const markup = renderRecordContent({
       record: {
         basicInfo: {
-          height: 168,
-          weight: 62,
+          age: 60,
+          gender: '女',
+          height: 170,
+          weight: 60,
         },
         id: 'patient-42',
         treatmentLines: [],
@@ -356,12 +413,31 @@ describe('RecordPage responsive dossier shell', () => {
       viewMode: 'dossier',
     })
 
+    expect(markup).toContain('年龄')
+    expect(markup).toContain('60 岁')
+    expect(markup).toContain('性别')
+    expect(markup).toContain('>女</div>')
     expect(markup).toContain('身高')
-    expect(markup).toContain('168 cm')
+    expect(markup).toContain('170 cm')
     expect(markup).toContain('体重')
-    expect(markup).toContain('62 kg')
+    expect(markup).toContain('60 kg')
     expect(markup).toContain('BMI')
-    expect(markup).toContain('22.0')
+    expect(markup).toContain('20.8')
+  })
+
+  it('renders persisted clinical notes in the record clinical notes section', () => {
+    const markup = renderRecordContent({
+      record: {
+        clinicalNotes: '其他信息：患者自述乏力，需结合复查资料确认。',
+        id: 'patient-42',
+        treatmentLines: [],
+      },
+      viewMode: 'dossier',
+    })
+
+    expect(markup).toContain('临床备注')
+    expect(markup).toContain('其他信息：患者自述乏力')
+    expect(markup).not.toContain('所有数据点均经过病理报告与影像诊断交叉验证')
   })
 
   it('does not repeat persisted basic info inside the initial timeline meta grid', () => {

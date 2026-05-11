@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties/ref/pointer 键盘事件、@/lib/locale 的 Locale、@/types/patient 的 PatientRecord、./treatment-gantt 的治疗方案甘特投影与 transitions-dev.css 的 stagger/gantt grow 动效合同。
- * [OUTPUT]: 对外提供 TreatmentGanttView 组件，窄屏渲染纵向治疗卡片，桌面渲染左右固定、中间时间轴可独立拖动的只读治疗方案甘特图。
+ * [OUTPUT]: 对外提供 TreatmentGanttView 组件，窄屏渲染纵向治疗卡片，桌面渲染左右固定、中间时间轴可独立拖动且使用 BL/Ln 标记的只读治疗方案甘特图。
  * [POS]: components/timeline 的甘特图展示层，只把 PatientRecord 与展示层补充文案投影为响应式只读治疗方案视图，不拥有记录编辑、保存或导出行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */

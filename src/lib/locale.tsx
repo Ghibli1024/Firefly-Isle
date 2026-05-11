@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 Context、hooks 与浏览器 localStorage。
- * [OUTPUT]: 对外提供 LocaleProvider、useLocale、Locale 类型与 LOCALE_STORAGE_KEY 常量。
- * [POS]: lib 的语言状态中心，统一管理 zh / en 切换、持久化与语言真相源消费入口。
+ * [INPUT]: 依赖 react 的 Context、hooks 与浏览器 localStorage/documentElement。
+ * [OUTPUT]: 对外提供 LocaleProvider、useLocale、Locale 类型、LOCALE_STORAGE_KEY 常量与文档语言同步工具。
+ * [POS]: lib 的语言状态中心，统一管理 zh / en 切换、持久化、HTML lang/data-locale 与语言真相源消费入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -9,6 +9,7 @@ import {
   type PropsWithChildren,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -25,6 +26,23 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null)
 
+export function getLocaleDocumentAttributes(locale: Locale) {
+  return {
+    dataLocale: locale,
+    lang: locale === 'zh' ? 'zh-CN' : 'en',
+  }
+}
+
+export function syncDocumentLocale(locale: Locale) {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  const { dataLocale, lang } = getLocaleDocumentAttributes(locale)
+  document.documentElement.lang = lang
+  document.documentElement.dataset.locale = dataLocale
+}
+
 function readStoredLocale(): Locale {
   if (typeof window === 'undefined') {
     return 'zh'
@@ -35,6 +53,10 @@ function readStoredLocale(): Locale {
 
 export function LocaleProvider({ children }: PropsWithChildren) {
   const [locale, setLocaleState] = useState<Locale>(readStoredLocale)
+
+  useEffect(() => {
+    syncDocumentLocale(locale)
+  }, [locale])
 
   const setLocale = useCallback((nextLocale: Locale) => {
     setLocaleState(nextLocale)

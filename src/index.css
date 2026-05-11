@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 Tailwind CSS、transitions-dev.css、LocaleProvider 写入的 data-locale 与 dark class。
+ * [OUTPUT]: 对外提供全局 theme token、localized typography token、共享字体工具类与基础布局样式。
+ * [POS]: src 的全局样式入口，先定义设计系统变量，再让页面与组件通过 var(--ff-*) 消费同一真相源。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 @import "tailwindcss";
 @import "./styles/transitions-dev.css";
 
@@ -41,13 +47,17 @@ body,
   --ff-radius-md: 8px;
   --ff-radius-lg: 12px;
   --ff-radius-full: 9999px;
-  --ff-sidebar-width: 148px;
-  --ff-sidebar-offset: 148px;
+  --ff-sidebar-width: 220px;
+  --ff-sidebar-offset: 220px;
   --ff-shell-topbar-height: 68px;
   --ff-topbar-height: var(--ff-shell-topbar-height);
-  --ff-font-display: "New York", "Songti SC", "STSong", "Times New Roman", serif;
-  --ff-font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
-  --ff-font-mono: "SFMono-Regular", "SF Mono", ui-monospace, monospace;
+  --ff-font-display-zh: "Songti SC", "STSong", "New York", "Times New Roman", serif;
+  --ff-font-ui-zh: "PingFang SC", "Hiragino Sans GB", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --ff-font-display-en: "Fraunces", "New York", "Times New Roman", serif;
+  --ff-font-ui-en: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --ff-font-display: var(--ff-font-display-zh);
+  --ff-font-ui: var(--ff-font-ui-zh);
+  --ff-font-mono: "IBM Plex Mono", "SFMono-Regular", "SF Mono", ui-monospace, monospace;
   --ff-timeline-shell-bg: var(--ff-surface-panel);
   --ff-timeline-shell-border: var(--ff-border-default);
   --ff-timeline-shell-text: var(--ff-text-primary);
@@ -67,6 +77,11 @@ body,
   --ff-timeline-badge-bg: var(--ff-surface-accent);
   --ff-timeline-badge-border: var(--ff-accent-primary);
   --ff-timeline-badge-text: var(--ff-accent-primary);
+}
+
+:root[data-locale="en"] {
+  --ff-font-display: var(--ff-font-display-en);
+  --ff-font-ui: var(--ff-font-ui-en);
 }
 
 html {

@@ -124,6 +124,25 @@ describe('conversational PatientRecord editing', () => {
     })
   })
 
+  it('applies patient name and clinical notes edits through the same field target boundary', () => {
+    const edits = parsePatientRecordEditResponse(
+      JSON.stringify({
+        edits: [
+          { target: { field: 'name', section: 'basicInfo' }, value: '林某' },
+          { target: { field: 'clinicalNotes', section: 'record' }, value: '其他信息：患者自述乏力。' },
+        ],
+      }),
+      baseRecord,
+    )
+
+    expect(applyPatientRecordEdits(baseRecord, edits)).toMatchObject({
+      basicInfo: {
+        name: '林某',
+      },
+      clinicalNotes: '其他信息：患者自述乏力。',
+    })
+  })
+
   it('rejects invalid fields, invalid treatment line numbers, and empty edit arrays', () => {
     expect(() =>
       parsePatientRecordEditResponse('{"edits":[{"target":{"section":"basicInfo","field":"regimen"},"value":"X"}]}', baseRecord),

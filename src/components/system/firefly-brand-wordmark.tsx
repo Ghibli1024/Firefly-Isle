@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties 类型、@/lib/locale 的 Locale 与 @/lib/utils 的 cn。
- * [OUTPUT]: 对外提供 FireflyBrandWordmark 组件，统一侧栏与登录页的一页萤屿艺术字标、萤字微光、渐隐横线、登录页收敛尺寸与可选副标题。
- * [POS]: src/components/system 的品牌字标基元，被 sidebar-nav 与 login-entry-view 复用，保证内页与登录页品牌设计同源。
+ * [OUTPUT]: 对外提供 FireflyBrandWordmark 组件，统一紧凑侧栏水平字标、登录页艺术字标、萤字微光、渐隐横线、登录页收敛尺寸与可选副标题。
+ * [POS]: src/components/system 的品牌字标基元，被 sidebar-nav 与 login-entry-view 复用，保证内页工具栏与登录页品牌设计同源但按场景分化字体重心。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type CSSProperties } from 'react'
@@ -19,13 +19,17 @@ type FireflyBrandWordmarkProps = {
 }
 
 const chineseBrandWordmarkStyle = {
-  fontFamily: '"STXingkai SC", "Xingkai SC", "STKaiti", "Kaiti SC", "Kai", serif',
-  lineHeight: '0.96',
-  transform: 'scaleX(0.86)',
-  transformOrigin: 'left center',
+  fontFamily: 'var(--ff-font-display)',
+  lineHeight: '1',
 } satisfies CSSProperties
 
-const englishBrandWordmarkStyle = {
+const englishSidebarBrandWordmarkStyle = {
+  fontFamily: 'var(--ff-font-display)',
+  fontWeight: 800,
+  lineHeight: '1',
+} satisfies CSSProperties
+
+const englishLoginBrandWordmarkStyle = {
   fontFamily: '"Snell Roundhand", "Savoye LET", "Apple Chancery", cursive',
   fontWeight: 700,
   lineHeight: '1.08',
@@ -59,16 +63,20 @@ const fireflyGlyphAuraStyle = {
 function getTitleClass(locale: Locale, scale: FireflyBrandWordmarkScale) {
   if (scale === 'login') {
     return locale === 'zh'
-      ? 'truncate text-[clamp(2.15rem,5.2vw,3rem)] font-light leading-none tracking-[0.06em] md:text-[clamp(2.45rem,3.1vw,3.4rem)]'
+      ? 'overflow-visible whitespace-nowrap text-[clamp(2.15rem,5.2vw,3rem)] font-light leading-none tracking-[0.06em] md:text-[clamp(2.45rem,3.1vw,3.4rem)]'
       : 'overflow-visible whitespace-nowrap text-[clamp(2rem,4.4vw,2.75rem)] font-bold tracking-normal md:text-[clamp(2.25rem,2.8vw,3.1rem)]'
   }
 
   return locale === 'zh'
-    ? 'truncate leading-none text-[34px] font-light tracking-[0.06em]'
-    : 'overflow-visible whitespace-nowrap text-[29px] font-bold tracking-normal'
+    ? 'overflow-visible whitespace-nowrap text-[31px] font-light leading-none tracking-[0.03em]'
+    : 'overflow-visible whitespace-nowrap text-[25px] font-black leading-none tracking-normal'
 }
 
-function renderWordmark(locale: Locale) {
+function getEnglishBrandWordmarkStyle(scale: FireflyBrandWordmarkScale) {
+  return scale === 'login' ? englishLoginBrandWordmarkStyle : englishSidebarBrandWordmarkStyle
+}
+
+function renderWordmark(locale: Locale, scale: FireflyBrandWordmarkScale) {
   if (locale === 'zh') {
     return (
       <>
@@ -78,6 +86,18 @@ function renderWordmark(locale: Locale) {
           萤
         </span>
         屿
+      </>
+    )
+  }
+
+  if (scale === 'sidebar') {
+    return (
+      <>
+        <span data-brand-firefly-glow="true" style={fireflyGlyphStyle}>
+          <span aria-hidden="true" style={fireflyGlyphAuraStyle} />
+          Firefly
+        </span>{' '}
+        Isle
       </>
     )
   }
@@ -103,18 +123,18 @@ export function FireflyBrandWordmark({
 
   return (
     <span
-      className={cn('relative min-w-0 pl-1', scale === 'login' ? 'block' : undefined, className)}
+      className={cn('relative min-w-0 overflow-visible pl-1', scale === 'login' ? 'block' : 'max-w-[134px]', className)}
       data-brand-art-wordmark="true"
       data-brand-wordmark="true"
       data-brand-wordmark-scale={scale}
     >
       <span
         className={cn('block max-w-full text-[var(--ff-text-primary)]', getTitleClass(locale, scale))}
-        style={isChinese ? chineseBrandWordmarkStyle : englishBrandWordmarkStyle}
+        style={isChinese ? chineseBrandWordmarkStyle : getEnglishBrandWordmarkStyle(scale)}
       >
-        {renderWordmark(locale)}
+        {renderWordmark(locale, scale)}
       </span>
-      <span className={cn('mt-1.5 block h-px max-w-full bg-[linear-gradient(90deg,var(--ff-accent-primary),transparent)]', scale === 'login' ? 'w-[min(22rem,82%)]' : 'w-32')} />
+      <span className={cn('mt-1.5 block h-px max-w-full bg-[linear-gradient(90deg,var(--ff-accent-primary),transparent)]', scale === 'login' ? 'w-[min(22rem,82%)]' : 'w-[92px]')} />
       {subtitle ? (
         <span
           className={cn(

@@ -2,7 +2,7 @@
 > L2 | 父级: /docs/design/Image-2/CLAUDE.md
 
 成员清单
-DESIGN.md: V3 批次提取出的 Google DESIGN.md 格式设计系统，沉淀双主题 token、组件规则与截图优先级，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+DESIGN.md: V3 批次提取出的 Google DESIGN.md 格式设计系统，沉淀双主题 token、localized typography、自托管字体资源边界、组件规则与截图优先级，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 brief.md: V3 批次说明，记录一页萤屿品牌更正、侧栏收起态、纵向滚动节奏与生成图来源映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 01-login-dark.png: 已生成，/login dark 品牌入口视觉稿，使用一页萤屿命名，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 02-login-light.png: 已生成，/login light 品牌入口视觉稿，与 01 共享入口骨架，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

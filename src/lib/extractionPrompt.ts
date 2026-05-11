@@ -6,7 +6,7 @@
  */
 import type { PatientRecord } from '@/types/patient'
 
-export const PATIENT_RECORD_SCHEMA = 'basicInfo含 tumorType, diagnosisDate, stage。initialOnset含 triggerDate, treatment, immunohistochemistry, geneticTest。treatmentLines 是数组，每项含 lineNumber, startDate, endDate, regimen。'
+export const PATIENT_RECORD_SCHEMA = 'basicInfo含 name, gender, age, height, weight, tumorType, diagnosisDate, stage。clinicalNotes 是字符串，承载其他信息或补充备注。initialOnset含 triggerDate, treatment, immunohistochemistry, geneticTest。treatmentLines 是数组，每项含 lineNumber, startDate, endDate, regimen, biopsy, immunohistochemistry, geneticTest。'
 
 const LAB_RESULT_SCHEMA = 'labResults 是数组，每项含 testDate, category, itemCode, itemName, value, unit, referenceLow, referenceHigh, source。'
 
@@ -21,8 +21,8 @@ function shouldRequestLabResults(input: string, existingRecord?: PatientRecord) 
 export function buildExtractionPrompt(input: string, existingRecord?: PatientRecord) {
   const requestLabResults = shouldRequestLabResults(input, existingRecord)
   const topFields = requestLabResults
-    ? 'basicInfo, initialOnset, treatmentLines, labResults'
-    : 'basicInfo, initialOnset, treatmentLines'
+    ? 'basicInfo, clinicalNotes, initialOnset, treatmentLines, labResults'
+    : 'basicInfo, clinicalNotes, initialOnset, treatmentLines'
 
   const promptLines = [
     `从病史提取 JSON。只允许这些顶层字段：${topFields}。${PATIENT_RECORD_SCHEMA}`,

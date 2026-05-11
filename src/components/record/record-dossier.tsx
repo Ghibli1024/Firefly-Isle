@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties/RefObject、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
- * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入和时间线 rail draw-in 的档案视图。
- * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、按需实验室趋势、时间线、证据卡、导出按钮与不可用态，不再在页头、标题或补充资料行重复已表达信息。
+ * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入、桌面独立不换行时间段/PFS rail、移动卡内 PFS 和时间线 rail draw-in 的档案视图。
+ * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、按需实验室趋势、左侧时间段 rail、移动卡内 PFS、时间线、证据卡、临床备注、导出按钮与不可用态，不再在标题旁渲染线别小字或重复已表达信息。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { CSSProperties, RefObject } from 'react'
@@ -55,6 +55,10 @@ function EvidenceCardView({ card, order }: { card: EvidenceCard; order: number }
 
 function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number }) {
   const hasCards = entry.cards.length > 0
+  const timeframeClass = [
+    'mt-3 max-w-full whitespace-nowrap font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-secondary)]',
+    entry.railDate ? 'md:hidden' : '',
+  ].join(' ')
 
   return (
     <article
@@ -72,14 +76,20 @@ function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number })
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-3xl font-bold tracking-normal">{entry.title}</h3>
-              {entry.subtitle ? <span className="text-sm text-[var(--ff-text-muted)]">/ {entry.subtitle}</span> : null}
               {entry.badge ? (
                 <span className="rounded-[var(--ff-radius-full)] border border-[color:color-mix(in_srgb,var(--ff-accent-success)_42%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_10%,var(--ff-surface-panel))] px-3 py-1 text-sm text-[var(--ff-accent-success)]">
                   {entry.badge}
                 </span>
               ) : null}
             </div>
-            <div className="mt-3 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-secondary)]">{entry.timeframe}</div>
+            <div className={timeframeClass}>{entry.timeframe}</div>
+            {entry.railMeta ? (
+              <div className="mt-2 md:hidden" data-timeline-mobile-pfs={entry.railMeta}>
+                <span className="inline-flex max-w-full items-center whitespace-nowrap rounded-[var(--ff-radius-full)] border border-[color-mix(in_srgb,var(--ff-accent-primary)_38%,var(--ff-border-default))] bg-[var(--ff-surface-accent)] px-2 py-0.5 font-[var(--ff-font-mono)] text-[11px] font-bold leading-5 text-[var(--ff-accent-primary)]">
+                  {entry.railMeta}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -143,6 +153,31 @@ function TimelineNode({ entry, order }: { entry: TimelineEntry; order: number })
   )
 }
 
+function TimelineRailMarker({ entry }: { entry: TimelineEntry }) {
+  const railDate = entry.railDate ?? entry.timeframe
+
+  return (
+    <>
+      <div className="relative hidden md:block" aria-hidden="true">
+        <span className="absolute left-[20px] top-8 h-4 w-4 rounded-[var(--ff-radius-full)] border-4 border-[var(--ff-surface-panel)] bg-[var(--ff-line)]" />
+      </div>
+      <div
+        className="hidden min-w-0 pr-2 pt-7 md:block"
+        data-timeline-rail-date={railDate}
+      >
+        <time className="block whitespace-nowrap font-[var(--ff-font-mono)] text-[13px] font-black leading-tight tracking-normal text-[var(--ff-text-muted)] xl:text-sm 2xl:text-base">
+          {railDate}
+        </time>
+        {entry.railMeta ? (
+          <span className="mt-2 inline-flex max-w-full items-center whitespace-nowrap rounded-[var(--ff-radius-full)] border border-[color-mix(in_srgb,var(--ff-accent-primary)_38%,var(--ff-border-default))] bg-[var(--ff-surface-accent)] px-2 py-0.5 font-[var(--ff-font-mono)] text-[11px] font-bold leading-5 text-[var(--ff-accent-primary)]">
+            {entry.railMeta}
+          </span>
+        ) : null}
+      </div>
+    </>
+  )
+}
+
 export function RecordDossier({
   exportError,
   exportFormat,
@@ -166,6 +201,11 @@ export function RecordDossier({
   const entries = record ? getRecordTimelineEntries(record, locale) : getTimelineEntries(locale)
   const metrics = record ? getRecordSummaryMetrics(record, locale) : summaryMetrics[locale]
   const labTrendRecord = (record?.labResults?.length ?? 0) > 0 ? record : undefined
+  const clinicalNotes =
+    record?.clinicalNotes ??
+    (locale === 'zh'
+      ? '此档案由临床 AI 自动整理并结构化，所有数据点均经过病理报告与影像诊断交叉验证。'
+      : 'This dossier is automatically structured by clinical AI and cross-checked against pathology and imaging reports.')
 
   return (
     <div
@@ -232,11 +272,14 @@ export function RecordDossier({
           <h2 className="text-2xl font-bold">{text.timeline}</h2>
         </div>
 
-        <div className="relative space-y-4 pl-0 md:pl-10">
-          <div className="t-timeline-rail absolute bottom-0 left-4 top-0 hidden w-px bg-[var(--ff-border-default)] md:block" />
+        <div className="relative space-y-4">
+          <div className="t-timeline-rail absolute bottom-0 left-7 top-0 hidden w-px bg-[var(--ff-border-default)] md:block" />
           {entries.map((entry, index) => (
-            <div className="relative" key={entry.index}>
-              <span className="absolute left-[-35px] top-8 hidden h-4 w-4 rounded-[var(--ff-radius-full)] border-4 border-[var(--ff-surface-panel)] bg-[var(--ff-line)] md:block" />
+            <div
+              className="relative grid gap-3 md:grid-cols-[56px_12rem_minmax(0,1fr)] md:gap-5 xl:grid-cols-[56px_14rem_minmax(0,1fr)]"
+              key={entry.index}
+            >
+              <TimelineRailMarker entry={entry} />
               <TimelineNode entry={entry} order={index + 3} />
             </div>
           ))}
@@ -247,11 +290,7 @@ export function RecordDossier({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="font-bold">{text.clinicalNotes}</h3>
-            <p className="mt-2 text-sm leading-7 text-[var(--ff-text-secondary)]">
-              {locale === 'zh'
-                ? '此档案由临床 AI 自动整理并结构化，所有数据点均经过病理报告与影像诊断交叉验证。'
-                : 'This dossier is automatically structured by clinical AI and cross-checked against pathology and imaging reports.'}
-            </p>
+            <p className="mt-2 text-sm leading-7 text-[var(--ff-text-secondary)]">{clinicalNotes}</p>
           </div>
           <div className="flex items-center gap-4 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-muted)]">
             2024-05-20 12:08:00

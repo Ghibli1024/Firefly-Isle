@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
- * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑/新病历动作、BMI 标签与重试按钮文案，禁止组件继续内联双语字符串。
+ * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑/新病历动作、BMI 标签、病程资料空态与重试按钮文案，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -230,15 +230,9 @@ export const copy = {
     endDate: text('结束时间', 'End Date'),
     biopsy: text('活检', 'Biopsy'),
     emptyTitle: text('尚未生成初发区块或治疗线。', 'No initial onset block or treatment lines yet.'),
-    emptyBody: text('提交患者描述后，这里会按患者类型自动切换布局，并对关键缺失字段做高亮提示。', 'After you submit the patient narrative, this area will switch layouts by archetype and highlight critical missing fields.'),
+    emptyBody: text('提交患者描述后，这里会按病程资料自动组织布局，并对关键缺失字段做高亮提示。', 'After you submit the patient narrative, this area will organize the timeline from clinical-course data and highlight critical missing fields.'),
     emptyStateKey: text('时间线状态', 'Timeline State'),
     tableKey: text('时间线表格', 'Timeline Table'),
-    archetypeKey: text('患者类型', 'Archetype'),
-    archetypeLabels: {
-      deNovoAdvanced: text('初诊晚期', 'De Novo Advanced'),
-      nonAdvanced: text('非晚期', 'Non-Advanced'),
-      relapsedAdvanced: text('复发晚期', 'Relapsed Advanced'),
-    },
     initialOnsetSubtitle: text('初发', 'Initial Onset'),
     treatmentLineSubtitle: text('治疗线', 'Treatment Line'),
   },

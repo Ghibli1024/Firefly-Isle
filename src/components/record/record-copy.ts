@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-line-labels 的中文线别与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位的 demo summaryMetrics 与 00 起算/中文线别/补充资料归一的逐线演示时间线文案。
+ * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-line-labels 的中文线别、record-timeline-time 的 rail 时间段/PFS facade 与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位的 demo summaryMetrics 与 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一的演示时间线文案。
  * [POS]: components/record 的静态文案模块，被 RecordDossier 和路由错误态复用；默认病例原始数据留在 demo-record，本文只做文案与 timeline 组装。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/locale'
 
 import { demoPatientRecord } from './demo-record'
 import { getTreatmentLineSubtitle } from './record-line-labels'
+import { formatTreatmentLinePfsLabel, getTimelineRailDate, getTimelineRailRange } from './record-timeline-time'
 import type { Metric, TimelineEntry } from './types'
 
 export const labels = {
@@ -95,15 +96,10 @@ function cleanText(value: string | undefined) {
 }
 
 function getLineTimeframe(line: DemoTreatmentLine, locale: Locale) {
-  const start = cleanText(line.startDate)
-  const end = cleanText(line.endDate)
+  const railRange = getTimelineRailRange(line.startDate, line.endDate, locale, ' - ')
 
-  if (start && end) {
-    return `${start} - ${end}`
-  }
-
-  if (start) {
-    return start
+  if (railRange) {
+    return railRange
   }
 
   return locale === 'zh' ? '时间待补充' : 'Date pending'
@@ -128,6 +124,11 @@ function getSupplementItems(line: DemoTreatmentLine, locale: Locale) {
 }
 
 function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
+  const firstLine = demoPatientRecord.treatmentLines
+    .slice()
+    .sort((left, right) => left.lineNumber - right.lineNumber)[0]
+  const railDate = getTimelineRailRange(demoPatientRecord.initialOnset?.triggerDate, firstLine?.startDate, locale)
+
   if (locale === 'en') {
     return {
       body: [],
@@ -139,10 +140,11 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
           title: 'Supplement',
         },
       ],
-      index: '00',
+      index: 'BL',
       meta: [],
+      railDate,
       subtitle: 'Baseline',
-      timeframe: '2021.07 - 2022.10',
+      timeframe: getTimelineRailRange(demoPatientRecord.initialOnset?.triggerDate, firstLine?.startDate, locale, ' - ') ?? '2021.07 - 2022.10',
       title: 'Initial Treatment',
       treatment: 'AC x4 / RT 25+5 / Exemestane + Leuprorelin',
     }
@@ -158,16 +160,17 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
         title: '补充资料',
       },
     ],
-    index: '00',
+      index: 'BL',
     meta: [],
+    railDate,
     subtitle: '基线',
-    timeframe: '2021.07 - 2022.10',
+    timeframe: getTimelineRailRange(demoPatientRecord.initialOnset?.triggerDate, firstLine?.startDate, locale, ' - ') ?? '2021.07 - 2022.10',
     title: '初发治疗',
     treatment: 'AC方案4次 / 放疗25+5 / 依西美坦 + 亮丙',
   }
 }
 
-function buildLineTimelineEntry(line: DemoTreatmentLine, sequence: number, locale: Locale): TimelineEntry {
+function buildLineTimelineEntry(line: DemoTreatmentLine, locale: Locale): TimelineEntry {
   const isOpen = !hasText(line.endDate)
   const supplementItems = getSupplementItems(line, locale)
 
@@ -182,8 +185,10 @@ function buildLineTimelineEntry(line: DemoTreatmentLine, sequence: number, local
           },
         ]
       : [],
-    index: String(sequence).padStart(2, '0'),
+    index: `L${line.lineNumber}`,
     meta: [],
+    railDate: getTimelineRailRange(line.startDate, line.endDate, locale) ?? getTimelineRailDate(line.startDate),
+    railMeta: formatTreatmentLinePfsLabel(line.startDate, line.endDate, locale),
     subtitle: getTreatmentLineSubtitle(line.lineNumber, locale),
     timeframe: getLineTimeframe(line, locale),
     title: locale === 'zh' ? '治疗' : 'Therapy',
@@ -197,6 +202,6 @@ export function getTimelineEntries(locale: Locale): TimelineEntry[] {
     ...demoPatientRecord.treatmentLines
       .slice()
       .sort((left, right) => left.lineNumber - right.lineNumber)
-      .map((line, index) => buildLineTimelineEntry(line, index + 1, locale)),
+      .map((line) => buildLineTimelineEntry(line, locale)),
   ]
 }

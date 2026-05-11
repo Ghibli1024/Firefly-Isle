@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-router-dom 的 Link，依赖 @/components/system/surfaces 的 PanelSurface，依赖 @/lib/copy、locale 与 patient-metrics 文案/指标工具，依赖 PatientRecord 与 PatientFieldTarget 维持 inline edit / export 边界，依赖 transitions-dev.css 的 .t-digit-group、.t-missing-pulse 与 .t-edit-flip 动效合同。
- * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 V3 工作区病历预览、身高体重 BMI、真实治疗时间线、正式档案入口、按需追问进度提示、临床备注与验证状态带。
- * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord basicInfo 与 treatmentLines 投影为可读预览，同时保留 setReportRef 导出捕获点。
+ * [OUTPUT]: 对外提供 ReportPreviewFrame 组件，渲染 Dense Clinical Ledger 风格工作区病历预览、身高体重、诊断日期前置、治疗方案与最新基因/免疫组化摘要、含干净等待空态的横向病程轨、正式档案入口、按需追问进度提示、可编辑临床备注、既往检测历史与验证状态带。
+ * [POS]: components/workspace 的报告预览区块，被 workspace-page 组合，是 /app 中病史输入之后的 V3 主表面，把 PatientRecord basicInfo 与 treatmentLines 投影为低噪声临床台账，同时保留 setReportRef 导出捕获点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react'
@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import { PanelSurface } from '@/components/system/surfaces'
 import { getCopy, copy } from '@/lib/copy'
 import { useLocale, type Locale } from '@/lib/locale'
-import { formatBmi, formatHeight, formatWeight } from '@/lib/patient-metrics'
+import { formatHeight, formatWeight } from '@/lib/patient-metrics'
 import type { PatientFieldTarget, PatientRecord } from '@/types/patient'
 
 type ReportPreviewFrameProps = {
@@ -28,28 +28,37 @@ type ReportPreviewFrameProps = {
 type EditableCellProps = {
   critical?: boolean
   disabled: boolean
+  editValue?: string
+  fieldId?: string
+  hideLabel?: boolean
   label: string
+  multiline?: boolean
   onCommitField: (target: PatientFieldTarget, value: string) => void
+  placeholder?: string
   target?: PatientFieldTarget
   value: string
 }
 
-type DisplayCellProps = {
-  critical?: boolean
-  label: string
-  value: string
-}
-
-type TimelinePillProps = {
+type PreviewTimelineItem = {
   detail?: string
   label: string
+  marker?: string
   period?: string
-  tone: 'initial' | 'line' | 'stable'
+  tone: 'empty' | 'initial' | 'line' | 'stable'
 }
 
 type AuditItemProps = {
   icon: string
   label: string
+  value: string
+}
+
+type EvidenceField = 'geneticTest' | 'immunohistochemistry'
+
+type EvidenceEntry = {
+  field: EvidenceField
+  sourceLabel: string
+  target: PatientFieldTarget
   value: string
 }
 
@@ -59,6 +68,7 @@ const placeholderMissing = {
 } satisfies Record<Locale, string[]>
 
 const previewSectionTitleClass = 'font-[var(--ff-font-display)] text-base font-semibold tracking-normal text-[var(--ff-text-primary)]'
+const ledgerSurfaceClass = 'overflow-hidden rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-inset)_92%,transparent)]'
 
 function hasRecordData(record: PatientRecord) {
   return Boolean(record.basicInfo || record.initialOnset || record.treatmentLines.length > 0)
@@ -118,6 +128,10 @@ function firstTreatmentLine(record: PatientRecord) {
   return record.treatmentLines.find((line) => line.lineNumber === 1) ?? record.treatmentLines[0]
 }
 
+function latestTreatmentLine(record: PatientRecord) {
+  return [...record.treatmentLines].sort((left, right) => right.lineNumber - left.lineNumber)[0]
+}
+
 function getRegimenTarget(record: PatientRecord): PatientFieldTarget | undefined {
   const line = firstTreatmentLine(record)
 
@@ -132,42 +146,131 @@ function getRegimenTarget(record: PatientRecord): PatientFieldTarget | undefined
   return undefined
 }
 
-function getInitialGenetic(record: PatientRecord) {
-  return record.initialOnset?.geneticTest ?? firstTreatmentLine(record)?.geneticTest
+function getRegimenEditTarget(record: PatientRecord): PatientFieldTarget {
+  return getRegimenTarget(record) ?? { field: 'treatment', section: 'initialOnset' }
 }
 
-function getInitialIhc(record: PatientRecord) {
-  return record.initialOnset?.immunohistochemistry ?? firstTreatmentLine(record)?.immunohistochemistry
+function getFallbackEvidenceTarget(record: PatientRecord, field: EvidenceField): PatientFieldTarget {
+  const line = latestTreatmentLine(record)
+
+  if (line) {
+    return { field, lineNumber: line.lineNumber, section: 'treatmentLine' }
+  }
+
+  return { field, section: 'initialOnset' }
 }
 
-function EditableCell({ critical = false, disabled, label, onCommitField, target, value }: EditableCellProps) {
-  const [draft, setDraft] = useState(value === '--' ? '' : value)
+function getEvidenceLabel(field: EvidenceField, locale: Locale) {
+  return field === 'geneticTest' ? getCopy(copy.timeline.genetic, locale) : getCopy(copy.timeline.immunohistochemistry, locale)
+}
+
+function getLatestEvidenceLabel(field: EvidenceField, locale: Locale) {
+  return locale === 'zh' ? `${getEvidenceLabel(field, locale)}（最新）` : `${getEvidenceLabel(field, locale)} (Latest)`
+}
+
+function collectEvidenceEntries(record: PatientRecord, field: EvidenceField, locale: Locale): EvidenceEntry[] {
+  const entries: EvidenceEntry[] = []
+
+  if (record.initialOnset && hasText(record.initialOnset[field])) {
+    entries.push({
+      field,
+      sourceLabel: locale === 'zh' ? '初发' : 'Initial onset',
+      target: { field, section: 'initialOnset' },
+      value: display(record.initialOnset[field]),
+    })
+  }
+
+  for (const line of [...record.treatmentLines].sort((left, right) => left.lineNumber - right.lineNumber)) {
+    if (!hasText(line[field])) {
+      continue
+    }
+
+    entries.push({
+      field,
+      sourceLabel: locale === 'zh' ? `${line.lineNumber}L 治疗线` : `Line ${line.lineNumber}`,
+      target: { field, lineNumber: line.lineNumber, section: 'treatmentLine' },
+      value: display(line[field]),
+    })
+  }
+
+  return entries
+}
+
+function getLatestEvidence(entries: EvidenceEntry[]) {
+  return entries[entries.length - 1]
+}
+
+function getEvidenceHistory(entries: EvidenceEntry[]) {
+  return entries.slice(0, -1)
+}
+
+function getEvidenceTarget(record: PatientRecord, entries: EvidenceEntry[], field: EvidenceField) {
+  return getLatestEvidence(entries)?.target ?? getFallbackEvidenceTarget(record, field)
+}
+
+function getEditableFieldId(target: PatientFieldTarget | undefined) {
+  if (!target) {
+    return undefined
+  }
+
+  if (target.section === 'record') {
+    return `record.${target.field}`
+  }
+
+  if (target.section === 'treatmentLine') {
+    return `treatmentLine.${target.lineNumber}.${target.field}`
+  }
+
+  return `${target.section}.${target.field}`
+}
+
+function EditableCell({
+  critical = false,
+  disabled,
+  editValue,
+  fieldId,
+  hideLabel = false,
+  label,
+  multiline = false,
+  onCommitField,
+  placeholder,
+  target,
+  value,
+}: EditableCellProps) {
+  const getDraftValue = () => editValue ?? (value === '--' ? '' : value)
+  const [draft, setDraft] = useState(getDraftValue)
   const [editing, setEditing] = useState(false)
   const isMissing = value === '--'
+  const editableFieldId = fieldId ?? getEditableFieldId(target)
 
   if (!editing || !target) {
     return (
       <button
+        aria-label={hideLabel ? label : undefined}
         className={[
-          'group t-edit-flip t-control-press flex min-h-[64px] w-full items-center justify-between rounded-[var(--ff-radius-md)] border px-4 py-3 text-left transition-colors',
+          'group t-edit-flip t-control-press relative flex min-h-[58px] w-full items-center justify-between overflow-hidden border-b border-r border-[var(--ff-border-default)] bg-transparent px-4 py-2.5 text-left transition-colors',
           critical && isMissing
-            ? 'border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] text-[var(--ff-accent-primary)]'
-            : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)]',
-          target && !disabled ? 'hover:border-[var(--ff-accent-primary)]' : 'cursor-default',
+            ? 'bg-[color:color-mix(in_srgb,var(--ff-accent-primary)_9%,transparent)] text-[var(--ff-accent-primary)]'
+            : 'text-[var(--ff-text-primary)]',
+          target && !disabled ? 'hover:bg-[var(--ff-surface-panel)]' : 'cursor-default',
         ].join(' ')}
+        data-editable-field={editableFieldId}
         disabled={!target || disabled}
         onClick={() => {
-          setDraft(value === '--' ? '' : value)
+          setDraft(getDraftValue())
           setEditing(true)
         }}
         type="button"
       >
+        {critical && isMissing ? <span aria-hidden="true" className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)]" data-ledger-missing-bar="true" /> : null}
         <span>
-          <span className="block text-xs text-[var(--ff-text-muted)]">{label}</span>
-          <span className="mt-1 block font-[var(--ff-font-ui)] text-base font-semibold tracking-normal">{value}</span>
+          {!hideLabel ? <span className="block text-xs text-[var(--ff-text-muted)]">{label}</span> : null}
+          <span className={`${hideLabel ? '' : 'mt-1 '}block font-[var(--ff-font-ui)] text-base font-semibold leading-tight tracking-normal`}>
+            {value}
+          </span>
         </span>
         {critical && isMissing ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] text-xs font-bold text-white">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] text-[11px] font-bold text-white shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-accent-primary)_16%,transparent)]">
             !
           </span>
         ) : target ? (
@@ -182,20 +285,34 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
   return (
     <form
       className="t-edit-flip rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-panel)] p-3"
+      data-editable-field={editableFieldId}
       onSubmit={(event) => {
         event.preventDefault()
         onCommitField(target, draft)
         setEditing(false)
       }}
     >
-      <label className="mb-2 block text-xs text-[var(--ff-text-muted)]">{label}</label>
+      {!hideLabel ? <label className="mb-2 block text-xs text-[var(--ff-text-muted)]">{label}</label> : null}
       <div className="flex items-center gap-2">
-        <input
-          autoFocus
-          className="min-w-0 flex-1 rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 py-2 text-sm text-[var(--ff-text-primary)] outline-none focus:border-[var(--ff-accent-primary)]"
-          onChange={(event) => setDraft(event.target.value)}
-          value={draft}
-        />
+        {multiline ? (
+          <textarea
+            aria-label={hideLabel ? label : undefined}
+            autoFocus
+            className="min-h-20 min-w-0 flex-1 resize-y rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 py-2 text-sm text-[var(--ff-text-primary)] outline-none focus:border-[var(--ff-accent-primary)]"
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={placeholder}
+            value={draft}
+          />
+        ) : (
+          <input
+            aria-label={hideLabel ? label : undefined}
+            autoFocus
+            className="min-w-0 flex-1 rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-3 py-2 text-sm text-[var(--ff-text-primary)] outline-none focus:border-[var(--ff-accent-primary)]"
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={placeholder}
+            value={draft}
+          />
+        )}
         <button
           className="t-control-press flex h-9 w-9 items-center justify-center rounded-[var(--ff-radius-sm)] bg-[var(--ff-accent-primary)] text-white"
           type="submit"
@@ -214,49 +331,39 @@ function EditableCell({ critical = false, disabled, label, onCommitField, target
   )
 }
 
-function DisplayCell({ critical = false, label, value }: DisplayCellProps) {
-  const isMissing = value === '--'
-
-  return (
-    <div
-      className={[
-        't-edit-flip min-h-[64px] rounded-[var(--ff-radius-md)] border px-4 py-3',
-        critical && isMissing
-          ? 'border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] text-[var(--ff-accent-primary)]'
-          : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-primary)]',
-      ].join(' ')}
-    >
-      <span className="block text-xs text-[var(--ff-text-muted)]">{label}</span>
-      <span className="mt-1 block font-[var(--ff-font-ui)] text-base font-semibold">{value}</span>
-    </div>
-  )
-}
-
-function TimelinePill({ detail, label, period, tone }: TimelinePillProps) {
+function TimelineNode({ detail, label, period, tone }: PreviewTimelineItem) {
   const toneClass =
-    tone === 'stable'
-      ? 'border-[color:color-mix(in_srgb,var(--ff-accent-success)_46%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_10%,var(--ff-surface-panel))]'
+    tone === 'empty'
+      ? 'text-[var(--ff-text-secondary)]'
+      : tone === 'stable'
+      ? 'text-[var(--ff-accent-success)]'
       : tone === 'line'
-        ? 'border-[color:color-mix(in_srgb,var(--ff-line)_46%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-line)_10%,var(--ff-surface-panel))]'
-        : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)]'
+        ? 'text-[var(--ff-line)]'
+        : 'text-[var(--ff-text-primary)]'
 
   return (
-    <div
-      className={`flex min-h-[76px] w-full min-w-[220px] flex-col justify-center rounded-[var(--ff-radius-md)] border px-4 py-3 ${toneClass} md:max-w-[260px]`}
-    >
-      <span className="font-[var(--ff-font-display)] text-sm font-bold tracking-normal text-[var(--ff-text-primary)]">{label}</span>
-      {period ? <span className="mt-1 text-xs font-semibold text-[var(--ff-text-muted)]">{period}</span> : null}
+    <article className="min-w-0 py-1">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+        <span className={`min-w-0 font-[var(--ff-font-display)] text-sm font-bold tracking-normal ${toneClass}`}>
+          {label}
+        </span>
+        {period ? (
+          <span className="max-w-full rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-2 py-1 text-xs font-semibold text-[var(--ff-text-muted)]">
+            {period}
+          </span>
+        ) : null}
+      </div>
       {detail ? (
-        <span className="mt-1 line-clamp-2 whitespace-normal break-words text-sm font-semibold leading-snug text-[var(--ff-text-secondary)]">
+        <span className="mt-1 block line-clamp-2 whitespace-normal break-words text-sm font-semibold leading-snug text-[var(--ff-text-secondary)]">
           {detail}
         </span>
       ) : null}
-    </div>
+    </article>
   )
 }
 
-function getPreviewTimelineItems(record: PatientRecord, locale: Locale): TimelinePillProps[] {
-  const items: TimelinePillProps[] = []
+function getPreviewTimelineItems(record: PatientRecord, locale: Locale): PreviewTimelineItem[] {
+  const items: PreviewTimelineItem[] = []
 
   if (record.initialOnset) {
     items.push({
@@ -280,31 +387,73 @@ function getPreviewTimelineItems(record: PatientRecord, locale: Locale): Timelin
     ? items
     : [
         {
-          detail: locale === 'zh' ? '完成结构化提取后显示治疗方案、起止时间与换线顺序。' : 'Extract a record to show regimen, dates, and line order.',
-          label: locale === 'zh' ? '暂无治疗线内容' : 'No Treatment Lines',
-          tone: 'initial',
+          detail: locale === 'zh' ? '提取后按时间展示关键治疗节点、方案与换线顺序。' : 'Extract a record to show key treatment events, regimen, and line order.',
+          label: locale === 'zh' ? '等待病程节点' : 'Awaiting Course Events',
+          marker: locale === 'zh' ? '待' : '...',
+          tone: 'empty',
         },
       ]
 }
 
-function Connector() {
+function TimelineTrack({ items }: { items: PreviewTimelineItem[] }) {
   return (
-    <div className="hidden w-7 shrink-0 items-center md:flex">
-      <div className="h-px flex-1 border-t border-dashed border-[var(--ff-line)]" />
-      <span className="mx-2 block h-0 w-0 border-y-[7px] border-l-[10px] border-y-transparent border-l-[var(--ff-line)]" />
+    <div
+      className="mt-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-inset)_92%,transparent)] px-4 py-3"
+      data-preview-timeline="clinical-course"
+    >
+      <ol className="relative space-y-3">
+        {items.map((item, index) => (
+          <li className="relative grid grid-cols-[2rem_minmax(0,1fr)] gap-3" key={`${item.label}-${index}`}>
+            {item.tone === 'empty' ? null : (
+              <span className="absolute left-[2rem] right-12 top-[0.85rem] h-px border-t border-dotted border-[var(--ff-border-default)]" />
+            )}
+            {index < items.length - 1 ? (
+              <span className="absolute left-[0.95rem] top-7 h-[calc(100%+0.75rem)] w-px bg-[var(--ff-line)]" />
+            ) : null}
+            <div className="relative z-10 flex h-6 w-6 items-center justify-center rounded-[var(--ff-radius-full)] border border-[var(--ff-line)] bg-[var(--ff-surface-panel)] text-xs font-bold text-[var(--ff-text-secondary)] md:h-7 md:w-7">
+              {item.marker ?? index + 1}
+            </div>
+            <TimelineNode {...item} />
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }
 
 function AuditItem({ icon, label, value }: AuditItemProps) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-4">
-      <span className="material-symbols-outlined text-[32px] text-[var(--ff-text-primary)]">{icon}</span>
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <span className="material-symbols-outlined text-[24px] text-[var(--ff-text-primary)]">{icon}</span>
       <div className="min-w-0">
-        <span className="block font-[var(--ff-font-display)] text-lg font-bold tracking-normal">{label}</span>
-        <span className="mt-1 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)] px-4 py-2 text-sm text-[var(--ff-text-secondary)]">
+        <span className="block font-[var(--ff-font-display)] text-base font-bold tracking-normal">{label}</span>
+        <span className="mt-1 inline-flex rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-soft)] px-3 py-1.5 text-sm text-[var(--ff-text-secondary)]">
           {value}
         </span>
+      </div>
+    </div>
+  )
+}
+
+function EvidenceHistoryList({ entries, locale }: { entries: EvidenceEntry[]; locale: Locale }) {
+  if (entries.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="mt-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-4">
+      <h4 className="font-[var(--ff-font-display)] text-sm font-bold tracking-normal text-[var(--ff-text-primary)]">
+        {locale === 'zh' ? '既往检测历史' : 'Previous Test History'}
+      </h4>
+      <div className="mt-3 space-y-2">
+        {entries.map((entry, index) => (
+          <div className="rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 py-2" key={`${entry.field}-${entry.sourceLabel}-${index}`}>
+            <div className="text-xs font-semibold text-[var(--ff-text-muted)]">
+              {getEvidenceLabel(entry.field, locale)} · {entry.sourceLabel}
+            </div>
+            <div className="mt-1 text-sm font-semibold leading-relaxed text-[var(--ff-text-secondary)]">{entry.value}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -331,25 +480,27 @@ export function ReportPreviewFrame({
   const missingCount = missingLabels.length
   const shouldShowFollowUpStatus = missingCount > 0 || followUpCount > 0
   const timelineItems = getPreviewTimelineItems(record, locale)
+  const geneticEntries = collectEvidenceEntries(record, 'geneticTest', locale)
+  const ihcEntries = collectEvidenceEntries(record, 'immunohistochemistry', locale)
+  const latestGenetic = getLatestEvidence(geneticEntries)
+  const latestIhc = getLatestEvidence(ihcEntries)
+  const evidenceHistory = [...getEvidenceHistory(geneticEntries), ...getEvidenceHistory(ihcEntries)]
   const notePlaceholder =
     locale === 'zh' ? '可在此记录关键临床备注或补充说明...' : 'Record key clinical notes or supplemental comments...'
 
   return (
-    <PanelSurface className="p-4 sm:p-6" theme={theme} tone="panel">
+    <PanelSurface className="p-4 sm:p-5" theme={theme} tone="panel">
       <div ref={setReportRef}>
-        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[28px]">calendar_month</span>
             <h2 className="font-[var(--ff-font-display)] text-2xl font-black leading-tight tracking-normal">
               {getCopy(copy.timeline.tableTitle, locale)}
             </h2>
-            <span className="rounded-[var(--ff-radius-full)] border border-[color:color-mix(in_srgb,var(--ff-accent-success)_36%,var(--ff-border-default))] bg-[color:color-mix(in_srgb,var(--ff-accent-success)_12%,var(--ff-surface-panel))] px-3 py-1 text-sm font-semibold text-[var(--ff-accent-success)]">
-              {getCopy(copy.timeline.archetypeLabels.nonAdvanced, locale)}
-            </span>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             {shouldShowFollowUpStatus ? (
-              <div className="t-missing-pulse inline-flex min-h-11 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-2 text-sm font-semibold text-[var(--ff-accent-primary)]">
+              <div className="t-missing-pulse inline-flex min-h-9 items-center gap-2 rounded-[var(--ff-radius-sm)] border border-[var(--ff-accent-primary)] bg-[color:color-mix(in_srgb,var(--ff-accent-primary)_8%,transparent)] px-3 py-1.5 text-sm font-semibold text-[var(--ff-accent-primary)]">
                 <span className="material-symbols-outlined text-xl">chat_bubble</span>
                 <span>
                   {locale === 'zh' ? (
@@ -366,7 +517,7 @@ export function ReportPreviewFrame({
             ) : null}
             {recordDetailsHref ? (
               <Link
-                className="t-control-press inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] bg-[var(--ff-accent-primary)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
+                className="t-control-press inline-flex min-h-9 items-center justify-center gap-2 rounded-[var(--ff-radius-sm)] bg-[var(--ff-accent-primary)] px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-[var(--ff-accent-strong)]"
                 to={recordDetailsHref}
               >
                 <span className="material-symbols-outlined text-xl">open_in_new</span>
@@ -377,9 +528,15 @@ export function ReportPreviewFrame({
         </div>
 
         <h3 className={`mb-2 ${previewSectionTitleClass}`}>{getCopy(copy.timeline.basicInfoTitle, locale)}</h3>
-        <div className="grid gap-2 lg:grid-cols-[1.08fr_1fr]">
-          <div className="grid gap-2 sm:grid-cols-3 lg:col-span-2">
-            <DisplayCell label={locale === 'zh' ? '姓名' : 'Name'} value="--" />
+        <div className="space-y-2">
+          <div className={`${ledgerSurfaceClass} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5`}>
+            <EditableCell
+              disabled={disabled}
+              label={locale === 'zh' ? '姓名' : 'Name'}
+              onCommitField={onCommitField}
+              target={{ field: 'name', section: 'basicInfo' }}
+              value={display(basicInfo?.name)}
+            />
             <EditableCell
               disabled={disabled}
               label={getCopy(copy.timeline.gender, locale)}
@@ -408,9 +565,8 @@ export function ReportPreviewFrame({
               target={{ field: 'weight', section: 'basicInfo' }}
               value={formatWeight(basicInfo?.weight)}
             />
-            <DisplayCell label={getCopy(copy.timeline.bmi, locale)} value={formatBmi(basicInfo?.height, basicInfo?.weight)} />
           </div>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className={`${ledgerSurfaceClass} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
             <EditableCell
               critical
               disabled={disabled}
@@ -428,56 +584,59 @@ export function ReportPreviewFrame({
               value={display(basicInfo?.stage)}
             />
             <EditableCell
-              critical
-              disabled={disabled}
-              label={getCopy(copy.timeline.regimen, locale)}
-              onCommitField={onCommitField}
-              target={getRegimenTarget(record)}
-              value={display(lineOne?.regimen ?? record.initialOnset?.treatment)}
-            />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-4 lg:col-span-2">
-            <EditableCell
               disabled={disabled}
               label={getCopy(copy.timeline.diagnosisDate, locale)}
               onCommitField={onCommitField}
               target={{ field: 'diagnosisDate', section: 'basicInfo' }}
               value={display(basicInfo?.diagnosisDate)}
             />
-            <DisplayCell label={getCopy(copy.timeline.genetic, locale)} value={display(getInitialGenetic(record))} />
-            <DisplayCell label={getCopy(copy.timeline.immunohistochemistry, locale)} value={display(getInitialIhc(record))} />
-            <DisplayCell label={locale === 'zh' ? '其他信息' : 'Other Information'} value="--" />
+          </div>
+          <div className={`${ledgerSurfaceClass} grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr]`}>
+            <EditableCell
+              critical
+              disabled={disabled}
+              label={getCopy(copy.timeline.regimen, locale)}
+              onCommitField={onCommitField}
+              target={getRegimenEditTarget(record)}
+              value={display(lineOne?.regimen ?? record.initialOnset?.treatment)}
+            />
+            <EditableCell
+              disabled={disabled}
+              label={getLatestEvidenceLabel('geneticTest', locale)}
+              onCommitField={onCommitField}
+              target={getEvidenceTarget(record, geneticEntries, 'geneticTest')}
+              value={latestGenetic?.value ?? '--'}
+            />
+            <EditableCell
+              disabled={disabled}
+              label={getLatestEvidenceLabel('immunohistochemistry', locale)}
+              onCommitField={onCommitField}
+              target={getEvidenceTarget(record, ihcEntries, 'immunohistochemistry')}
+              value={latestIhc?.value ?? '--'}
+            />
           </div>
         </div>
 
         <h3 className={`mt-4 ${previewSectionTitleClass}`}>{locale === 'zh' ? '治疗时间线' : 'Treatment Timeline'}</h3>
-        <div className="mt-2 max-w-full overflow-x-auto pb-2">
-          <div className="flex flex-col gap-3 md:min-w-max md:flex-row md:items-center md:gap-2">
-            <span className="hidden h-8 w-8 shrink-0 rounded-[var(--ff-radius-full)] border-2 border-dashed border-[var(--ff-line)] md:block" />
-            {timelineItems.map((item, index) => (
-              <div className="contents" key={`${item.label}-${index}`}>
-                <Connector />
-                <TimelinePill {...item} />
-              </div>
-            ))}
-            <span className="hidden h-8 w-8 shrink-0 rounded-[var(--ff-radius-full)] border-2 border-dashed border-[var(--ff-line)] md:block" />
-          </div>
-        </div>
+        <TimelineTrack items={timelineItems} />
 
         <h3 className={`mt-4 ${previewSectionTitleClass}`}>{getCopy(copy.workspace.report.clinicalNotes, locale)}</h3>
-        <div className="mt-2 flex gap-3">
-          <div className="flex min-h-12 flex-1 items-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-4 text-sm text-[var(--ff-text-muted)]">
-            {notePlaceholder}
-          </div>
-          <button
-            className="t-control-press flex h-12 w-14 shrink-0 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)]"
-            type="button"
-          >
-            <span className="material-symbols-outlined">edit</span>
-          </button>
+        <div className="mt-2 overflow-hidden rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-inset)_92%,transparent)]">
+          <EditableCell
+            disabled={disabled}
+            editValue={record.clinicalNotes ?? ''}
+            hideLabel
+            label={locale === 'zh' ? '备注内容' : 'Notes Body'}
+            multiline
+            onCommitField={onCommitField}
+            placeholder={notePlaceholder}
+            target={{ field: 'clinicalNotes', section: 'record' }}
+            value={display(record.clinicalNotes, notePlaceholder)}
+          />
+          <EvidenceHistoryList entries={evidenceHistory} locale={locale} />
         </div>
 
-        <div className="mt-4 flex flex-col gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-4 md:flex-row md:items-center">
+        <div className="mt-4 flex flex-col gap-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[color:color-mix(in_srgb,var(--ff-surface-inset)_88%,var(--ff-surface-panel))] p-3 md:flex-row md:items-center">
           <AuditItem
             icon="health_and_safety"
             label={locale === 'zh' ? 'AI 验证状态' : 'AI Verification Status'}

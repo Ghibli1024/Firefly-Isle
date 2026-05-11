@@ -3,7 +3,7 @@
 定义 PatientRecord、TreatmentLine、initialOnset 以及三类患者渲染判定的数据模型规则。
 ## Requirements
 ### Requirement: PatientRecord 核心数据结构
-系统 SHALL 定义 PatientRecord 接口，包含基本信息、初发区块、治疗线数组以及可选的独立实验室指标集合；除 `treatmentLines` 外所有字段均为可选。
+系统 SHALL 定义 PatientRecord 接口，包含基本信息、临床备注、初发区块、治疗线数组以及可选的独立实验室指标集合；除 `treatmentLines` 外所有字段均为可选。
 
 #### Scenario: 创建最小化 PatientRecord
 - **WHEN** 系统初始化一条患者记录
@@ -11,7 +11,12 @@
 
 #### Scenario: basicInfo 包含完整字段集
 - **WHEN** 用户提供患者基本信息
-- **THEN** 系统 SHALL 接受 gender、age、height、weight、tumorType、diagnosisDate、stage 七个可选字段，类型分别为 string/number/number/number/string/string/string
+- **THEN** 系统 SHALL 接受 name、gender、age、height、weight、tumorType、diagnosisDate、stage 八个可选字段，类型分别为 string/string/number/number/number/string/string/string
+
+#### Scenario: clinicalNotes 承载其他信息
+- **WHEN** 用户提供无法归入 basicInfo、initialOnset、treatmentLines 或 labResults 的补充说明
+- **THEN** 系统 SHALL 将其保存到可选 `clinicalNotes` 字符串字段
+- **AND** 工作台 SHALL 不再用独立“其他信息”基本信息格承载该内容
 
 #### Scenario: labResults 保持独立
 - **WHEN** 用户提供实验室指标记录

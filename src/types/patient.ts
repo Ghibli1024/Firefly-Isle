@@ -1,10 +1,11 @@
 /**
  * [INPUT]: 不依赖运行时框架，仅承载患者领域模型、编辑目标与判定逻辑。
- * [OUTPUT]: 对外提供 PatientRecord、TreatmentLine、InitialOnset、BasicInfo、LabResult、PatientArchetype、PatientFieldTarget 与 getPatientArchetype。
+ * [OUTPUT]: 对外提供 PatientRecord、TreatmentLine、InitialOnset、BasicInfo、LabResult、PatientArchetype、PatientFieldTarget 与 getPatientArchetype，包含姓名与临床备注字段。
  * [POS]: types 的核心领域模型文件，为提取、渲染、编辑与持久化共享同一份患者结构真相源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export interface BasicInfo {
+  name?: string
   gender?: string
   age?: number
   height?: number
@@ -52,12 +53,14 @@ export interface LabResult {
 export interface PatientRecord {
   id?: string
   basicInfo?: BasicInfo
+  clinicalNotes?: string
   initialOnset?: InitialOnset
   labResults?: LabResult[]
   treatmentLines: TreatmentLine[]
 }
 
 export type PatientFieldTarget =
+  | { section: 'record'; field: 'clinicalNotes' }
   | { section: 'basicInfo'; field: keyof BasicInfo }
   | { section: 'initialOnset'; field: keyof InitialOnset }
   | { section: 'treatmentLine'; field: Exclude<keyof TreatmentLine, 'lineNumber'>; lineNumber: number }

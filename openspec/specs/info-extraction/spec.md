@@ -13,6 +13,12 @@
 - **WHEN** LLM 返回提取结果
 - **THEN** age、height、weight、lineNumber 等数值字段 SHALL 为 number 类型，日期字段 SHALL 为 ISO 8601 字符串格式（YYYY-MM-DD 或 YYYY-MM）
 
+#### Scenario: 其他信息进入临床备注
+- **WHEN** 用户输入包含姓名或无法归入治疗线、初发区块、实验室指标的补充说明
+- **THEN** 系统 SHALL 将姓名写入 `basicInfo.name`
+- **AND** 系统 SHALL 将补充说明写入 `clinicalNotes`
+- **AND** 系统 SHALL NOT 要求或保存 BMI 字段；BMI 仅在详情页由身高体重计算展示
+
 ### Requirement: 缺失关键字段识别
 系统 SHALL 识别 PatientRecord 中对临床意义重要的缺失字段，并生成追问内容。
 
