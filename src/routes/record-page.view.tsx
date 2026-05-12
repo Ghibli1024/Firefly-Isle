@@ -1,18 +1,18 @@
 /**
- * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、demo-record 的默认病例、record-copy 的 labels、@/components/timeline 的 TreatmentGanttView、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
- * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode 与 RecordExportState，并统一档案/Gantt 切换动效锚点。
- * [POS]: routes 的档案详情内容组合层，隔离 dossier/gantt 视图切换与 crossfade 入场，让 record-page.tsx 保持路由与副作用编排。
+ * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier 展示、demo-record 的默认病例、record-copy 的 labels、@/components/timeline 的 TreatmentGanttView、PatientRecord 字段编辑目标、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
+ * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode、RecordExportState 与 RecordSaveState，并统一档案/Gantt 切换动效锚点、页面级编辑入口和字段保存状态展示。
+ * [POS]: routes 的档案详情内容组合层，隔离 dossier/gantt 视图切换、右侧编辑工具条、字段提交入口与 crossfade 入场，让 record-page.tsx 保持路由、副作用和 Supabase 持久化编排。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { RefObject } from 'react'
+import type { CSSProperties, RefObject } from 'react'
 
-import { demoPatientRecord, demoTreatmentGanttSupplementNotes } from '@/components/record/demo-record'
+import { demoTreatmentGanttSupplementNotes } from '@/components/record/demo-record'
 import { labels } from '@/components/record/record-copy'
 import { RecordDossier, RecordUnavailableDossier } from '@/components/record/record-dossier'
 import type { ExportFormat } from '@/components/record/types'
 import { TreatmentGanttView } from '@/components/timeline/TreatmentGanttView'
 import type { Locale } from '@/lib/locale'
-import type { PatientRecord } from '@/types/patient'
+import type { PatientFieldTarget, PatientRangeTarget, PatientRecord } from '@/types/patient'
 
 import type { RecordLoadState } from './record-page.logic'
 
@@ -24,14 +24,25 @@ export type RecordExportState = {
   isExporting: boolean
 }
 
+export type RecordSaveState = {
+  error: string | null
+  status: 'idle' | 'saving' | 'saved' | 'error'
+}
+
 type RecordPageContentProps = {
   activeRecordLoadState: RecordLoadState
+  demoRecord: PatientRecord
   demoRoute: boolean
   exportState: RecordExportState
+  isChartEditing: boolean
   locale: Locale
+  onChartEditingChange: (isEditing: boolean) => void
+  onCommitField: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onCommitRange: (target: PatientRangeTarget, value: string) => Promise<void> | void
   onExport: (format: ExportFormat) => void
   onViewModeChange: (viewMode: RecordViewMode) => void
   recordRef: RefObject<HTMLDivElement>
+  saveState: RecordSaveState
   viewMode: RecordViewMode
 }
 
@@ -46,8 +57,55 @@ const switchCopy = {
   },
 } satisfies Record<Locale, Record<RecordViewMode, string>>
 
-function getGanttRecord(demoRoute: boolean, activeRecordLoadState: RecordLoadState): PatientRecord | null {
-  return demoRoute ? demoPatientRecord : activeRecordLoadState.record
+function getGanttRecord(demoRoute: boolean, activeRecordLoadState: RecordLoadState, demoRecord: PatientRecord): PatientRecord | null {
+  return demoRoute ? demoRecord : activeRecordLoadState.record
+}
+
+function RecordEditToolbar({
+  isChartEditing,
+  locale,
+  onChartEditingChange,
+  saveState,
+}: {
+  isChartEditing: boolean
+  locale: Locale
+  onChartEditingChange: (isEditing: boolean) => void
+  saveState: RecordSaveState
+}) {
+  const activeLabel = locale === 'zh' ? '关闭编辑' : 'Turn off editing'
+  const inactiveLabel = locale === 'zh' ? '开启编辑' : 'Turn on editing'
+  const inactiveText = locale === 'zh' ? '编辑' : 'Edit'
+  const statusText = {
+    error: saveState.error ?? (locale === 'zh' ? '保存失败' : 'Save failed'),
+    idle: '',
+    saved: locale === 'zh' ? '已保存' : 'Saved',
+    saving: locale === 'zh' ? '保存中...' : 'Saving...',
+  }[saveState.status]
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-semibold text-[var(--ff-text-secondary)]">
+      {statusText ? (
+        <span className={saveState.status === 'error' ? 'text-[var(--ff-accent-primary)]' : 'text-[var(--ff-text-muted)]'} role={saveState.status === 'error' ? 'alert' : 'status'}>
+          {statusText}
+        </span>
+      ) : null}
+      <button
+        aria-label={isChartEditing ? activeLabel : inactiveLabel}
+        aria-pressed={isChartEditing}
+        className={[
+          'inline-flex h-8 items-center gap-1.5 rounded-[var(--ff-radius-sm)] border px-2.5 text-xs font-bold',
+          isChartEditing
+            ? 'border-[var(--ff-accent-primary)] bg-[color-mix(in_srgb,var(--ff-accent-primary)_14%,transparent)] text-[var(--ff-accent-primary)]'
+            : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-secondary)]',
+        ].join(' ')}
+        onClick={() => onChartEditingChange(!isChartEditing)}
+        type="button"
+      >
+        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{isChartEditing ? 'done' : 'edit'}</span>
+        {isChartEditing ? (locale === 'zh' ? '完成编辑' : 'Done') : inactiveText}
+      </button>
+    </div>
+  )
 }
 
 function RecordViewSwitch({
@@ -61,14 +119,21 @@ function RecordViewSwitch({
 }) {
   const text = switchCopy[locale]
   const modes: RecordViewMode[] = ['dossier', 'gantt']
+  const activeIndex = modes.indexOf(viewMode)
+  const sliderStyle = {
+    '--tab-switch-count': modes.length,
+    '--tab-switch-index': activeIndex,
+  } as CSSProperties
 
   return (
     <div
       aria-label={locale === 'zh' ? '病历详情视图切换' : 'Record detail view switch'}
-      className="t-tab-switch mb-4 inline-flex rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-1"
+      className="t-tab-switch t-tab-switch-slider inline-flex rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-1"
       data-active-page={viewMode}
       data-testid="record-view-switch"
+      style={sliderStyle}
     >
+      <span aria-hidden="true" className="t-tab-switch-thumb" />
       {modes.map((mode) => {
         const active = viewMode === mode
 
@@ -76,8 +141,8 @@ function RecordViewSwitch({
           <button
             aria-pressed={active}
             className={[
-              'h-10 rounded-[var(--ff-radius-md)] px-4 text-sm font-semibold tracking-normal',
-              active ? 'bg-[var(--ff-accent-primary)] text-white' : 'text-[var(--ff-text-secondary)]',
+              'relative z-[1] h-10 rounded-[var(--ff-radius-md)] px-4 text-sm font-semibold tracking-normal',
+              active ? 'text-white' : 'text-[var(--ff-text-secondary)]',
             ].join(' ')}
             key={mode}
             onClick={() => onViewModeChange(mode)}
@@ -93,23 +158,50 @@ function RecordViewSwitch({
 
 export function RecordPageContent({
   activeRecordLoadState,
+  demoRecord,
   demoRoute,
   exportState,
+  isChartEditing,
   locale,
+  onChartEditingChange,
+  onCommitField,
+  onCommitRange,
   onExport,
   onViewModeChange,
   recordRef,
+  saveState,
   viewMode,
 }: RecordPageContentProps) {
-  const ganttRecord = getGanttRecord(demoRoute, activeRecordLoadState)
+  const ganttRecord = getGanttRecord(demoRoute, activeRecordLoadState, demoRecord)
   const switchNode = ganttRecord ? <RecordViewSwitch locale={locale} onViewModeChange={onViewModeChange} viewMode={viewMode} /> : null
+  const toolbarNode = ganttRecord ? (
+    <RecordEditToolbar
+      isChartEditing={isChartEditing}
+      locale={locale}
+      onChartEditingChange={onChartEditingChange}
+      saveState={saveState}
+    />
+  ) : null
+  const controlsNode = ganttRecord ? (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      {switchNode}
+      {toolbarNode}
+    </div>
+  ) : null
 
   if (ganttRecord && viewMode === 'gantt') {
     return (
       <>
-        {switchNode}
+        {controlsNode}
         <div className="t-record-view" data-active-page="gantt">
-          <TreatmentGanttView locale={locale} record={ganttRecord} supplementNotes={demoRoute ? demoTreatmentGanttSupplementNotes : undefined} />
+          <TreatmentGanttView
+            isEditable={isChartEditing}
+            locale={locale}
+            onCommitField={onCommitField}
+            onCommitRange={onCommitRange}
+            record={ganttRecord}
+            supplementNotes={demoRoute ? demoTreatmentGanttSupplementNotes : undefined}
+          />
         </div>
       </>
     )
@@ -118,15 +210,19 @@ export function RecordPageContent({
   if (demoRoute) {
     return (
       <>
-        {switchNode}
+        {controlsNode}
         <div className="t-record-view" data-active-page="dossier">
           <RecordDossier
             exportError={exportState.error}
             exportFormat={exportState.format}
+            isEditable={isChartEditing}
             isExportDisabled
             isExporting={exportState.isExporting}
             locale={locale}
+            onCommitField={onCommitField}
+            onCommitRange={onCommitRange}
             onExport={onExport}
+            record={demoRecord}
             recordRef={recordRef}
           />
         </div>
@@ -137,14 +233,17 @@ export function RecordPageContent({
   if (activeRecordLoadState.record) {
     return (
       <>
-        {switchNode}
+        {controlsNode}
         <div className="t-record-view" data-active-page="dossier">
           <RecordDossier
             exportError={exportState.error}
             exportFormat={exportState.format}
+            isEditable={isChartEditing}
             isExportDisabled={false}
             isExporting={exportState.isExporting}
             locale={locale}
+            onCommitField={onCommitField}
+            onCommitRange={onCommitRange}
             onExport={onExport}
             record={activeRecordLoadState.record}
             recordRef={recordRef}

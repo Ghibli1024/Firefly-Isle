@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖隐私文案真相源与 PatientRecord 类型工具。
- * [OUTPUT]: 对外提供隐私内容、患者类型判定、认证路由、隐私页动效与背景音 Provider 挂载位置的回归测试。
+ * [OUTPUT]: 对外提供隐私内容、患者类型判定、认证路由、统计路由、隐私页动效与背景音 Provider 挂载位置的回归测试。
  * [POS]: lib 的应用级合同测试，约束 App 装配层不丢失隐私、路由守卫、OAuth 错误、隐私页全站动效与全局背景音生命周期边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -74,6 +74,16 @@ describe('auth route guard contract', () => {
 
     expect(source).toContain('path="/app"')
     expect(source).toContain('<Navigate replace to="/login" />')
+  })
+
+  it('keeps /analytics protected and mounted through demo/id statistics routes', () => {
+    const source = readAppSource()
+
+    expect(source).toContain('const LabAnalyticsPage = lazy')
+    expect(source).toContain('path="/analytics"')
+    expect(source).toContain('to="/analytics/demo"')
+    expect(source).toContain('path="/analytics/:id"')
+    expect(source).toContain('<LabAnalyticsPage isSigningOut={isSigningOut} onSignOut={signOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />')
   })
 
   it('keeps OAuth callback on a public route before the /app guard runs', () => {

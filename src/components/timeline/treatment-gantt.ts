@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale、@/lib/timeline-duration 的共享日期/PFS 工具与 @/types/patient 的 PatientRecord/TreatmentLine 领域结构。
- * [OUTPUT]: 对外提供 TreatmentGanttProjection、TreatmentGanttRow 与 buildTreatmentGanttProjection。
- * [POS]: components/timeline 的甘特图纯数据投影层，把初发与治疗线日期归一为可测试的 BL/Ln 标记、PFS、bar、gap、axis 与开放当前线状态。
+ * [INPUT]: 依赖 @/lib/locale 的 Locale、@/lib/timeline-duration 的共享日期/PFS 工具与 @/types/patient 的 PatientRecord/TreatmentLine/字段编辑目标领域结构。
+ * [OUTPUT]: 对外提供 TreatmentGanttProjection、TreatmentGanttRow 与 buildTreatmentGanttProjection，包含可保存字段目标。
+ * [POS]: components/timeline 的甘特图纯数据投影层，把初发与治疗线日期归一为可测试、可字段级编辑的 BL/Ln 标记、PFS、bar、gap、axis 与开放当前线状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -13,7 +13,7 @@ import {
   type TimelineDurationStatus,
   type TimelineParsedDate,
 } from '@/lib/timeline-duration'
-import type { PatientRecord, TreatmentLine } from '@/types/patient'
+import type { PatientFieldTarget, PatientRangeTarget, PatientRecord, TreatmentLine } from '@/types/patient'
 
 export type TreatmentGanttBar = {
   leftPercent: number
@@ -37,6 +37,7 @@ export type TreatmentGanttEvent = {
 
 export type TreatmentGanttSupplementPart = {
   label: string
+  target?: PatientFieldTarget
   value: string
 }
 
@@ -51,7 +52,9 @@ export type TreatmentGanttRow = {
   marker: string
   pfsLabel: string
   plan: string
+  planTarget?: PatientFieldTarget
   rangeLabel: string
+  rangeTarget?: PatientRangeTarget
   status: TimelineDurationStatus
   supplementParts: TreatmentGanttSupplementPart[]
 }
@@ -71,8 +74,10 @@ type RowDraft = {
   lineNumber: number | null
   marker: string
   plan?: string
+  planTarget?: PatientFieldTarget
   start: TimelineParsedDate | null
   startRaw?: string
+  rangeTarget?: PatientRangeTarget
   supplementParts: TreatmentGanttSupplementPart[]
 }
 
@@ -92,6 +97,24 @@ function formatTreatmentMarker(lineNumber: number) {
   return `L${lineNumber}`
 }
 
+type InitialOnsetTargetField = Extract<PatientFieldTarget, { section: 'initialOnset' }>['field']
+type TreatmentLineTargetField = Extract<PatientFieldTarget, { section: 'treatmentLine' }>['field']
+
+function initialOnsetTarget(field: InitialOnsetTargetField) {
+  return { field, section: 'initialOnset' } satisfies PatientFieldTarget
+}
+
+function treatmentLineTarget(lineNumber: number, field: TreatmentLineTargetField) {
+  return { field, lineNumber, section: 'treatmentLine' } satisfies PatientFieldTarget
+}
+
+function treatmentLineRangeTarget(line: TreatmentLine): PatientRangeTarget {
+  return {
+    end: treatmentLineTarget(line.lineNumber, 'endDate'),
+    start: treatmentLineTarget(line.lineNumber, 'startDate'),
+  }
+}
+
 function formatRange(startRaw: string | undefined, endRaw: string | undefined, status: TreatmentGanttRow['status'], locale: Locale) {
   if (status === 'complete' || status === 'ongoing') {
     const range = formatTimelineDateRange(startRaw, endRaw, '-', status === 'ongoing' ? (locale === 'zh' ? '至今' : 'Present') : undefined)
@@ -108,23 +131,32 @@ function buildSupplementParts({
   biopsy,
   geneticTest,
   immunohistochemistry,
+  lineNumber,
 }: {
   biopsy?: string
   geneticTest?: string
   immunohistochemistry?: string
+  lineNumber?: number
 }) {
   const parts: TreatmentGanttSupplementPart[] = []
+  const target = (field: InitialOnsetTargetField | TreatmentLineTargetField) => {
+    if (lineNumber) {
+      return treatmentLineTarget(lineNumber, field as TreatmentLineTargetField)
+    }
+
+    return field === 'biopsy' ? undefined : initialOnsetTarget(field as InitialOnsetTargetField)
+  }
 
   if (trim(biopsy)) {
-    parts.push({ label: '活检/事件', value: trim(biopsy)! })
+    parts.push({ label: '活检/事件', target: target('biopsy'), value: trim(biopsy)! })
   }
 
   if (trim(immunohistochemistry)) {
-    parts.push({ label: '免疫组化', value: trim(immunohistochemistry)! })
+    parts.push({ label: '免疫组化', target: target('immunohistochemistry'), value: trim(immunohistochemistry)! })
   }
 
   if (trim(geneticTest)) {
-    parts.push({ label: '基因检测', value: trim(geneticTest)! })
+    parts.push({ label: '基因检测', target: target('geneticTest'), value: trim(geneticTest)! })
   }
 
   return parts
@@ -149,6 +181,11 @@ function buildDrafts(record: PatientRecord): RowDraft[] {
       lineNumber: null,
       marker: 'BL',
       plan: record.initialOnset.treatment,
+      planTarget: initialOnsetTarget('treatment'),
+      rangeTarget: {
+        end: firstLine ? treatmentLineTarget(firstLine.lineNumber, 'startDate') : undefined,
+        start: initialOnsetTarget('triggerDate'),
+      },
       start: parseTimelineDate(record.initialOnset.triggerDate),
       startRaw: record.initialOnset.triggerDate,
       supplementParts: buildSupplementParts(record.initialOnset),
@@ -164,9 +201,11 @@ function buildDrafts(record: PatientRecord): RowDraft[] {
       lineNumber: line.lineNumber,
       marker: formatTreatmentMarker(line.lineNumber),
       plan: line.regimen,
+      planTarget: treatmentLineTarget(line.lineNumber, 'regimen'),
+      rangeTarget: treatmentLineRangeTarget(line),
       start: parseTimelineDate(line.startDate),
       startRaw: line.startDate,
-      supplementParts: buildSupplementParts(line),
+      supplementParts: buildSupplementParts({ ...line, lineNumber: line.lineNumber }),
     })
   })
 
@@ -241,7 +280,9 @@ export function buildTreatmentGanttProjection(record: PatientRecord, locale: Loc
         marker: draft.marker,
         pfsLabel: formatTimelinePfsLabelByStatus(draft.start, draft.end, 'pending', locale),
         plan: trim(draft.plan) ?? getPlanFallback(locale),
+        planTarget: draft.planTarget,
         rangeLabel: formatRange(draft.startRaw, draft.endRaw, 'pending', locale),
+        rangeTarget: draft.rangeTarget,
         status: 'pending',
         supplementParts: draft.supplementParts,
       })),
@@ -294,7 +335,9 @@ export function buildTreatmentGanttProjection(record: PatientRecord, locale: Loc
       marker: draft.marker,
       pfsLabel: formatTimelinePfsLabelByStatus(draft.start, draft.end, status, locale),
       plan: trim(draft.plan) ?? getPlanFallback(locale),
+      planTarget: draft.planTarget,
       rangeLabel: formatRange(draft.startRaw, draft.endRaw, status, locale),
+      rangeTarget: draft.rangeTarget,
       status,
       supplementParts: draft.supplementParts,
     }

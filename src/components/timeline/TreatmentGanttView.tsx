@@ -1,18 +1,21 @@
 /**
- * [INPUT]: 依赖 react 的 CSSProperties/ref/pointer 键盘事件、@/lib/locale 的 Locale、@/types/patient 的 PatientRecord、./treatment-gantt 的治疗方案甘特投影与 transitions-dev.css 的 stagger/gantt grow 动效合同。
- * [OUTPUT]: 对外提供 TreatmentGanttView 组件，窄屏渲染纵向治疗卡片，桌面渲染左右固定、中间时间轴可独立拖动且使用 BL/Ln 标记的只读治疗方案甘特图。
- * [POS]: components/timeline 的甘特图展示层，只把 PatientRecord 与展示层补充文案投影为响应式只读治疗方案视图，不拥有记录编辑、保存或导出行为。
+ * [INPUT]: 依赖 react 的 CSSProperties/ref/pointer 键盘事件、@/lib/locale 的 Locale、@/types/patient 的 PatientRecord 与字段保存目标、./treatment-gantt 的治疗方案甘特投影与 transitions-dev.css 的 stagger/gantt grow 动效合同。
+ * [OUTPUT]: 对外提供 TreatmentGanttView 组件，窄屏渲染纵向治疗卡片，桌面渲染左右固定、中间时间轴可独立拖动且使用 BL/Ln 标记的可字段级保存治疗方案甘特图。
+ * [POS]: components/timeline 的甘特图展示层，只把 PatientRecord 与展示层补充文案投影为响应式治疗方案视图，可按页面级编辑模式提交字段级保存但不拥有导出行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef, useState } from 'react'
 
 import type { Locale } from '@/lib/locale'
-import type { PatientRecord } from '@/types/patient'
+import type { PatientFieldTarget, PatientRangeTarget, PatientRecord } from '@/types/patient'
 
 import { buildTreatmentGanttProjection, type TreatmentGanttRow } from './treatment-gantt'
 
 type TreatmentGanttViewProps = {
+  isEditable?: boolean
   locale: Locale
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onCommitRange?: (target: PatientRangeTarget, value: string) => Promise<void> | void
   record: PatientRecord
   supplementNotes?: Record<string, string>
 }
@@ -70,12 +73,98 @@ function TimelineDragHint() {
   )
 }
 
+function EditableGanttText({
+  ariaLabel,
+  children,
+  className = '',
+  isEditable,
+  onCommitField,
+  onCommitRange,
+  rangeTarget,
+  target,
+}: {
+  ariaLabel: string
+  children: string
+  className?: string
+  isEditable: boolean
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onCommitRange?: (target: PatientRangeTarget, value: string) => Promise<void> | void
+  rangeTarget?: PatientRangeTarget
+  target?: PatientFieldTarget
+}) {
+  const skipCommitRef = useRef(false)
+  const canEdit = isEditable && ((target && onCommitField) || (rangeTarget && onCommitRange))
+
+  if (!canEdit) {
+    return <span className={className}>{children}</span>
+  }
+
+  function commit(value: string) {
+    const normalized = value.trim()
+
+    if (normalized === children.trim()) {
+      return
+    }
+
+    if (target && onCommitField) {
+      void onCommitField(target, normalized)
+      return
+    }
+
+    if (rangeTarget && onCommitRange) {
+      void onCommitRange(rangeTarget, normalized)
+    }
+  }
+
+  return (
+    <span
+      aria-label={ariaLabel}
+      className={[
+        className,
+        'inline-block rounded-[var(--ff-radius-sm)] border border-[color-mix(in_srgb,var(--ff-accent-primary)_45%,var(--ff-border-default))] bg-[var(--ff-surface-inset)] px-1 outline-none focus:border-[var(--ff-accent-primary)]',
+      ].filter(Boolean).join(' ')}
+      contentEditable
+      onBlur={(event) => {
+        if (skipCommitRef.current) {
+          skipCommitRef.current = false
+          return
+        }
+
+        commit(event.currentTarget.textContent ?? '')
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          skipCommitRef.current = true
+          event.currentTarget.textContent = children
+          event.currentTarget.blur()
+          return
+        }
+
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault()
+          event.currentTarget.blur()
+        }
+      }}
+      role="textbox"
+      suppressContentEditableWarning
+    >
+      {children}
+    </span>
+  )
+}
+
 function CompactTreatmentRows({
+  isEditable,
   locale,
+  onCommitField,
+  onCommitRange,
   rows,
   supplementNotes,
 }: {
+  isEditable: boolean
   locale: Locale
+  onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
+  onCommitRange?: (target: PatientRangeTarget, value: string) => Promise<void> | void
   rows: TreatmentGanttRow[]
   supplementNotes?: Record<string, string>
 }) {
@@ -94,21 +183,23 @@ function CompactTreatmentRows({
           style={{ '--t-order': index } as CSSProperties}
         >
           <div className="grid h-11 w-11 place-items-center rounded-[var(--ff-radius-full)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-accent)] font-[var(--ff-font-mono)] text-sm font-black text-[var(--ff-accent-primary)]">
-            {row.marker}
+            <EditableGanttText ariaLabel={`编辑${row.marker}标记`} isEditable={false}>{row.marker}</EditableGanttText>
           </div>
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
-              <strong className="font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-primary)] [overflow-wrap:anywhere]">{row.rangeLabel}</strong>
-              <span className="rounded-[var(--ff-radius-full)] border border-[var(--ff-border-muted)] px-2 py-0.5 text-[11px] font-bold text-[var(--ff-text-muted)]">
-                {row.pfsLabel}
-              </span>
+                        <strong className="font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-primary)] [overflow-wrap:anywhere]">
+                          <EditableGanttText ariaLabel={`编辑${row.marker}时间段`} isEditable={isEditable} onCommitRange={onCommitRange} rangeTarget={row.rangeTarget}>{row.rangeLabel}</EditableGanttText>
+                        </strong>
+                        <span className="rounded-[var(--ff-radius-full)] border border-[var(--ff-border-muted)] px-2 py-0.5 text-[11px] font-bold text-[var(--ff-text-muted)]">
+                          <EditableGanttText ariaLabel={`编辑${row.marker} PFS`} isEditable={false}>{row.pfsLabel}</EditableGanttText>
+                        </span>
             </div>
             <p className="m-0 whitespace-normal text-sm leading-6 text-[var(--ff-text-secondary)] [overflow-wrap:anywhere]">
-              {row.plan}
+              <EditableGanttText ariaLabel={`编辑${row.marker}方案`} isEditable={isEditable} onCommitField={onCommitField} target={row.planTarget}>{row.plan}</EditableGanttText>
             </p>
             <p className="mt-3 border-t border-[var(--ff-border-muted)] pt-3 text-xs leading-6 text-[var(--ff-text-secondary)] [overflow-wrap:anywhere]">
               <span className="mb-1 block font-extrabold text-[var(--ff-text-primary)]">{text.rightTitle}</span>
-              {getSupplementText(row, locale, supplementNotes)}
+              <EditableGanttText ariaLabel={`编辑${row.marker}补充资料`} isEditable={isEditable} onCommitField={onCommitField} target={row.supplementParts.length === 1 && !supplementNotes?.[row.id] ? row.supplementParts[0].target : undefined}>{getSupplementText(row, locale, supplementNotes)}</EditableGanttText>
             </p>
           </div>
         </article>
@@ -117,7 +208,14 @@ function CompactTreatmentRows({
   )
 }
 
-export function TreatmentGanttView({ locale, record, supplementNotes }: TreatmentGanttViewProps) {
+export function TreatmentGanttView({
+  isEditable = false,
+  locale,
+  onCommitField,
+  onCommitRange,
+  record,
+  supplementNotes,
+}: TreatmentGanttViewProps) {
   const text = copy[locale]
   const projection = buildTreatmentGanttProjection(record, locale)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -195,7 +293,14 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
         </div>
       ) : (
         <div className="max-w-full overflow-hidden rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-3 md:p-4">
-          <CompactTreatmentRows locale={locale} rows={projection.rows} supplementNotes={supplementNotes} />
+          <CompactTreatmentRows
+            isEditable={isEditable}
+            locale={locale}
+            onCommitField={onCommitField}
+            onCommitRange={onCommitRange}
+            rows={projection.rows}
+            supplementNotes={supplementNotes}
+          />
           <div className="hidden lg:grid min-w-0 gap-3 lg:grid-cols-[minmax(230px,0.78fr)_minmax(220px,1fr)_minmax(250px,0.9fr)] 2xl:grid-cols-[minmax(270px,360px)_minmax(280px,1fr)_minmax(300px,430px)]" data-testid="treatment-gantt-desktop-grid">
             <div className="min-w-0 w-full">
               <div className="flex h-auto items-center pb-3 text-sm font-extrabold text-[var(--ff-text-primary)] lg:h-[78px] lg:pb-0">{text.leftTitle}</div>
@@ -210,17 +315,19 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
                     style={{ '--t-order': index, maxWidth: 'calc(100vw - 4rem)' } as CSSProperties}
                   >
                     <div className="grid h-11 w-11 place-items-center rounded-[var(--ff-radius-full)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-accent)] font-[var(--ff-font-mono)] text-sm font-black text-[var(--ff-accent-primary)]">
-                      {row.marker}
+                        <EditableGanttText ariaLabel={`编辑${row.marker}标记`} isEditable={false}>{row.marker}</EditableGanttText>
                     </div>
                     <div className="min-w-0">
                       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                        <strong className="font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-primary)] [overflow-wrap:anywhere]">{row.rangeLabel}</strong>
+                        <strong className="font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-primary)] [overflow-wrap:anywhere]">
+                          <EditableGanttText ariaLabel={`编辑${row.marker}时间段`} isEditable={isEditable} onCommitRange={onCommitRange} rangeTarget={row.rangeTarget}>{row.rangeLabel}</EditableGanttText>
+                        </strong>
                         <span className="rounded-[var(--ff-radius-full)] border border-[var(--ff-border-muted)] px-2 py-0.5 text-[11px] font-bold text-[var(--ff-text-muted)]">
-                          {row.pfsLabel}
+                          <EditableGanttText ariaLabel={`编辑${row.marker} PFS`} isEditable={false}>{row.pfsLabel}</EditableGanttText>
                         </span>
                       </div>
                       <p className="m-0 whitespace-normal text-sm leading-6 text-[var(--ff-text-secondary)]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
-                        {row.plan}
+                      <EditableGanttText ariaLabel={`编辑${row.marker}方案`} isEditable={isEditable} onCommitField={onCommitField} target={row.planTarget}>{row.plan}</EditableGanttText>
                       </p>
                     </div>
                   </article>
@@ -248,7 +355,7 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
                   {projection.axisTicks.map((tick) => (
                     <span className="absolute bottom-[-18px] whitespace-nowrap" key={tick.label} style={{ left: `${tick.leftPercent}%` }}>
                       <b className="absolute bottom-[18px] h-3 w-px bg-[var(--ff-line)]" />
-                      {tick.label}
+                      <EditableGanttText ariaLabel={`编辑${tick.label}轴刻度`} isEditable={false}>{tick.label}</EditableGanttText>
                     </span>
                   ))}
                   <TimelineDragHint />
@@ -258,7 +365,7 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
                   {projection.events.map((event) => (
                     <i className="absolute bottom-0 top-0 w-px bg-[color-mix(in_srgb,var(--ff-accent-primary)_26%,transparent)]" key={`${event.label}-${event.leftPercent}`} style={{ left: `${event.leftPercent}%` }}>
                       <b className="absolute left-[-11px] top-0 grid h-[22px] w-[22px] place-items-center rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)] font-[var(--ff-font-mono)] text-[10px] text-white">
-                        {event.label}
+                        <EditableGanttText ariaLabel={`编辑${event.label}事件标记`} isEditable={false}>{event.label}</EditableGanttText>
                       </b>
                     </i>
                   ))}
@@ -288,7 +395,7 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
                               width: 'var(--t-gantt-width)',
                             } as CSSProperties}
                           >
-                            {row.marker}
+                            <EditableGanttText ariaLabel={`编辑${row.marker}条形标记`} isEditable={false}>{row.marker}</EditableGanttText>
                           </i>
                         ) : (
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[var(--ff-text-secondary)]">{text.noBar}</span>
@@ -319,7 +426,7 @@ export function TreatmentGanttView({ locale, record, supplementNotes }: Treatmen
                     style={{ '--t-order': index, maxWidth: 'calc(100vw - 4rem)' } as CSSProperties}
                   >
                     <p className="m-0 whitespace-normal text-sm leading-6 text-[var(--ff-text-secondary)]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
-                      {getSupplementText(row, locale, supplementNotes)}
+                    <EditableGanttText ariaLabel={`编辑${row.marker}补充资料`} isEditable={isEditable} onCommitField={onCommitField} target={row.supplementParts.length === 1 && !supplementNotes?.[row.id] ? row.supplementParts[0].target : undefined}>{getSupplementText(row, locale, supplementNotes)}</EditableGanttText>
                     </p>
                   </article>
                 ))}

@@ -1,15 +1,17 @@
 /**
- * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-line-labels 的中文线别、record-timeline-time 的 rail 时间段/PFS facade 与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位的 demo summaryMetrics 与 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一的演示时间线文案。
- * [POS]: components/record 的静态文案模块，被 RecordDossier 和路由错误态复用；默认病例原始数据留在 demo-record，本文只做文案与 timeline 组装。
+ * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-derived 的多段检查证据摘要、record-line-labels 的中文线别、record-timeline-time 的 rail 时间段/PFS facade、PatientFieldTarget 与 components/record/types 的展示类型。
+ * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位/多段检查证据的 demo summaryMetrics 与带字段保存 target 的 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一演示时间线文案。
+ * [POS]: components/record 的静态文案模块，被 RecordDossier 和路由错误态复用；默认病例原始数据留在 demo-record，本文只做文案、字段 target 与 timeline 组装，并复用真实记录的检查证据聚合规则。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
+import type { PatientFieldTarget, TreatmentLine } from '@/types/patient'
 
 import { demoPatientRecord } from './demo-record'
+import { getRecordEvidenceSummary } from './record-derived'
 import { getTreatmentLineSubtitle } from './record-line-labels'
 import { formatTreatmentLinePfsLabel, getTimelineRailDate, getTimelineRailRange } from './record-timeline-time'
-import type { Metric, TimelineEntry } from './types'
+import type { EvidenceItem, Metric, TimelineEntry } from './types'
 
 export const labels = {
   en: {
@@ -65,8 +67,8 @@ export const summaryMetrics = {
     { label: 'Tumor Stage', value: 'Relapsed advanced' },
     { label: 'Follow-up Status', value: 'In treatment' },
     { label: 'Diagnosis Date', value: '2021.07' },
-    { label: 'Genetic Test', value: 'PTEN loss / FGFR1 amp' },
-    { label: 'IHC', value: 'Luminal B -> TNBC shift' },
+    { label: 'Genetic Test', value: getRecordEvidenceSummary(demoPatientRecord, 'geneticTest') },
+    { label: 'IHC', value: getRecordEvidenceSummary(demoPatientRecord, 'immunohistochemistry') },
     { label: 'Current Plan', value: 'PARP + CDK4/6 + SERM' },
   ],
   zh: [
@@ -79,13 +81,30 @@ export const summaryMetrics = {
     { label: '肿瘤分期', value: '复发/晚期' },
     { label: '随访状态', value: '治疗中' },
     { label: '诊断日期', value: '2021.07' },
-    { label: '基因检测', value: 'PTEN 缺失 / FGFR1 扩增' },
-    { label: '免疫组化', value: 'Luminal B -> 三阴转化' },
+    { label: '基因检测', value: getRecordEvidenceSummary(demoPatientRecord, 'geneticTest') },
+    { label: '免疫组化', value: getRecordEvidenceSummary(demoPatientRecord, 'immunohistochemistry') },
     { label: '当前方案', value: 'PARP + CDK4/6 + SERM' },
   ],
 } satisfies Record<Locale, Metric[]>
 
 type DemoTreatmentLine = typeof demoPatientRecord.treatmentLines[number]
+type InitialOnsetTargetField = Extract<PatientFieldTarget, { section: 'initialOnset' }>['field']
+type TreatmentLineTargetField = Extract<PatientFieldTarget, { section: 'treatmentLine' }>['field']
+
+function initialOnsetTarget(field: InitialOnsetTargetField) {
+  return { field, section: 'initialOnset' } satisfies PatientFieldTarget
+}
+
+function treatmentLineTarget(lineNumber: number, field: TreatmentLineTargetField) {
+  return { field, lineNumber, section: 'treatmentLine' } satisfies PatientFieldTarget
+}
+
+function treatmentLineRangeTarget(line: TreatmentLine) {
+  return {
+    end: treatmentLineTarget(line.lineNumber, 'endDate'),
+    start: treatmentLineTarget(line.lineNumber, 'startDate'),
+  }
+}
 
 function hasText(value: string | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0
@@ -106,18 +125,26 @@ function getLineTimeframe(line: DemoTreatmentLine, locale: Locale) {
 }
 
 function getSupplementItems(line: DemoTreatmentLine, locale: Locale) {
-  const items: { label: string; value: string }[] = []
+  const items: EvidenceItem[] = []
 
   if (line.immunohistochemistry) {
-    items.push({ label: locale === 'zh' ? '免疫组化' : 'IHC', value: line.immunohistochemistry })
+    items.push({
+      label: locale === 'zh' ? '免疫组化' : 'IHC',
+      target: treatmentLineTarget(line.lineNumber, 'immunohistochemistry'),
+      value: line.immunohistochemistry,
+    })
   }
 
   if (line.geneticTest) {
-    items.push({ label: locale === 'zh' ? '基因检测' : 'Genetic Test', value: line.geneticTest })
+    items.push({
+      label: locale === 'zh' ? '基因检测' : 'Genetic Test',
+      target: treatmentLineTarget(line.lineNumber, 'geneticTest'),
+      value: line.geneticTest,
+    })
   }
 
   if (line.biopsy) {
-    items.push({ label: '', value: line.biopsy })
+    items.push({ label: '', target: treatmentLineTarget(line.lineNumber, 'biopsy'), value: line.biopsy })
   }
 
   return items
@@ -135,7 +162,7 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
       cards: [
         {
           items: [
-            { label: 'IHC', value: 'Luminal B; ER / PR 90%+ / 90%+; HER2 0; Ki67 60%' },
+            { label: 'IHC', target: initialOnsetTarget('immunohistochemistry'), value: 'Luminal B; ER / PR 90%+ / 90%+; HER2 0; Ki67 60%' },
           ],
           title: 'Supplement',
         },
@@ -145,8 +172,13 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
       railDate,
       subtitle: 'Baseline',
       timeframe: getTimelineRailRange(demoPatientRecord.initialOnset?.triggerDate, firstLine?.startDate, locale, ' - ') ?? '2021.07 - 2022.10',
+      timeframeTarget: {
+        end: firstLine ? treatmentLineTarget(firstLine.lineNumber, 'startDate') : undefined,
+        start: initialOnsetTarget('triggerDate'),
+      },
       title: 'Initial Treatment',
       treatment: 'AC x4 / RT 25+5 / Exemestane + Leuprorelin',
+      treatmentTarget: initialOnsetTarget('treatment'),
     }
   }
 
@@ -155,7 +187,7 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
     cards: [
       {
         items: [
-          { label: '免疫组化', value: 'Luminal B；ER / PR 90%+ / 90%+；HER2 0；Ki67 60%' },
+          { label: '免疫组化', target: initialOnsetTarget('immunohistochemistry'), value: 'Luminal B；ER / PR 90%+ / 90%+；HER2 0；Ki67 60%' },
         ],
         title: '补充资料',
       },
@@ -165,8 +197,13 @@ function buildInitialTimelineEntry(locale: Locale): TimelineEntry {
     railDate,
     subtitle: '基线',
     timeframe: getTimelineRailRange(demoPatientRecord.initialOnset?.triggerDate, firstLine?.startDate, locale, ' - ') ?? '2021.07 - 2022.10',
+    timeframeTarget: {
+      end: firstLine ? treatmentLineTarget(firstLine.lineNumber, 'startDate') : undefined,
+      start: initialOnsetTarget('triggerDate'),
+    },
     title: '初发治疗',
     treatment: 'AC方案4次 / 放疗25+5 / 依西美坦 + 亮丙',
+    treatmentTarget: initialOnsetTarget('treatment'),
   }
 }
 
@@ -191,8 +228,10 @@ function buildLineTimelineEntry(line: DemoTreatmentLine, locale: Locale): Timeli
     railMeta: formatTreatmentLinePfsLabel(line.startDate, line.endDate, locale),
     subtitle: getTreatmentLineSubtitle(line.lineNumber, locale),
     timeframe: getLineTimeframe(line, locale),
+    timeframeTarget: treatmentLineRangeTarget(line),
     title: locale === 'zh' ? '治疗' : 'Therapy',
     treatment: cleanText(line.regimen) || (locale === 'zh' ? '治疗方案待补充' : 'Regimen pending'),
+    treatmentTarget: treatmentLineTarget(line.lineNumber, 'regimen'),
   }
 }
 

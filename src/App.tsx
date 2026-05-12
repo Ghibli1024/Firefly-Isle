@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 lazy/Suspense/useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate、useLocation，依赖 ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF 与按路由动态加载的页面组件。
  * [OUTPUT]: 对外提供 App 组件。
- * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、匿名/非匿名身份标记、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/record/:id 页面。
+ * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、匿名/非匿名身份标记、记录页用户归属保存 id、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/record/:id、/analytics/:id 页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { lazy, Suspense, type ReactNode, useMemo } from 'react'
@@ -19,6 +19,7 @@ import { getOAuthCallbackErrorMessage } from '@/routes/auth-callback-page.logic'
 const AuthCallbackPage = lazy(() => import('@/routes/auth-callback-page').then((module) => ({ default: module.AuthCallbackPage })))
 const BrandLockupPreviewPage = lazy(() => import('@/routes/brand-lockup-preview-page').then((module) => ({ default: module.BrandLockupPreviewPage })))
 const LoginPage = lazy(() => import('@/routes/login-page').then((module) => ({ default: module.LoginPage })))
+const LabAnalyticsPage = lazy(() => import('@/routes/lab-analytics-page').then((module) => ({ default: module.LabAnalyticsPage })))
 const PrivacyPage = lazy(() => import('@/routes/privacy-page').then((module) => ({ default: module.PrivacyPage })))
 const RecordPage = lazy(() => import('@/routes/record-page').then((module) => ({ default: module.RecordPage })))
 const WorkspacePage = lazy(() => import('@/routes/workspace-page').then((module) => ({ default: module.WorkspacePage })))
@@ -133,10 +134,24 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/analytics"
+          element={isAuthenticated ? <Navigate replace to="/analytics/demo" /> : <Navigate replace to="/login" />}
+        />
+        <Route
+          path="/analytics/:id"
+          element={
+            isAuthenticated ? (
+              <LabAnalyticsPage isSigningOut={isSigningOut} onSignOut={signOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />
+            ) : (
+              <Navigate replace to="/login" />
+            )
+          }
+        />
+        <Route
           path="/record/:id"
           element={
             isAuthenticated ? (
-              <RecordPage isSigningOut={isSigningOut} onSignOut={signOut} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />
+              <RecordPage isSigningOut={isSigningOut} onSignOut={signOut} userId={user?.id} userIsAnonymous={userIsAnonymous} userLabel={userLabel} />
             ) : (
               <Navigate replace to="/login" />
             )

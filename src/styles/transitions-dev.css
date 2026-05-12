@@ -49,8 +49,11 @@
   --accordion-blur: 3px;
   --accordion-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --tab-switch-dur: 220ms;
-  --tab-switch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tab-switch-dur: 320ms;
+  --tab-switch-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --tab-switch-settle-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tab-switch-slide-dur: 420ms;
+  --tab-switch-pad: 4px;
 
   --gantt-grow-dur: 720ms;
   --gantt-grow-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -322,16 +325,65 @@
   position: relative;
 }
 
+.t-tab-switch-slider {
+  display: inline-grid;
+  grid-template-columns: repeat(var(--tab-switch-count), minmax(max-content, 1fr));
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.t-tab-switch-thumb {
+  position: absolute;
+  z-index: 0;
+  top: var(--tab-switch-pad);
+  bottom: var(--tab-switch-pad);
+  left: var(--tab-switch-pad);
+  width: calc((100% - (var(--tab-switch-pad) * 2)) / var(--tab-switch-count));
+  border-radius: var(--ff-radius-md);
+  background: var(--ff-accent-primary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ff-accent-primary) 42%, transparent),
+    0 0 18px color-mix(in srgb, var(--ff-accent-primary) 18%, transparent);
+  pointer-events: none;
+  transform: translateX(calc(var(--tab-switch-index) * 100%));
+  transition:
+    transform var(--tab-switch-slide-dur) var(--tab-switch-ease),
+    box-shadow var(--tab-switch-dur) var(--tab-switch-settle-ease);
+}
+
+@keyframes t-tab-switch-pop {
+  0% {
+    transform: translateY(1px) scale(0.96);
+  }
+
+  52% {
+    transform: translateY(-2px) scale(1.07);
+  }
+
+  76% {
+    transform: translateY(0) scale(0.99);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
 .t-tab-switch button {
+  transform-origin: center;
   transition:
     transform var(--tab-switch-dur) var(--tab-switch-ease),
-    background-color var(--tab-switch-dur) var(--tab-switch-ease),
-    border-color var(--tab-switch-dur) var(--tab-switch-ease),
-    color var(--tab-switch-dur) var(--tab-switch-ease),
-    box-shadow var(--tab-switch-dur) var(--tab-switch-ease);
+    background-color var(--tab-switch-dur) var(--tab-switch-settle-ease),
+    border-color var(--tab-switch-dur) var(--tab-switch-settle-ease),
+    color var(--tab-switch-dur) var(--tab-switch-settle-ease),
+    box-shadow var(--tab-switch-dur) var(--tab-switch-settle-ease);
 }
 
 .t-tab-switch button[aria-pressed="true"] {
+  animation: t-tab-switch-pop var(--tab-switch-dur) var(--tab-switch-ease) both;
+}
+
+.t-tab-switch:not(.t-tab-switch-slider) button[aria-pressed="true"] {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--ff-accent-primary) 42%, transparent),
     0 0 18px color-mix(in srgb, var(--ff-accent-primary) 18%, transparent);
@@ -657,6 +709,7 @@
   .t-stagger,
   .t-control-press,
   .t-accordion,
+  .t-tab-switch-thumb,
   .t-tab-switch button,
   .t-record-view,
   .t-timeline-rail,

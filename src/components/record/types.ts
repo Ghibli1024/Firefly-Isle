@@ -1,18 +1,22 @@
 /**
- * [INPUT]: 无运行时依赖，只描述 record dossier 展示层的数据形状。
- * [OUTPUT]: 对外提供 ExportFormat、Metric、EvidenceCard、含 rail 日期/PFS 的 TimelineEntry 等病例详情展示类型。
+ * [INPUT]: 依赖 @/types/patient 的 PatientFieldTarget 与 PatientRangeTarget，只描述 record dossier 展示层的数据形状。
+ * [OUTPUT]: 对外提供 ExportFormat、带字段保存目标的 Metric/EvidenceCard、含 rail 日期/PFS 的 TimelineEntry 等病例详情展示类型。
  * [POS]: components/record 的类型边界，被 dossier、文案与派生数据模块共享。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import type { PatientFieldTarget, PatientRangeTarget } from '@/types/patient'
+
 export type ExportFormat = 'pdf' | 'png'
 
 export type Metric = {
   label: string
+  target?: PatientFieldTarget
   value: string
 }
 
 export type EvidenceItem = {
   label: string
+  target?: PatientFieldTarget
   value: string
 }
 
@@ -36,6 +40,8 @@ export type TimelineEntry = {
   railMeta?: string
   subtitle: string
   timeframe: string
+  timeframeTarget?: PatientRangeTarget
   title: string
   treatment: string
+  treatmentTarget?: PatientFieldTarget
 }

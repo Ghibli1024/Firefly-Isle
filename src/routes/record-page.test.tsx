@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI、档案/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -10,6 +10,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { summaryMetrics } from '@/components/record/record-copy'
+import { demoPatientRecord } from '@/components/record/demo-record'
+import { getRecordSummaryMetrics } from '@/components/record/record-derived'
 import { BackgroundAudioProvider } from '@/lib/background-audio'
 import { LocaleProvider } from '@/lib/locale'
 import { shellWideContentClass } from '@/lib/theme/tokens'
@@ -51,13 +54,17 @@ vi.mock('@/lib/theme', async () => {
   }
 })
 
-import { RecordPage } from './record-page'
+import { parseRecordRangeEdits, RecordPage } from './record-page'
 import { RecordPageContent } from './record-page.view'
 import type { RecordExportState, RecordViewMode } from './record-page.view'
 import type { RecordLoadState } from './record-page.logic'
 
 function readRecordRouteSource() {
   return ['./record-page.tsx', './record-page.logic.ts'].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n')
+}
+
+function readTransitionsSource() {
+  return readFileSync(new URL('../styles/transitions-dev.css', import.meta.url), 'utf8')
 }
 
 function renderRecord(theme: 'light' | 'dark', initialEntry = '/record/demo') {
@@ -101,16 +108,26 @@ function renderRecordContent({
     <MemoryRouter initialEntries={[demoRoute ? '/record/demo' : '/record/patient-42']}>
       <RecordPageContent
         activeRecordLoadState={activeRecordLoadState}
+        demoRecord={record ?? demoPatientRecord}
         demoRoute={demoRoute}
         exportState={exportState}
+        isChartEditing={false}
         locale="zh"
+        onChartEditingChange={() => undefined}
+        onCommitField={() => undefined}
+        onCommitRange={() => undefined}
         onExport={() => undefined}
         onViewModeChange={() => undefined}
         recordRef={createRef<HTMLDivElement>()}
+        saveState={{ error: null, status: 'idle' }}
         viewMode={viewMode}
       />
     </MemoryRouter>,
   )
+}
+
+function getMetricValue(metrics: { label: string; value: string }[], label: string) {
+  return metrics.find((metric) => metric.label === label)?.value ?? ''
 }
 
 describe('RecordPage responsive dossier shell', () => {
@@ -143,6 +160,17 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('甘特图视图')
   })
 
+  it('exposes a compact page-level editing toggle', () => {
+    const markup = renderRecord('dark')
+
+    expect(markup).toContain('开启编辑')
+    expect(markup).toContain('编辑')
+    expect(markup).not.toContain('当前病历：乳腺癌')
+    expect(markup).not.toContain('当前病历：未命名病历')
+    expect(markup).not.toContain('开启图表编辑')
+    expect(markup).not.toContain('编辑图表')
+  })
+
   it('mounts record pages into the shared route reveal motion layer', () => {
     const markup = renderRecord('dark')
 
@@ -152,13 +180,25 @@ describe('RecordPage responsive dossier shell', () => {
   })
 
   it('uses a tab-switch contract for dossier and Gantt view changes', () => {
-    const markup = renderRecordContent({
+    const dossierMarkup = renderRecordContent({
       demoRoute: true,
       viewMode: 'dossier',
     })
+    const ganttMarkup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'gantt',
+    })
+    const transitionsSource = readTransitionsSource()
 
-    expect(markup).toContain('t-tab-switch')
-    expect(markup).toContain('data-active-page="dossier"')
+    expect(dossierMarkup).toContain('t-tab-switch')
+    expect(dossierMarkup).toContain('t-tab-switch-slider')
+    expect(dossierMarkup).toContain('t-tab-switch-thumb')
+    expect(dossierMarkup).toContain('data-active-page="dossier"')
+    expect(dossierMarkup).toContain('style="--tab-switch-count:2;--tab-switch-index:0"')
+    expect(ganttMarkup).toContain('data-active-page="gantt"')
+    expect(ganttMarkup).toContain('style="--tab-switch-count:2;--tab-switch-index:1"')
+    expect(transitionsSource).toContain('.t-tab-switch-thumb')
+    expect(transitionsSource).toContain('transform: translateX(calc(var(--tab-switch-index) * 100%))')
   })
 
   it('renders the Gantt view for demo records through the record content layer', () => {
@@ -176,6 +216,106 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('奥希替尼')
     expect(markup).not.toContain('当前治疗线')
     expect(markup).toContain('t-record-view')
+  })
+
+  it('can render dossier and Gantt values as editable when page editing is enabled', () => {
+    const exportState: RecordExportState = {
+      error: null,
+      format: null,
+      isExporting: false,
+    }
+    const activeRecordLoadState: RecordLoadState = {
+      error: null,
+      isLoading: false,
+      record: null,
+      recordId: null,
+    }
+
+    const dossierMarkup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/record/demo']}>
+        <RecordPageContent
+          activeRecordLoadState={activeRecordLoadState}
+          demoRecord={demoPatientRecord}
+          demoRoute
+          exportState={exportState}
+          isChartEditing
+          locale="zh"
+          onChartEditingChange={() => undefined}
+          onCommitField={() => undefined}
+          onCommitRange={() => undefined}
+          onExport={() => undefined}
+          onViewModeChange={() => undefined}
+          recordRef={createRef<HTMLDivElement>()}
+          saveState={{ error: null, status: 'idle' }}
+          viewMode="dossier"
+        />
+      </MemoryRouter>,
+    )
+    const ganttMarkup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/record/demo']}>
+        <RecordPageContent
+          activeRecordLoadState={activeRecordLoadState}
+          demoRecord={demoPatientRecord}
+          demoRoute
+          exportState={exportState}
+          isChartEditing
+          locale="zh"
+          onChartEditingChange={() => undefined}
+          onCommitField={() => undefined}
+          onCommitRange={() => undefined}
+          onExport={() => undefined}
+          onViewModeChange={() => undefined}
+          recordRef={createRef<HTMLDivElement>()}
+          saveState={{ error: null, status: 'idle' }}
+          viewMode="gantt"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(dossierMarkup).toContain('关闭编辑')
+    expect(dossierMarkup).not.toContain('关闭图表编辑')
+    expect(dossierMarkup).toContain('contenteditable="true"')
+    expect(dossierMarkup).toContain('role="textbox"')
+    expect(ganttMarkup).toContain('编辑BL时间段')
+    expect(ganttMarkup).toContain('contenteditable="true"')
+  })
+
+  it('shows record edit save status in the shared toolbar', () => {
+    const markup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/record/demo']}>
+        <RecordPageContent
+          activeRecordLoadState={{ error: null, isLoading: false, record: null, recordId: null }}
+          demoRecord={demoPatientRecord}
+          demoRoute
+          exportState={{ error: null, format: null, isExporting: false }}
+          isChartEditing
+          locale="zh"
+          onChartEditingChange={() => undefined}
+          onCommitField={() => undefined}
+          onCommitRange={() => undefined}
+          onExport={() => undefined}
+          onViewModeChange={() => undefined}
+          recordRef={createRef<HTMLDivElement>()}
+          saveState={{ error: null, status: 'saving' }}
+          viewMode="dossier"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(markup).toContain('保存中...')
+    expect(markup).toContain('role="status"')
+  })
+
+  it('converts edited date ranges into field-level record patches', () => {
+    const edits = parseRecordRangeEdits({
+      end: { field: 'endDate', lineNumber: 1, section: 'treatmentLine' },
+      start: { field: 'startDate', lineNumber: 1, section: 'treatmentLine' },
+    }, '2024.01 - 至今')
+
+    expect(edits).toEqual([
+      { target: { field: 'startDate', lineNumber: 1, section: 'treatmentLine' }, value: '2024.01' },
+      { target: { field: 'endDate', lineNumber: 1, section: 'treatmentLine' }, value: '' },
+    ])
   })
 
   it('renders the Gantt view for persisted records without demo fallback values', () => {
@@ -302,7 +442,7 @@ describe('RecordPage responsive dossier shell', () => {
       viewMode: 'dossier',
     })
 
-    expect(markup).toContain('初发治疗')
+    expect(markup).not.toContain('初发治疗')
     expect(markup).toContain('>BL</span>')
     expect(markup).toContain('>L1</span>')
     expect(markup).toContain('>L2</span>')
@@ -324,10 +464,12 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('PFS=5个月')
     expect(markup).toContain('PFS=进行中')
     expect(markup).toContain('data-timeline-mobile-pfs="PFS=进行中"')
-    expect(markup).toContain('Luminal B；ER / PR 90%+ / 90%+；HER2 0；Ki67 60%')
+    expect(markup).toContain('Luminal B；ER90%+，PR90%+，HER2 0，AR30%，Ki67 60%。')
     expect(markup).toContain('阿贝西利 + 氟维司群 + 亮丙瑞林 + 地舒单抗')
     expect(markup).toContain('氟唑帕利 + 哌柏西利 + 托瑞米芬')
     expect(markup).not.toContain('初发免疫组化')
+    expect(markup).not.toContain('text-3xl font-bold tracking-normal')
+    expect(markup).not.toContain('>治疗</h3>')
     expect(markup).not.toContain('1L 治疗')
     expect(markup).not.toContain('2L 治疗')
     expect(markup).not.toContain('3L 治疗')
@@ -352,6 +494,68 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).not.toContain('原始资料未记录额外补充信息')
     expect(markup).toContain('2023.10 肝转单发')
     expect(markup).toContain('2023.11 血液 NGS：PTEN 拷贝数缺失')
+  })
+
+  it('summarizes demo genetic tests and IHC as dated evidence lines', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'dossier',
+    })
+    const geneticTest = getMetricValue(summaryMetrics.zh, '基因检测')
+    const ihc = getMetricValue(summaryMetrics.zh, '免疫组化')
+
+    expect(geneticTest).toContain('2023.11：血液 NGS：PTEN 拷贝数缺失')
+    expect(geneticTest).toContain('2024.08：PTEN缺失，CCND1/FGFR1扩增')
+    expect(ihc).toContain('2021.07：Luminal B；ER90%+')
+    expect(ihc).toContain('2024.02：内分泌变三阴')
+    expect(ihc).toContain('2024.08：ER-，PR60%')
+    expect(markup).toContain('whitespace-pre-line')
+  })
+
+  it('summarizes persisted genetic tests and IHC without dropping later lines', () => {
+    const metrics = getRecordSummaryMetrics({
+      basicInfo: { diagnosisDate: '2021.07' },
+      id: 'patient-42',
+      initialOnset: {
+        geneticTest: '初发 NGS：BRCA1 阴性',
+        immunohistochemistry: 'Luminal B；ER90%+，PR90%+',
+        triggerDate: '2021.07',
+      },
+      treatmentLines: [
+        {
+          geneticTest: '2023.11 血液 NGS：PTEN 拷贝数缺失',
+          lineNumber: 3,
+          regimen: '三线方案',
+          startDate: '2023.10',
+        },
+        {
+          biopsy: '2024.02 肝部穿刺',
+          immunohistochemistry: 'ER-，PR5%+，HER2 0',
+          lineNumber: 5,
+          regimen: '五线方案',
+          startDate: '2024.03',
+        },
+        {
+          biopsy: '2024.08 肝穿',
+          geneticTest: 'CCND1 扩增',
+          immunohistochemistry: 'AR80%，Ki67 80%',
+          lineNumber: 6,
+          regimen: '六线方案',
+          startDate: '2024.08',
+        },
+      ],
+    }, 'zh')
+
+    expect(getMetricValue(metrics, '基因检测')).toBe([
+      '2021.07：初发 NGS：BRCA1 阴性',
+      '2023.11：血液 NGS：PTEN 拷贝数缺失',
+      '2024.08：CCND1 扩增',
+    ].join('\n'))
+    expect(getMetricValue(metrics, '免疫组化')).toBe([
+      '2021.07：Luminal B；ER90%+，PR90%+',
+      '2024.02：ER-，PR5%+，HER2 0',
+      '2024.08：AR80%，Ki67 80%',
+    ].join('\n'))
   })
 
   it('moves the demo cancer type into the summary metrics instead of the header subtitle', () => {
@@ -416,7 +620,7 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('年龄')
     expect(markup).toContain('60 岁')
     expect(markup).toContain('性别')
-    expect(markup).toContain('>女</div>')
+    expect(markup).toContain('>女</span>')
     expect(markup).toContain('身高')
     expect(markup).toContain('170 cm')
     expect(markup).toContain('体重')
@@ -504,6 +708,15 @@ describe('RecordPage responsive dossier shell', () => {
     expect(source).toContain('loadPatientRecordById(id)')
     expect(source).toContain('recordLoadState.record')
     expect(source).not.toContain("const isDemoRecord = id === 'demo'")
+  })
+
+  it('persists record-page field edits through the patient record storage boundary', () => {
+    const source = readRecordRouteSource()
+
+    expect(source).toContain('persistPatientRecord(nextRecord, userId)')
+    expect(source).toContain('applyPatientRecordEdit(previousRecord')
+    expect(source).toContain('applyPatientRecordEdits(previousRecord')
+    expect(source).toContain('setEditableRecord(previousRecord)')
   })
 
   it('keeps the bulky demo record fixture outside record-copy copywriting', () => {
