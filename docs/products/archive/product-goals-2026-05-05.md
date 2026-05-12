@@ -1,15 +1,15 @@
 <!--
- * [INPUT]: 依赖 docs/products/product-priority-roadmap.md 的 14 项产品路线图，依赖 goal-forge 的 GOAL block 结构。
- * [OUTPUT]: 对外提供每个路线图条目的 Goal 草案、候选 done_when、执行边界与验证回路。
- * [POS]: docs/products 的 Goal Forge 输出集，承接路线图排序并为后续 OpenSpec change 与 /goal 执行做准备。
+ * [INPUT]: 依赖 2026-05-05 时点 docs/products/product-priority-roadmap.md 的 14 项产品路线图快照。
+ * [OUTPUT]: 对外提供历史 Goal Forge 草案、候选 done_when、执行边界与验证回路归档。
+ * [POS]: docs/products/archive 的历史计划证据，不再作为当前产品执行入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  -->
 
-# 产品 Goal 草案集
+# 产品 Goal 草案集（2026-05-05 归档）
 
-状态：DRAFT。以下 Goal 均为候选执行合同，尚未逐项获得用户确认；运行 `/goal` 前必须确认对应 `done_when_candidate`。
+状态：ARCHIVED。本文保留 2026-05-05 的 Goal Forge 草案原貌；其中前 5 项后来已进入 OpenSpec archive 与 baseline specs。当前执行顺序以 `docs/products/product-priority-roadmap.md` 为准，不从本文直接启动 `/goal`。
 
-共享执行规则：
+共享执行规则（历史原文）：
 
 - 先读 `CLAUDE.md`、`docs/products/product-priority-roadmap.md` 与相关 `openspec/specs/**/spec.md`。
 - 先创建或更新 OpenSpec change，再实施代码，完成后同步 baseline specs 与 CLAUDE.md。
