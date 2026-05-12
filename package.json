@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "type-check": "npm run type-check:app && npm run type-check:functions",
+    "type-check:app": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "type-check:functions": "tsc --noEmit -p tsconfig.cloudflare-functions.json && tsc --noEmit -p tsconfig.supabase-functions.json",
     "test": "vitest run",
     "preview": "vite preview"
   },

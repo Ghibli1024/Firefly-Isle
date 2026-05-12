@@ -63,11 +63,6 @@ type RequestBody = {
   responseFormat?: string
 }
 
-type SuccessResponse = {
-  model: string
-  text: string
-}
-
 type RuntimeConfig = {
   anonymousRateLimitPerWindow: number
   claudeApiKey: string
@@ -99,7 +94,7 @@ type RuntimeConfig = {
 type ProviderOptions = {
   apiKey: string
   baseUrl: string
-  model?: string
+  model: string
   responseFormat?: ResponseFormat
 }
 
@@ -122,6 +117,13 @@ type SaveProviderSettingBody = {
   baseUrl?: string
   model?: string
   provider?: string
+}
+
+type ValidProviderSettingBody = {
+  apiKey: string
+  baseUrl?: string
+  model: string
+  provider: ChatProvider
 }
 
 type RateLimitBucket = {
@@ -168,7 +170,7 @@ function readConfig(env: RuntimeEnv): RuntimeConfig {
   }
 }
 
-function jsonResponse(status: number, body: ErrorResponse | SuccessResponse) {
+function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     headers: {
       ...corsHeaders,
@@ -221,7 +223,8 @@ async function verifyJwt(token: string, config: RuntimeConfig, runtimeFetch: Run
 }
 
 function isSupabaseAuthUser(value: unknown): value is SupabaseAuthUser {
-  return typeof (value as SupabaseAuthUser)?.id === 'string' && (value as SupabaseAuthUser).id?.trim().length > 0
+  const id = (value as SupabaseAuthUser | null | undefined)?.id
+  return typeof id === 'string' && id.trim().length > 0
 }
 
 function getRequestIp(request: Request) {
@@ -488,7 +491,7 @@ function normalizeHttpsBaseUrl(baseUrl: string | undefined) {
   }
 }
 
-function validateSettingBody(body: SaveProviderSettingBody): SaveProviderSettingBody | ErrorResponse {
+function validateSettingBody(body: SaveProviderSettingBody): ValidProviderSettingBody | ErrorResponse {
   const provider = body.provider?.trim()
   const apiKey = body.apiKey?.trim()
 
@@ -538,11 +541,11 @@ async function saveProviderSetting(
     return validBody
   }
 
-  const encrypted = await encryptApiKey(validBody.apiKey ?? '', config.providerSettingsEncryptionKey)
-  const row = {
+  const encrypted = await encryptApiKey(validBody.apiKey, config.providerSettingsEncryptionKey)
+  const row: ProviderSettingRow = {
     ...encrypted,
-    base_url: validBody.provider === 'custom_openai' ? validBody.baseUrl : null,
-    model: validBody.model ?? null,
+    base_url: validBody.provider === 'custom_openai' ? validBody.baseUrl ?? null : null,
+    model: validBody.model,
     provider: validBody.provider,
     user_id: userId,
   }

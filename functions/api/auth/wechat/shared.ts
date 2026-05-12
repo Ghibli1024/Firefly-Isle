@@ -151,12 +151,12 @@ export async function handleWechatCallback(request: Request, env: WechatOAuthEnv
 
   const token = await exchangeWechatCode(config.wechatAppId, config.wechatAppSecret, wechatCode, fetcher)
   if ('error' in token) {
-    return redirectOAuthError(stateRecord.redirectUri, stateRecord.supabaseState, 'server_error', token.error)
+    return redirectOAuthError(stateRecord.redirectUri, stateRecord.supabaseState, 'server_error', token.error ?? 'WeChat token exchange failed.')
   }
 
   const profile = await fetchWechatProfile(token.accessToken, token.openid, token.unionid, fetcher)
   if ('error' in profile) {
-    return redirectOAuthError(stateRecord.redirectUri, stateRecord.supabaseState, 'server_error', profile.error)
+    return redirectOAuthError(stateRecord.redirectUri, stateRecord.supabaseState, 'server_error', profile.error ?? 'WeChat profile request failed.')
   }
 
   const adapterCode = randomToken()

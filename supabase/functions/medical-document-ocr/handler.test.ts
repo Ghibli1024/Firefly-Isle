@@ -91,6 +91,8 @@ describe('medical-document-ocr handler', () => {
     expect(response.status).toBe(200)
     expect(payload).toEqual({ model: 'gemini-2.5-flash', text: '病历 OCR 文本' })
     expect(calls[1].url).toContain('generativelanguage.googleapis.com')
+    expect(calls[1].url).not.toContain('gemini-secret')
+    expect(calls[1].headers?.get('x-goog-api-key')).toBe('gemini-secret')
     expect(geminiBody.contents[0].parts[0]).toMatchObject({
       inline_data: {
         data: 'ZmlsZQ==',

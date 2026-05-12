@@ -121,7 +121,8 @@ async function verifyJwt(token: string, config: RuntimeConfig, runtimeFetch: Run
 }
 
 function isSupabaseAuthUser(value: unknown): value is SupabaseAuthUser {
-  return typeof (value as SupabaseAuthUser)?.id === 'string' && (value as SupabaseAuthUser).id?.trim().length > 0
+  const id = (value as SupabaseAuthUser | null | undefined)?.id
+  return typeof id === 'string' && id.trim().length > 0
 }
 
 function isSupportedMimeType(mimeType: string) {
@@ -143,8 +144,8 @@ function validateBody(body: RequestBody) {
   return null
 }
 
-function buildGeminiUrl(model: string, apiKey: string) {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
+function buildGeminiUrl(model: string) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
 }
 
 function toGeminiRequest(body: RequestBody) {
@@ -194,10 +195,11 @@ async function callGemini(body: RequestBody, config: RuntimeConfig, runtimeFetch
   const timeoutId = setTimeout(() => abortController.abort('timeout'), timeoutMs)
 
   try {
-    const response = await runtimeFetch(buildGeminiUrl(config.geminiModel, config.geminiApiKey), {
+    const response = await runtimeFetch(buildGeminiUrl(config.geminiModel), {
       body: JSON.stringify(toGeminiRequest(body)),
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': config.geminiApiKey,
       },
       method: 'POST',
       signal: abortController.signal,

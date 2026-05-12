@@ -6,8 +6,17 @@
  */
 import { createMedicalDocumentOcrHandler } from './handler.ts'
 
-Deno.serve(createMedicalDocumentOcrHandler({
+type DenoRuntime = {
   env: {
-    get: (name) => Deno.env.get(name),
-  },
-}))
+    get(name: string): string | undefined
+  }
+  serve(handler: (request: Request) => Response | Promise<Response>): void
+}
+
+const denoRuntime = (globalThis as typeof globalThis & { Deno?: DenoRuntime }).Deno
+
+if (!denoRuntime) {
+  throw new Error('Deno runtime is required for medical-document-ocr.')
+}
+
+denoRuntime.serve(createMedicalDocumentOcrHandler({ env: denoRuntime.env }))
