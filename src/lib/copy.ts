@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型，承载 app shell、background audio、login、workspace、record 的本地化文案字典。
  * [OUTPUT]: 对外提供 copy 字典、getCopy 与按 locale 取值的辅助类型。
- * [POS]: lib 的文案真相源，集中管理页面可见文本、背景音乐播放/暂停/拦截语义、OCR/编辑/新病历动作、BMI 标签、病程资料空态与重试按钮文案，禁止组件继续内联双语字符串。
+ * [POS]: lib 的文案真相源，集中管理页面可见文本、顶栏邮件复制反馈、背景音乐播放/暂停/拦截语义、OCR/编辑/新病历动作、BMI 标签、病程资料空态与重试按钮文案，禁止组件继续内联双语字符串。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -34,7 +34,6 @@ export const copy = {
   backgroundAudio: {
     control: text('音乐', 'Music'),
     next: text('下一首背景音乐', 'Next background track'),
-    openControls: text('打开背景音乐控制', 'Open background music controls'),
     previous: text('上一首背景音乐', 'Previous background track'),
     track: text('当前曲目', 'Current track'),
     aria: {
@@ -58,6 +57,12 @@ export const copy = {
       volume: text('第 01 卷 · 第 52 期', 'VOL. 01 — NO. 52'),
       workspace: text('临床 AI 工作台', 'Clinical AI Workspace'),
       established: text('创立于 2024', 'EST. 2024'),
+      contact: {
+        label: text('联系我', 'Contact'),
+        title: text('联系方式', 'Contact'),
+        copyEmail: text('复制邮箱', 'Copy email'),
+        copied: text('已复制', 'Copied'),
+      },
     },
     nav: {
       extract: text('提取', 'Extract'),
@@ -140,7 +145,7 @@ export const copy = {
     composer: {
       inputLabel: text('病史输入', 'Patient History Input'),
       inputPlaceholder: text('请描述患者的病情及治疗历程...', 'Describe the patient condition and treatment history...'),
-      importRecordFile: text('导入病历文件', 'Import record file'),
+      importRecordFile: text('上传病历 / 检验报告', 'Upload record / lab report'),
       voiceInput: text('语音输入', 'Voice input'),
       extract: text('开始结构化提取', 'Start Structured Extraction'),
       extracting: text('提取中…', 'Extracting…'),

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 MemoryRouter、ThemeProvider、LocaleProvider、BackgroundAudioProvider、LoginPageView 与 ClinicalTopBar。
- * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、窄屏可用顶栏、短侧舱收回交互、透明材质与弹出动效回归测试。
- * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、窄屏可用顶栏、当前曲目、上一首/下一首入口、暂停文案、离开收回与半透明弹出短侧舱。
+ * [OUTPUT]: 对外提供背景音乐简洁歌单入口的可访问语义、窄屏可用顶栏、顶栏直接播放/暂停、悬停播放器与桥接区域回归测试。
+ * [POS]: components 的背景音乐 UI 合同测试，约束登录页工具区与已登录壳层共用同一个音乐开关、窄屏可用顶栏、当前曲目、上一首/下一首入口、暂停文案、紧凑顶栏直接切换、hover 弹层触发与按钮到弹层的连续 hover 区域。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -20,7 +20,7 @@ import { ThemeProvider } from '@/lib/theme'
 
 const source = readFileSync(new URL('./background-music-toggle.tsx', import.meta.url), 'utf8')
 const transitionsSource = readFileSync(new URL('../styles/transitions-dev.css', import.meta.url), 'utf8')
-const shortDockPanelClass = source.match(/className="([^"]+)"\n\s+data-testid="background-music-short-dock"/)?.[1]
+const hoverPlayerClass = source.match(/className="([^"]+)"\n\s+data-testid="background-music-hover-player"/)?.[1]
 
 function withProviders(children: ReactNode) {
   return renderToStaticMarkup(
@@ -70,21 +70,29 @@ describe('BackgroundMusicToggle shell placement', () => {
     expect(source).not.toContain("playing: 'volume_up'")
   })
 
-  it('keeps the authenticated short dock panel translucent without fading text', () => {
-    expect(shortDockPanelClass).toContain('bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_54%,transparent)]')
-    expect(shortDockPanelClass).toContain('supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_44%,transparent)]')
-    expect(shortDockPanelClass).toContain('backdrop-blur-xl')
-    expect(shortDockPanelClass).not.toMatch(/\bopacity-/)
-  })
-
-  it('collapses the short dock when the pointer leaves both trigger and panel, then opens it with a pop animation', () => {
-    expect(source).toContain("window.addEventListener('pointermove', closeWhenPointerLeavesDock)")
-    expect(source).toContain("window.removeEventListener('pointermove', closeWhenPointerLeavesDock)")
+  it('keeps the authenticated compact control as one direct play or pause button with hover player reveal', () => {
+    expect(source).toContain("layout?: 'compact' | 'inline'")
+    expect(source).toContain("if (layout === 'compact')")
+    expect(source).toContain('data-background-music-layout="compact"')
+    expect(source).toContain('onClick={() => void toggle()}')
+    expect(source).toContain('onPointerEnter={() => setIsPlayerOpen(true)}')
+    expect(source).toContain("window.addEventListener('pointermove', closeWhenPointerLeavesPlayer)")
     expect(source).toContain('rootRef.current')
+    expect(source).toContain('bridgeRef.current')
     expect(source).toContain('panelRef.current')
-    expect(shortDockPanelClass).toContain('t-audio-popover')
+    expect(source).toContain('data-testid="background-music-hover-bridge"')
+    expect(source).toContain('top-[56px]')
+    expect(source).toContain('data-testid="background-music-hover-player"')
+    expect(hoverPlayerClass).toContain('t-audio-popover')
+    expect(hoverPlayerClass).toContain('bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_54%,transparent)]')
+    expect(hoverPlayerClass).toContain('supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--ff-surface-panel)_44%,transparent)]')
+    expect(hoverPlayerClass).not.toMatch(/\bopacity-/)
     expect(transitionsSource).toContain('@keyframes t-audio-pop-in')
     expect(transitionsSource).toContain('.t-audio-popover')
+    expect(source).toContain('grid grid-cols-2 gap-2')
+    expect(source).not.toContain('grid grid-cols-3 gap-2')
+    expect(source).not.toContain('setIsPanelOpen')
+    expect(source).not.toContain('openControls')
   })
 
   it('renders in the login utility controls with text and accessible state', () => {
@@ -103,23 +111,29 @@ describe('BackgroundMusicToggle shell placement', () => {
     expect(markup).toContain('>音乐</span>')
   })
 
-  it('renders in the authenticated top bar as a collapsed short dock trigger', () => {
+  it('renders in the authenticated top bar as an icon-only direct toggle', () => {
     const markup = withProviders(<ClinicalTopBar theme="light" title="病程整理台" withRail />)
+    const musicMarkup = markup.slice(
+      markup.indexOf('data-background-music-layout="compact"'),
+      markup.indexOf('aria-controls="origin-story-paper"'),
+    )
 
     expect(markup).toContain('left-0 right-0 md:left-[var(--ff-sidebar-offset)]')
-    expect(markup).toContain('data-testid="background-music-toggle"')
-    expect(markup).toContain('aria-label="打开背景音乐控制"')
-    expect(markup).toContain('aria-haspopup="dialog"')
-    expect(markup).toContain('aria-expanded="false"')
-    expect(markup).toContain('data-audio-status="idle"')
-    expect(markup).toContain('data-background-music-layout="short-dock"')
-    expect(markup).not.toContain('data-background-music-layout="popover"')
-    expect(markup).toContain('>pause</span>')
-    expect(markup).not.toContain('>音乐</span>')
-    expect(markup).not.toContain('data-testid="background-music-current-track"')
-    expect(markup).not.toContain('Nagisa Sakano Shitano Wakare')
-    expect(markup).not.toContain('aria-label="上一首背景音乐"')
-    expect(markup).not.toContain('aria-label="下一首背景音乐"')
+    expect(musicMarkup).toContain('data-testid="background-music-toggle"')
+    expect(musicMarkup).toContain('aria-label="背景音乐已开启，点击暂停"')
+    expect(musicMarkup).toContain('aria-pressed="true"')
+    expect(musicMarkup).toContain('data-audio-status="idle"')
+    expect(musicMarkup).toContain('data-background-music-layout="compact"')
+    expect(musicMarkup).not.toContain('打开背景音乐控制')
+    expect(musicMarkup).not.toContain('aria-haspopup="dialog"')
+    expect(musicMarkup).toContain('aria-expanded="false"')
+    expect(musicMarkup).not.toContain('data-background-music-layout="popover"')
+    expect(musicMarkup).toContain('>pause</span>')
+    expect(musicMarkup).not.toContain('>音乐</span>')
+    expect(musicMarkup).not.toContain('data-testid="background-music-current-track"')
+    expect(musicMarkup).not.toContain('Nagisa Sakano Shitano Wakare')
+    expect(musicMarkup).not.toContain('aria-label="上一首背景音乐"')
+    expect(musicMarkup).not.toContain('aria-label="下一首背景音乐"')
   })
 
   it('keeps the authenticated top bar usable in very narrow browser widths', () => {
