@@ -1,19 +1,16 @@
 /**
- * [INPUT]: 依赖 @/types/patient 的 LabResult 领域模型。
- * [OUTPUT]: 对外提供 DEFAULT_LAB_REFERENCE_RANGES、LabTrendRow 与 buildLabTrendRows。
- * [POS]: lib 的实验室趋势纯逻辑边界，集中参考范围、异常分类与持续增高提示，不承载 UI。
+ * [INPUT]: 依赖 @/types/patient 的 LabResult 领域模型与 @/lib/lab-dictionary 的项目字典/参考范围。
+ * [OUTPUT]: 对外提供 DEFAULT_LAB_REFERENCE_RANGES、LabTrendRow、buildLabTrendRows、buildDerivedBloodRoutineReadings、buildLabChartSeries、summarizeLatestAbnormalByCategory 与 detectTumorMarkerContinuousRise。
+ * [POS]: lib 的实验室趋势纯逻辑边界，集中参考范围、异常分类、血常规派生、图表序列、最近异常与肿瘤标志物连续上涨提示，不承载 UI。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { LabResult } from '@/types/patient'
-
-type ReferenceRange = {
-  high?: number
-  low?: number
-}
+import { findLabIndicator, getReferenceRangeForIndicator, type ReferenceRange } from '@/lib/lab-dictionary'
+import type { LabResult, LabResultCategory } from '@/types/patient'
 
 export type LabTrendStatus = 'normal' | 'high' | 'low' | 'persistent-high' | 'reference-missing'
 
 export type LabTrendRow = {
+  category: LabResultCategory
   itemCode: string
   itemName: string
   latestDate: string | null
@@ -26,6 +23,50 @@ export type LabTrendRow = {
   unit?: string
 }
 
+export type LabChartPoint = {
+  date: string
+  referenceHigh?: number
+  referenceLow?: number
+  referenceRangeLabel: string
+  status: Exclude<LabTrendStatus, 'persistent-high'>
+  unit?: string
+  value: number
+}
+
+export type LabChartSeries = {
+  itemCode: string
+  itemName: string
+  points: LabChartPoint[]
+  undatedCount: number
+}
+
+export type LatestAbnormalReading = {
+  category: LabResultCategory
+  itemCode: string
+  itemName: string
+  referenceRangeLabel: string
+  status: 'high' | 'low'
+  testDate: string
+  unit?: string
+  value: number
+}
+
+export type LatestAbnormalSummary = {
+  abnormalReadings: LatestAbnormalReading[]
+  category: LabResultCategory
+  latestDate: string | null
+  missingReferenceCount: number
+}
+
+export type TumorMarkerRiseAlert = {
+  cumulativeRiseRatio: number
+  intervalRiseRatios: [number, number]
+  itemCode: string
+  itemName: string
+  points: [LabChartPoint, LabChartPoint, LabChartPoint]
+  unit?: string
+}
+
 export const DEFAULT_LAB_REFERENCE_RANGES: Record<string, ReferenceRange> = {
   alt: { high: 40, low: 0 },
   ca125: { high: 35, low: 0 },
@@ -33,11 +74,15 @@ export const DEFAULT_LAB_REFERENCE_RANGES: Record<string, ReferenceRange> = {
   wbc: { high: 9.5, low: 3.5 },
 } satisfies Record<string, ReferenceRange>
 
+const LAB_CATEGORIES: LabResultCategory[] = ['blood-routine', 'blood-biochemistry', 'tumor-marker']
+const TUMOR_MARKER_RISE_THRESHOLD = 0.2
+
 function groupByItem(readings: LabResult[]) {
   const groups = new Map<string, LabResult[]>()
 
   for (const reading of readings) {
-    groups.set(reading.itemCode, [...(groups.get(reading.itemCode) ?? []), reading])
+    const key = `${reading.category}:${reading.itemCode}`
+    groups.set(key, [...(groups.get(key) ?? []), reading])
   }
 
   return groups
@@ -61,10 +106,10 @@ function getReferenceRange(reading: LabResult): ReferenceRange | null {
     return rowRange
   }
 
-  return DEFAULT_LAB_REFERENCE_RANGES[reading.itemCode] ?? null
+  return DEFAULT_LAB_REFERENCE_RANGES[reading.itemCode] ?? getReferenceRangeForIndicator(reading.itemCode)
 }
 
-function formatReferenceRange(range: ReferenceRange | null, unit?: string) {
+export function formatReferenceRange(range: ReferenceRange | null, unit?: string) {
   if (!range) {
     return '需补充参考范围'
   }
@@ -82,7 +127,7 @@ function formatReferenceRange(range: ReferenceRange | null, unit?: string) {
   return `≤ ${range.high}${suffix}`
 }
 
-function classifyReading(reading: LabResult): Exclude<LabTrendStatus, 'persistent-high'> {
+export function classifyLabReading(reading: LabResult): Exclude<LabTrendStatus, 'persistent-high'> {
   const range = getReferenceRange(reading)
 
   if (!range) {
@@ -104,7 +149,7 @@ function countLatestConsecutiveHigh(readings: LabResult[]) {
   let count = 0
 
   for (const reading of [...readings].reverse()) {
-    if (classifyReading(reading) !== 'high') {
+    if (classifyLabReading(reading) !== 'high') {
       break
     }
 
@@ -121,15 +166,16 @@ function latestReading(readings: LabResult[]) {
 
 export function buildLabTrendRows(readings: LabResult[]): LabTrendRow[] {
   return [...groupByItem(readings).entries()]
-    .map(([itemCode, group]) => {
+    .map(([, group]) => {
       const latest = latestReading(group)!
       const dated = sortByDate(group)
-      const latestStatus = classifyReading(latest)
+      const latestStatus = classifyLabReading(latest)
       const persistentHigh = dated.length > 1 && countLatestConsecutiveHigh(dated) >= 2
       const status: LabTrendStatus = persistentHigh ? 'persistent-high' : latestStatus
 
       return {
-        itemCode,
+        category: latest.category,
+        itemCode: latest.itemCode,
         itemName: latest.itemName,
         latestDate: hasDate(latest) ? latest.testDate! : null,
         latestValue: latest.value,
@@ -142,4 +188,170 @@ export function buildLabTrendRows(readings: LabResult[]): LabTrendRow[] {
       }
     })
     .sort((left, right) => left.itemName.localeCompare(right.itemName))
+}
+
+function roundTrendValue(value: number) {
+  return Math.round(value * 100) / 100
+}
+
+function toChartPoint(reading: LabResult): LabChartPoint {
+  const range = getReferenceRange(reading)
+
+  return {
+    date: reading.testDate!,
+    referenceHigh: range?.high,
+    referenceLow: range?.low,
+    referenceRangeLabel: formatReferenceRange(range, reading.unit),
+    status: classifyLabReading(reading),
+    unit: reading.unit,
+    value: reading.value,
+  }
+}
+
+export function buildLabChartSeries(readings: LabResult[], itemCode: string): LabChartSeries {
+  const matched = readings.filter((reading) => reading.itemCode === itemCode)
+  const dated = sortByDate(matched)
+  const latest = latestReading(matched)
+
+  return {
+    itemCode,
+    itemName: latest?.itemName ?? itemCode,
+    points: dated.map(toChartPoint),
+    undatedCount: matched.length - dated.length,
+  }
+}
+
+export function summarizeLatestAbnormalByCategory(readings: LabResult[]): LatestAbnormalSummary[] {
+  return LAB_CATEGORIES.map((category) => {
+    const dated = sortByDate(readings.filter((reading) => reading.category === category))
+    const latestDate = dated.at(-1)?.testDate ?? null
+    const latestReadings = latestDate ? dated.filter((reading) => reading.testDate === latestDate) : []
+    const abnormalReadings: LatestAbnormalReading[] = []
+    let missingReferenceCount = 0
+
+    for (const reading of latestReadings) {
+      const status = classifyLabReading(reading)
+
+      if (status === 'reference-missing') {
+        missingReferenceCount += 1
+        continue
+      }
+
+      if (status !== 'high' && status !== 'low') {
+        continue
+      }
+
+      abnormalReadings.push({
+        category,
+        itemCode: reading.itemCode,
+        itemName: reading.itemName,
+        referenceRangeLabel: formatReferenceRange(getReferenceRange(reading), reading.unit),
+        status,
+        testDate: reading.testDate!,
+        unit: reading.unit,
+        value: reading.value,
+      })
+    }
+
+    return { abnormalReadings, category, latestDate, missingReferenceCount }
+  })
+}
+
+function getRiseRatio(previous: LabChartPoint, next: LabChartPoint) {
+  if (previous.value <= 0) {
+    return null
+  }
+
+  return (next.value - previous.value) / previous.value
+}
+
+function findLatestContinuousRise(points: LabChartPoint[], threshold: number) {
+  for (let index = points.length - 3; index >= 0; index -= 1) {
+    const window = points.slice(index, index + 3) as [LabChartPoint, LabChartPoint, LabChartPoint]
+    const firstRise = getRiseRatio(window[0], window[1])
+    const secondRise = getRiseRatio(window[1], window[2])
+
+    if (firstRise !== null && secondRise !== null && firstRise > threshold && secondRise > threshold) {
+      return { firstRise, secondRise, window }
+    }
+  }
+
+  return null
+}
+
+export function detectTumorMarkerContinuousRise(readings: LabResult[], threshold = TUMOR_MARKER_RISE_THRESHOLD): TumorMarkerRiseAlert[] {
+  return [...groupByItem(readings.filter((reading) => reading.category === 'tumor-marker')).values()]
+    .map((group) => {
+      const points = sortByDate(group).map(toChartPoint)
+
+      if (points.length < 3) {
+        return null
+      }
+
+      const match = findLatestContinuousRise(points, threshold)
+
+      if (!match) {
+        return null
+      }
+
+      const latestPoint = match.window[2]
+      const firstReading = group[0]
+
+      const alert: TumorMarkerRiseAlert = {
+        cumulativeRiseRatio: getRiseRatio(match.window[0], latestPoint) ?? 0,
+        intervalRiseRatios: [match.firstRise, match.secondRise] as [number, number],
+        itemCode: firstReading.itemCode,
+        itemName: firstReading.itemName,
+        points: match.window,
+      }
+
+      if (latestPoint.unit) {
+        alert.unit = latestPoint.unit
+      }
+
+      return alert
+    })
+    .filter((alert): alert is TumorMarkerRiseAlert => alert !== null)
+}
+
+function readingValue(readings: LabResult[], itemCode: string) {
+  return readings.find((reading) => reading.category === 'blood-routine' && reading.itemCode === itemCode)?.value
+}
+
+function derivedReading(
+  readings: LabResult[],
+  code: 'mlr' | 'nlr' | 'plr',
+  numeratorCode: string,
+  denominatorCode: string,
+  method: string,
+): LabResult | null {
+  const numerator = readingValue(readings, numeratorCode)
+  const denominator = readingValue(readings, denominatorCode)
+
+  if (numerator === undefined || denominator === undefined || denominator <= 0) {
+    return null
+  }
+
+  const item = findLabIndicator('blood-routine', code)
+  const source = readings.find((reading) => reading.itemCode === numeratorCode || reading.itemCode === denominatorCode)
+
+  return {
+    batchId: source?.batchId,
+    category: 'blood-routine',
+    derivationMethod: method,
+    isDerived: true,
+    itemCode: item?.code ?? code,
+    itemName: item?.name ?? code.toUpperCase(),
+    source: 'derived',
+    testDate: source?.testDate,
+    value: roundTrendValue(numerator / denominator),
+  }
+}
+
+export function buildDerivedBloodRoutineReadings(readings: LabResult[]): LabResult[] {
+  return [
+    derivedReading(readings, 'nlr', 'neutrophil_abs', 'lymphocyte_abs', '中性粒细胞绝对值 / 淋巴细胞绝对值'),
+    derivedReading(readings, 'plr', 'platelet', 'lymphocyte_abs', '血小板 / 淋巴细胞绝对值'),
+    derivedReading(readings, 'mlr', 'monocyte_abs', 'lymphocyte_abs', '单核细胞绝对值 / 淋巴细胞绝对值'),
+  ].filter((reading): reading is LabResult => reading !== null)
 }

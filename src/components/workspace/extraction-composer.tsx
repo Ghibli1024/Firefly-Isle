@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 Effect、ref 与本地文字切换状态，依赖 @/components/system/surfaces 的 ActionSurface 与 PanelSurface，依赖 LlmProviderSettingsPanel，依赖 @/lib/copy 的工作区文案真相源与外部传入的工作区提取/OCR/编辑模式状态，依赖 transitions-dev.css 的 .t-icon-swap、.t-text-swap、.t-control-press 与 .t-popover 动效合同。
  * [OUTPUT]: 对外提供 ExtractionComposer 组件，渲染同构文本输入、OCR 文件输入、LLM provider 设置、语音工具、OCR 确认、编辑反馈、错误提示、重试入口、已有病历编辑主动作与新病历提取分流动作。
- * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、模型设置、医学文档 OCR 与结构化提取工作台。
+ * [POS]: components/workspace 的输入与主操作区块，被 workspace-page 组合，负责把 /app 收敛为病史输入、病历/检验报告文件上传、模型设置、医学文档 OCR 与结构化提取工作台。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState } from 'react'
@@ -45,7 +45,7 @@ function getUnavailableTitle(feature: string, locale: 'zh' | 'en') {
 }
 
 function getUploadTitle(locale: 'zh' | 'en') {
-  return locale === 'zh' ? '上传病历图片或 PDF' : 'Upload medical image or PDF'
+  return locale === 'zh' ? '上传病历图片、检验报告或 PDF' : 'Upload record image, lab report, or PDF'
 }
 
 export function ExtractionComposer({

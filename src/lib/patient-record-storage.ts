@@ -1,11 +1,11 @@
 /**
- * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabResult 数据模型。
- * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab row/payload 映射工具，并校验传入 patient id 的归属；远端未部署 clinical_notes / lab_results 时降级不中断主病历。
+ * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabReportBatch/LabResult 数据模型。
+ * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab batch/result row/payload 映射工具，并校验传入 patient id 的归属；远端未部署 clinical_notes / lab_results 时降级不中断主病历。
  * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、clinical_notes、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行或新建行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
-import type { LabResult, PatientRecord, TreatmentLine } from '@/types/patient'
+import type { LabReportBatch, LabResult, PatientRecord, TreatmentLine } from '@/types/patient'
 
 type PatientRow = {
   basic_info: PatientRecord['basicInfo'] | null
@@ -37,8 +37,11 @@ type PatientSingleResult = {
 }
 
 export type LabResultRow = {
+  batch_id?: string | null
   category: LabResult['category']
+  derivation_method?: string | null
   id?: string
+  is_derived?: boolean | null
   item_code: string
   item_name: string
   patient_id?: string
@@ -50,8 +53,26 @@ export type LabResultRow = {
   value: number
 }
 
+export type LabReportBatchRow = {
+  category: LabReportBatch['category']
+  created_at?: string | null
+  id?: string
+  ocr_text: string | null
+  patient_id?: string
+  review_status: NonNullable<LabReportBatch['reviewStatus']>
+  source_file_name: string | null
+  source_mime_type: string | null
+  source_storage_path: string | null
+  test_date: string | null
+  updated_at?: string | null
+}
+
 const PATIENT_COLUMNS_WITH_NOTES = 'id, basic_info, clinical_notes, initial_onset'
 const PATIENT_COLUMNS_WITHOUT_NOTES = 'id, basic_info, initial_onset'
+const LAB_RESULT_COLUMNS_WITH_METADATA =
+  'id, patient_id, batch_id, test_date, category, item_code, item_name, value, unit, reference_low, reference_high, source, is_derived, derivation_method'
+const LAB_RESULT_COLUMNS_LEGACY =
+  'id, patient_id, test_date, category, item_code, item_name, value, unit, reference_low, reference_high, source'
 
 function getPatientPayload(record: PatientRecord, includeClinicalNotes = true) {
   const payload: {
@@ -85,16 +106,47 @@ function getTreatmentLinePayload(line: TreatmentLine, patientId: string) {
 
 export function toLabResultPayload(reading: LabResult, patientId: string) {
   return {
+    batch_id: reading.batchId ?? null,
+    category: reading.category,
+    derivation_method: reading.derivationMethod ?? null,
+    item_code: reading.itemCode,
+    item_name: reading.itemName,
+    patient_id: patientId,
+    reference_high: reading.referenceHigh ?? null,
+    reference_low: reading.referenceLow ?? null,
+    is_derived: reading.isDerived ?? false,
+    source: reading.source ?? (reading.isDerived ? 'derived' : 'manual'),
+    test_date: reading.testDate ?? null,
+    unit: reading.unit ?? null,
+    value: reading.value,
+  }
+}
+
+export function toLegacyLabResultPayload(reading: LabResult, patientId: string) {
+  return {
     category: reading.category,
     item_code: reading.itemCode,
     item_name: reading.itemName,
     patient_id: patientId,
     reference_high: reading.referenceHigh ?? null,
     reference_low: reading.referenceLow ?? null,
-    source: reading.source ?? 'manual',
+    source: reading.source ?? (reading.isDerived ? 'derived' : 'manual'),
     test_date: reading.testDate ?? null,
     unit: reading.unit ?? null,
     value: reading.value,
+  }
+}
+
+export function toLabReportBatchPayload(batch: LabReportBatch, patientId: string) {
+  return {
+    category: batch.category,
+    ocr_text: batch.ocrText ?? null,
+    patient_id: patientId,
+    review_status: batch.reviewStatus ?? 'confirmed',
+    source_file_name: batch.sourceFileName ?? null,
+    source_mime_type: batch.sourceMimeType ?? null,
+    source_storage_path: batch.sourceStoragePath ?? null,
+    test_date: batch.testDate ?? null,
   }
 }
 
@@ -112,8 +164,11 @@ function mapTreatmentLineRow(row: TreatmentLineRow): TreatmentLine {
 
 export function mapLabResultRow(row: LabResultRow): LabResult {
   return {
+    batchId: row.batch_id ?? undefined,
     category: row.category,
+    derivationMethod: row.derivation_method ?? undefined,
     id: row.id,
+    isDerived: row.is_derived ?? undefined,
     itemCode: row.item_code,
     itemName: row.item_name,
     patientId: row.patient_id,
@@ -126,12 +181,32 @@ export function mapLabResultRow(row: LabResultRow): LabResult {
   }
 }
 
+export function mapLabReportBatchRow(row: LabReportBatchRow): LabReportBatch {
+  return {
+    category: row.category,
+    createdAt: row.created_at ?? undefined,
+    id: row.id,
+    ocrText: row.ocr_text ?? undefined,
+    patientId: row.patient_id,
+    reviewStatus: row.review_status,
+    sourceFileName: row.source_file_name ?? undefined,
+    sourceMimeType: row.source_mime_type ?? undefined,
+    sourceStoragePath: row.source_storage_path ?? undefined,
+    testDate: row.test_date ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
+  }
+}
+
 function isMissingLabResultsTableError(error: SupabaseQueryError) {
   return error.code === 'PGRST205' && /lab_results/i.test(error.message ?? '')
 }
 
 function isMissingClinicalNotesColumnError(error: SupabaseQueryError) {
   return error.code === '42703' && /clinical_notes/i.test(error.message ?? '')
+}
+
+function isMissingLabResultMetadataColumnError(error: SupabaseQueryError) {
+  return error.code === '42703' && /(batch_id|is_derived|derivation_method)/i.test(error.message ?? '')
 }
 
 async function loadPatientRowWithFallback(query: (columns: string) => PromiseLike<PatientSingleResult>) {
@@ -180,12 +255,18 @@ async function loadPatientChildren(patient: PatientRow) {
     throw linesError
   }
 
-  const { data: labRows, error: labError } = await supabase
-    .from('lab_results')
-    .select('id, patient_id, test_date, category, item_code, item_name, value, unit, reference_low, reference_high, source')
-    .eq('patient_id', patient.id)
-    .order('test_date', { ascending: true })
-    .returns<LabResultRow[]>()
+  const loadLabRows = (columns: string) =>
+    supabase
+      .from('lab_results')
+      .select(columns)
+      .eq('patient_id', patient.id)
+      .order('test_date', { ascending: true })
+      .returns<LabResultRow[]>()
+  let { data: labRows, error: labError } = await loadLabRows(LAB_RESULT_COLUMNS_WITH_METADATA)
+
+  if (labError && isMissingLabResultMetadataColumnError(labError)) {
+    ;({ data: labRows, error: labError } = await loadLabRows(LAB_RESULT_COLUMNS_LEGACY))
+  }
 
   if (labError) {
     if (isMissingLabResultsTableError(labError)) {
@@ -304,25 +385,34 @@ async function updatePatientRecord(patientId: string, record: PatientRecord) {
   }
 }
 
+async function syncTreatmentLines(patientId: string, treatmentLines: TreatmentLine[]) {
+  const supabase = getSupabaseClient()
+  const { error: deleteError } = await supabase.from('treatment_lines').delete().eq('patient_id', patientId)
+
+  if (deleteError) {
+    throw deleteError
+  }
+
+  if (treatmentLines.length === 0) {
+    return
+  }
+
+  const { error: insertError } = await supabase
+    .from('treatment_lines')
+    .insert(treatmentLines.map((line) => getTreatmentLinePayload(line, patientId)))
+
+  if (insertError) {
+    throw insertError
+  }
+}
+
 export async function persistPatientRecord(record: PatientRecord, userId: string) {
   const patientId = await ensurePatientRecordExists(record, userId)
   const persistedRecord = record.id === patientId ? record : { ...record, id: patientId }
   const supabase = getSupabaseClient()
 
   await updatePatientRecord(patientId, persistedRecord)
-
-  if (persistedRecord.treatmentLines.length > 0) {
-    const { error: lineError } = await supabase
-      .from('treatment_lines')
-      .upsert(
-        persistedRecord.treatmentLines.map((line) => getTreatmentLinePayload(line, patientId)),
-        { onConflict: 'patient_id,line_number' },
-      )
-
-    if (lineError) {
-      throw lineError
-    }
-  }
+  await syncTreatmentLines(patientId, persistedRecord.treatmentLines)
 
   if (persistedRecord.labResults) {
     const { error: deleteError } = await supabase.from('lab_results').delete().eq('patient_id', patientId)
@@ -332,9 +422,19 @@ export async function persistPatientRecord(record: PatientRecord, userId: string
     }
 
     if (persistedRecord.labResults.length > 0) {
-      const { error: labError } = await supabase
-        .from('lab_results')
-        .insert(persistedRecord.labResults.map((reading) => toLabResultPayload(reading, patientId)))
+      const insertLabResults = (includeMetadata: boolean) =>
+        supabase
+          .from('lab_results')
+          .insert(
+            persistedRecord.labResults!.map((reading) =>
+              includeMetadata ? toLabResultPayload(reading, patientId) : toLegacyLabResultPayload(reading, patientId),
+            ),
+          )
+      let { error: labError } = await insertLabResults(true)
+
+      if (labError && isMissingLabResultMetadataColumnError(labError)) {
+        ;({ error: labError } = await insertLabResults(false))
+      }
 
       if (labError) {
         throw labError

@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历 href 与紧凑可拖拽侧栏 token。
+ * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历/统计 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、统计占位提示、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、真实统计/演示统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { FireflyBrandWordmark } from '@/components/system/firefly-brand-wordmark'
@@ -77,6 +77,7 @@ function shouldStartHidden() {
 }
 
 export type ArchiveSideNavProps = {
+  analyticsHref?: string
   dark: boolean
   isSigningOut?: boolean
   onSignOut?: () => void
@@ -90,18 +91,20 @@ function isActive(pathname: string, href: string) {
     return pathname.startsWith('/record')
   }
 
+  if (href.startsWith('/analytics/')) {
+    return pathname.startsWith('/analytics')
+  }
+
   return pathname === href
 }
 
-export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
+export function ArchiveSideNav({ analyticsHref = '/analytics/demo', dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
   const { locale, toggleLocale } = useLocale()
   const { toggleTheme } = useTheme()
-  const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const [expandedWidth, setExpandedWidth] = useState(readStoredExpandedWidth)
   const [hidden, setHidden] = useState(shouldStartHidden)
   const [width, setWidth] = useState(readStoredExpandedWidth)
-  const comingSoonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragMovedRef = useRef(false)
   const hiddenRevealDragRef = useRef<HiddenRevealDrag | null>(null)
   const resolvedUserLabel = userLabel ?? getCopy(copy.shell.nav.pendingAccess, locale)
@@ -114,26 +117,15 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
       [
         { icon: 'my_location', href: '/app', labelKey: 'extract' },
         { icon: 'clinical_notes', href: recordHref ?? '/record/demo', labelKey: 'record' },
-        { action: 'comingSoon', icon: 'bar_chart', labelKey: 'analytics' },
+        { icon: 'bar_chart', href: analyticsHref, labelKey: 'analytics' },
       ] as const,
-    [recordHref],
+    [analyticsHref, recordHref],
   )
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-sidebar-width', `${width}px`)
     document.documentElement.style.setProperty('--ff-sidebar-offset', hidden ? '0px' : `${width}px`)
   }, [hidden, width])
-
-  const clearComingSoonTimer = useCallback(() => {
-    if (!comingSoonTimerRef.current) {
-      return
-    }
-
-    clearTimeout(comingSoonTimerRef.current)
-    comingSoonTimerRef.current = null
-  }, [])
-
-  useEffect(() => clearComingSoonTimer, [clearComingSoonTimer])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -383,21 +375,6 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
     rememberExpandedWidth(nextWidth)
   }
 
-  const showComingSoon = () => {
-    setComingSoonOpen(true)
-    clearComingSoonTimer()
-
-    comingSoonTimerRef.current = setTimeout(() => {
-      setComingSoonOpen(false)
-      comingSoonTimerRef.current = null
-    }, 3000)
-  }
-
-  const hideComingSoon = () => {
-    clearComingSoonTimer()
-    setComingSoonOpen(false)
-  }
-
   const renderLabel = (label: string, className?: string) =>
     compact ? null : <span className={`${cn('truncate tracking-normal', className)} font-[var(--ff-font-display)]`}>{label}</span>
   const renderBrandTitle = () => (compact ? null : <FireflyBrandWordmark locale={locale} />)
@@ -473,37 +450,14 @@ export function ArchiveSideNav({ dark, isSigningOut = false, onSignOut, recordHr
                       {item.icon}
                     </span>
                     {renderLabel(label, cn('text-[16px] font-semibold leading-none', active ? 'text-[var(--ff-accent-primary)]' : ''))}
-                    {'action' in item && comingSoonOpen ? null : iconOnlyTooltip(label)}
-                    {'action' in item && comingSoonOpen ? (
-                      <span
-                        aria-live="polite"
-                        className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-3 py-2 text-sm font-semibold text-[var(--ff-text-primary)] shadow-[0_12px_32px_rgba(0,0,0,0.28)]"
-                        role="status"
-                      >
-                        {getCopy(copy.shell.nav.comingSoon, locale)}
-                      </span>
-                    ) : null}
+                    {iconOnlyTooltip(label)}
                   </>
                 )
 
-                return 'href' in item ? (
+                return (
                   <Link aria-label={label} className={itemClassName} key={item.href} title={label} to={item.href}>
                     {itemContent}
                   </Link>
-                ) : (
-                  <button
-                    aria-label={label}
-                    className={itemClassName}
-                    data-nav-action="coming-soon"
-                    key={item.labelKey}
-                    onBlur={hideComingSoon}
-                    onClick={showComingSoon}
-                    onPointerLeave={hideComingSoon}
-                    title={label}
-                    type="button"
-                  >
-                    {itemContent}
-                  </button>
                 )
               })}
             </nav>

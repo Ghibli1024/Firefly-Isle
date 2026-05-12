@@ -13,7 +13,7 @@ import type { BasicInfo, LabResult, LabResultCategory, LabResultSource, PatientR
 const CRITICAL_FIELDS = ['tumorType', 'stage', 'regimen'] as const
 const DATE_PATTERN = /^\d{4}-(\d{2})(-\d{2})?$/
 const LAB_CATEGORIES = new Set<LabResultCategory>(['blood-routine', 'blood-biochemistry', 'tumor-marker'])
-const LAB_SOURCES = new Set<LabResultSource>(['ocr', 'manual', 'test'])
+const LAB_SOURCES = new Set<LabResultSource>(['ocr', 'manual', 'test', 'derived'])
 export const MAX_FOLLOW_UP_ROUNDS = 3
 
 type CriticalField = (typeof CRITICAL_FIELDS)[number]
@@ -201,7 +201,10 @@ function normalizeLabResult(reading: Partial<LabResult> | undefined): LabResult 
   }
 
   return {
+    batchId: normalizeString(reading?.batchId),
     category,
+    derivationMethod: normalizeString(reading?.derivationMethod),
+    isDerived: reading?.isDerived === true,
     itemCode,
     itemName,
     referenceHigh: normalizeNumber(reading?.referenceHigh),
