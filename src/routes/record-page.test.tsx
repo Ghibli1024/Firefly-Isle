@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Gantt 备用视图、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/极简表格/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、TimelineTable/Gantt 备用视图、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/表格/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -105,24 +105,27 @@ function renderRecordContent({
   }
 
   return renderToStaticMarkup(
-    <MemoryRouter initialEntries={[demoRoute ? '/record/demo' : '/record/patient-42']}>
-      <RecordPageContent
-        activeRecordLoadState={activeRecordLoadState}
-        demoRecord={record ?? demoPatientRecord}
-        demoRoute={demoRoute}
-        exportState={exportState}
-        isChartEditing={false}
-        locale="zh"
-        onChartEditingChange={() => undefined}
-        onCommitField={() => undefined}
-        onCommitRange={() => undefined}
-        onExport={() => undefined}
-        onViewModeChange={() => undefined}
-        recordRef={createRef<HTMLDivElement>()}
-        saveState={{ error: null, status: 'idle' }}
-        viewMode={viewMode}
-      />
-    </MemoryRouter>,
+    <LocaleProvider>
+      <MemoryRouter initialEntries={[demoRoute ? '/record/demo' : '/record/patient-42']}>
+        <RecordPageContent
+          activeRecordLoadState={activeRecordLoadState}
+          demoRecord={record ?? demoPatientRecord}
+          demoRoute={demoRoute}
+          exportState={exportState}
+          isChartEditing={false}
+          locale="zh"
+          onChartEditingChange={() => undefined}
+          onCommitField={() => undefined}
+          onCommitRange={() => undefined}
+          onExport={() => undefined}
+          onViewModeChange={() => undefined}
+          recordRef={createRef<HTMLDivElement>()}
+          saveState={{ error: null, status: 'idle' }}
+          theme={currentTheme}
+          viewMode={viewMode}
+        />
+      </MemoryRouter>
+    </LocaleProvider>,
   )
 }
 
@@ -153,10 +156,11 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('导出 PNG')
   })
 
-  it('exposes a dossier/Gantt view switch on demo records', () => {
+  it('exposes a dossier/table/Gantt view switch on demo records', () => {
     const markup = renderRecord('light')
 
     expect(markup).toContain('档案视图')
+    expect(markup).toContain('极简表格')
     expect(markup).toContain('甘特图视图')
   })
 
@@ -179,10 +183,14 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('style="--t-order:0"')
   })
 
-  it('uses a tab-switch contract for dossier and Gantt view changes', () => {
+  it('uses a tab-switch contract for dossier, table and Gantt view changes', () => {
     const dossierMarkup = renderRecordContent({
       demoRoute: true,
       viewMode: 'dossier',
+    })
+    const tableMarkup = renderRecordContent({
+      demoRoute: true,
+      viewMode: 'table',
     })
     const ganttMarkup = renderRecordContent({
       demoRoute: true,
@@ -194,11 +202,26 @@ describe('RecordPage responsive dossier shell', () => {
     expect(dossierMarkup).toContain('t-tab-switch-slider')
     expect(dossierMarkup).toContain('t-tab-switch-thumb')
     expect(dossierMarkup).toContain('data-active-page="dossier"')
-    expect(dossierMarkup).toContain('style="--tab-switch-count:2;--tab-switch-index:0"')
+    expect(dossierMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:0"')
+    expect(tableMarkup).toContain('data-active-page="table"')
+    expect(tableMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:1"')
     expect(ganttMarkup).toContain('data-active-page="gantt"')
-    expect(ganttMarkup).toContain('style="--tab-switch-count:2;--tab-switch-index:1"')
+    expect(ganttMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:2"')
     expect(transitionsSource).toContain('.t-tab-switch-thumb')
     expect(transitionsSource).toContain('transform: translateX(calc(var(--tab-switch-index) * 100%))')
+  })
+
+  it('renders the minimal TimelineTable view for real record content without hijacking dossier export', () => {
+    const markup = renderRecordContent({
+      record: demoPatientRecord,
+      viewMode: 'table',
+    })
+
+    expect(markup).toContain('时间线表格')
+    expect(markup).toContain('基本信息')
+    expect(markup).toContain('氟唑帕利 + 哌柏西利 + 托瑞米芬')
+    expect(markup).not.toContain('导出 PDF')
+    expect(markup).not.toContain('导出 PNG')
   })
 
   it('renders the Gantt view for demo records through the record content layer', () => {
@@ -247,6 +270,7 @@ describe('RecordPage responsive dossier shell', () => {
           onViewModeChange={() => undefined}
           recordRef={createRef<HTMLDivElement>()}
           saveState={{ error: null, status: 'idle' }}
+          theme={currentTheme}
           viewMode="dossier"
         />
       </MemoryRouter>,
@@ -267,6 +291,7 @@ describe('RecordPage responsive dossier shell', () => {
           onViewModeChange={() => undefined}
           recordRef={createRef<HTMLDivElement>()}
           saveState={{ error: null, status: 'idle' }}
+          theme={currentTheme}
           viewMode="gantt"
         />
       </MemoryRouter>,
@@ -297,6 +322,7 @@ describe('RecordPage responsive dossier shell', () => {
           onViewModeChange={() => undefined}
           recordRef={createRef<HTMLDivElement>()}
           saveState={{ error: null, status: 'saving' }}
+          theme={currentTheme}
           viewMode="dossier"
         />
       </MemoryRouter>,

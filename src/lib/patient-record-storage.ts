@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/supabase 的客户端入口与 @/types/patient 的 PatientRecord/TreatmentLine/LabReportBatch/LabResult 数据模型。
- * [OUTPUT]: 对外提供 loadPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab batch/result row/payload 映射工具，并校验传入 patient id 的归属；远端未部署 clinical_notes / lab_results 时降级不中断主病历。
- * [POS]: lib 的患者记录持久化边界，统一 routes 与 workspace 对 patients、clinical_notes、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行或新建行。
+ * [OUTPUT]: 对外提供 loadPatientRecordById、loadSharedPatientRecordById、loadLatestPatientRecord、persistPatientRecord 与 lab batch/result row/payload 映射工具，并校验传入 patient id 的归属；远端未部署 clinical_notes / lab_results 时降级不中断主病历。
+ * [POS]: lib 的患者记录持久化边界，统一 routes、workspace 与只读分享对 patients、clinical_notes、treatment_lines、可选 lab_results 的读写，让数据库身份只来自已归属行、新建行或 RLS 授权的 active share。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
@@ -293,6 +293,19 @@ export async function loadPatientRecordById(recordId: string): Promise<PatientRe
       .select(columns)
       .eq('id', recordId)
       .eq('user_id', authData.user.id)
+      .maybeSingle<PatientRow>(),
+  )
+
+  return patient ? loadPatientChildren(patient) : null
+}
+
+export async function loadSharedPatientRecordById(recordId: string): Promise<PatientRecord | null> {
+  const supabase = getSupabaseClient()
+  const patient = await loadPatientRowWithFallback((columns) =>
+    supabase
+      .from('patients')
+      .select(columns)
+      .eq('id', recordId)
       .maybeSingle<PatientRow>(),
   )
 

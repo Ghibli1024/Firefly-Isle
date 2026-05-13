@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 demoPatientRecord、record-editing 字段 patch、patient-record-storage 持久化、./record-page.view 的档案/Gantt 内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useParams 与 transitions-dev.css 的 route/stagger 动效合同。
- * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id，并挂载详情页主画布入场动效与字段级 Supabase 保存。
- * [POS]: routes 的档案详情 orchestration 层，只负责路由参数、加载状态、视图状态、页面级图表编辑状态、字段保存状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 demoPatientRecord、clinical-analysis、record-sharing、record-editing 字段 patch、patient-record-storage 持久化、./record-page.view 的档案/极简表格/Gantt/分享/AI 分析内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useParams 与 transitions-dev.css 的 route/stagger 动效合同。
+ * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id，并挂载详情页主画布入场动效、授权码分享、AI 辅助分析与字段级 Supabase 保存。
+ * [POS]: routes 的档案详情 orchestration 层，只负责路由参数、加载状态、视图状态、分享状态、AI 分析状态、页面级图表编辑状态、字段保存状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
@@ -12,9 +12,11 @@ import { demoPatientRecord } from '@/components/record/demo-record'
 import { labels } from '@/components/record/record-copy'
 import type { ExportFormat } from '@/components/record/types'
 import { MainShell } from '@/components/system/surfaces'
+import { analyzePatientRecord, ClinicalAnalysisParseError, type ClinicalAnalysisResult } from '@/lib/clinical-analysis'
 import { useLocale } from '@/lib/locale'
 import { persistPatientRecord } from '@/lib/patient-record-storage'
 import { applyPatientRecordEdit, applyPatientRecordEdits, type PatientRecordEdit } from '@/lib/record-editing'
+import { createRecordShare, listRecordShares, revokeRecordShare, type RecordShare } from '@/lib/record-sharing'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 import type { PatientFieldTarget, PatientRangeTarget, PatientRecord } from '@/types/patient'
@@ -74,6 +76,26 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   const [isChartEditing, setIsChartEditing] = useState(false)
   const [demoRecord, setDemoRecord] = useState<PatientRecord>(demoPatientRecord)
   const [saveState, setSaveState] = useState<RecordSaveState>({ error: null, status: 'idle' })
+  const [clinicalAnalysisState, setClinicalAnalysisState] = useState<{
+    error: string | null
+    isLoading: boolean
+    result: ClinicalAnalysisResult | null
+  }>({ error: null, isLoading: false, result: null })
+  const [shareState, setShareState] = useState<{
+    createdUrl: string | null
+    error: string | null
+    isCreating: boolean
+    isLoading: boolean
+    revokingShareId: string | null
+    shares: RecordShare[]
+  }>({
+    createdUrl: null as string | null,
+    error: null as string | null,
+    isCreating: false,
+    isLoading: false,
+    revokingShareId: null as string | null,
+    shares: [],
+  })
   const dark = theme === 'dark'
 
   useEffect(() => {
@@ -115,6 +137,62 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   }, [demoRoute, id, locale])
 
   const activeRecordLoadState = getActiveRecordLoadState({ demoRoute, id, recordLoadState })
+  const shareRecordId = demoRoute ? undefined : activeRecordLoadState.record?.id
+
+  useEffect(() => {
+    setClinicalAnalysisState({ error: null, isLoading: false, result: null })
+  }, [id])
+
+  useEffect(() => {
+    if (!shareRecordId) {
+      setShareState({
+        createdUrl: null,
+        error: null,
+        isCreating: false,
+        isLoading: false,
+        revokingShareId: null,
+        shares: [],
+      })
+      return undefined
+    }
+
+    let active = true
+
+    setShareState((current) => ({
+      ...current,
+      error: null,
+      isLoading: true,
+    }))
+
+    void listRecordShares(shareRecordId)
+      .then((shares) => {
+        if (!active) {
+          return
+        }
+
+        setShareState((current) => ({
+          ...current,
+          error: null,
+          isLoading: false,
+          shares,
+        }))
+      })
+      .catch(() => {
+        if (!active) {
+          return
+        }
+
+        setShareState((current) => ({
+          ...current,
+          error: locale === 'zh' ? '读取分享失败，请稍后重试。' : 'Failed to load shares. Please retry.',
+          isLoading: false,
+        }))
+      })
+
+    return () => {
+      active = false
+    }
+  }, [locale, shareRecordId])
 
   function getEditableRecord() {
     return demoRoute ? demoRecord : activeRecordLoadState.record
@@ -219,6 +297,104 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
     }
   }
 
+  function getClinicalAnalysisError(error: unknown) {
+    if (error instanceof ClinicalAnalysisParseError) {
+      return locale === 'zh' ? 'AI 返回内容无法解析，请稍后重试。' : 'The AI response could not be parsed. Please retry.'
+    }
+
+    if (error instanceof Error) {
+      return locale === 'zh' ? `AI 分析失败：${error.message}` : `AI analysis failed: ${error.message}`
+    }
+
+    return locale === 'zh' ? 'AI 分析失败，请稍后重试。' : 'AI analysis failed. Please retry.'
+  }
+
+  async function handleClinicalAnalyze() {
+    if (demoRoute || !activeRecordLoadState.record || clinicalAnalysisState.isLoading) {
+      return
+    }
+
+    setClinicalAnalysisState({ error: null, isLoading: true, result: null })
+
+    try {
+      const result = await analyzePatientRecord(activeRecordLoadState.record)
+      setClinicalAnalysisState({ error: null, isLoading: false, result })
+    } catch (error) {
+      setClinicalAnalysisState({ error: getClinicalAnalysisError(error), isLoading: false, result: null })
+    }
+  }
+
+  function getShareActionError(error: unknown) {
+    if (error instanceof Error) {
+      return locale === 'zh' ? `分享操作失败：${error.message}` : `Share action failed: ${error.message}`
+    }
+
+    return locale === 'zh' ? '分享操作失败，请稍后重试。' : 'Share action failed. Please retry.'
+  }
+
+  async function handleCreateShare() {
+    if (!shareRecordId || shareState.isCreating) {
+      return
+    }
+
+    setShareState((current) => ({
+      ...current,
+      error: null,
+      isCreating: true,
+    }))
+
+    try {
+      const created = await createRecordShare(shareRecordId)
+
+      setShareState((current) => ({
+        ...current,
+        createdUrl: created.url,
+        error: null,
+        isCreating: false,
+        shares: [created.share, ...current.shares.filter((share) => share.id !== created.share.id)],
+      }))
+    } catch (error) {
+      setShareState((current) => ({
+        ...current,
+        error: getShareActionError(error),
+        isCreating: false,
+      }))
+    }
+  }
+
+  function handleCopyShareUrl() {
+    if (!shareState.createdUrl) {
+      return
+    }
+
+    void navigator.clipboard?.writeText(shareState.createdUrl)
+  }
+
+  async function handleRevokeShare(shareId: string) {
+    setShareState((current) => ({
+      ...current,
+      error: null,
+      revokingShareId: shareId,
+    }))
+
+    try {
+      const revokedShare = await revokeRecordShare(shareId)
+
+      setShareState((current) => ({
+        ...current,
+        error: null,
+        revokingShareId: null,
+        shares: current.shares.map((share) => (share.id === revokedShare.id ? revokedShare : share)),
+      }))
+    } catch (error) {
+      setShareState((current) => ({
+        ...current,
+        error: getShareActionError(error),
+        revokingShareId: null,
+      }))
+    }
+  }
+
   return (
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '病历详情' : 'Record Detail'} withRail />
@@ -239,18 +415,25 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
         >
           <RecordPageContent
             activeRecordLoadState={activeRecordLoadState}
+            clinicalAnalysisState={clinicalAnalysisState}
             demoRecord={demoRecord}
             demoRoute={demoRoute}
             exportState={exportState}
             isChartEditing={isChartEditing}
             locale={locale}
             onChartEditingChange={setIsChartEditing}
+            onClinicalAnalyze={handleClinicalAnalyze}
+            onCopyShareUrl={handleCopyShareUrl}
             onCommitField={handleCommitField}
             onCommitRange={handleCommitRange}
+            onCreateShare={handleCreateShare}
             onExport={(format) => void handleExport(format)}
+            onRevokeShare={(shareId) => void handleRevokeShare(shareId)}
             onViewModeChange={setRecordViewMode}
             recordRef={recordRef}
             saveState={saveState}
+            shareState={shareRecordId ? shareState : undefined}
+            theme={theme}
             viewMode={recordViewMode}
           />
         </div>

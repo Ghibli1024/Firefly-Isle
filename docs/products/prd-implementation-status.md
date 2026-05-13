@@ -1,5 +1,5 @@
 <!--
- * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/ 与 public/ 的当前实现事实，并参考 openspec/changes/add-lab-analytics-page/ 的已完成待归档需求方向。
+ * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/、public/、v1.4.0 发布基线、openspec/changes/add-lab-analytics-page/ 与三个 P0 active changes 的实现方向。
  * [OUTPUT]: 对外提供 PRD 功能的已实现、部分实现、未实现与额外能力盘点。
  * [POS]: docs/products 的当前产品状态真相源，连接历史 PRD 快照、baseline specs 与运行时代码现实。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -10,11 +10,12 @@
 ## 盘点基准
 
 - PRD 快照：`docs/products/archive/prd.md`
+- 当前发布基线：`v1.4.0` / `2a1bd34`
 - 当前规格真相源：`openspec/specs/`
-- 当前已完成待归档需求变更：`openspec/changes/add-lab-analytics-page/`
+- 当前已完成待归档需求变更：`openspec/changes/add-lab-analytics-page/`，OpenSpec 任务 `32/32` 完成；P0 active changes `add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view` 已实现并等待最终验证 / 归档
 - 实现核对范围：`src/`、`supabase/`、`functions/`、`public/`
-- 最近验证：`npm run test` 通过，39 个测试文件、294 个测试通过
-- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、演示统计页、对话式修改、甘特图视图与用户 LLM provider 设置已进入当前实现；AI 分析、分享与多端平台仍未实现。
+- 最近验证：以本轮最终验证命令为准；P0 聚焦验证已覆盖 AI 分析、分享、record page 视图切换与 route 合同
+- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、演示统计页、对话式修改、甘特图视图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享与极简 TimelineTable 视图已进入当前实现；多端平台仍未实现。
 
 ## 已实现
 
@@ -35,13 +36,15 @@
 - Supabase 持久化、RLS 用户隔离、最近记录恢复：已实现。
 - `/record/:id` 读取真实病历并支持 PDF / PNG 导出：已实现。
 - `/record/:id` 治疗线甘特图视图：已实现档案 / 甘特图切换、缺失日期待补充、开放当前线与导出不劫持。
+- `/record/:id` 极简 TimelineTable 视图：已实现档案 / 极简表格 / 甘特图三态切换，复用当前 PatientRecord 和字段级保存逻辑，不复制第二套治疗线编辑。
+- `/record/:id` AI 辅助分析：已实现治疗线摘要、指标趋势摘要、复核关注点、就诊前问题、加载态、失败态、无实验室数据降级与非诊断免责声明，走现有 `chat()` / `llm-proxy` provider 边界。
+- 授权码只读分享：已实现单份 record 分享创建、一次性链接展示、复制/查看、撤销、过期状态、公开 `/share/:code` 只读访问与错误/撤销/过期反馈。
 - 多平台 LLM provider 设置：已实现系统默认 DeepSeek、Gemini / Claude / OpenAI / GLM / DeepSeek / Kimi preset、自定义 OpenAI 风格 provider、服务端加密存储与非明文回读。
 - 中英双语：已实现。
 - 背景音乐：已实现本地授权歌单控件，但不是 PRD 写的《Just One Dance》。
 
 ## 部分实现 / 有偏差
 
-- 一页极简表格：数据和渲染能力有，但当前主界面更像 V3 病历预览 / 正式档案，不是纯 PRD 描述的一页极简表格；`TimelineTable` 组件存在但当前路由没直接挂载为主体验。
 - 实验室趋势归档状态：`/record/:id` 保留基础趋势表，`/analytics/:id` 已承接主统计入口；当前仍待归档 OpenSpec change 后并入 baseline specs。
 - 微信登录：Cloudflare Pages Functions 适配层已写，前端仍显示“敬请期待”，不会启动真实微信 OAuth。
 - 手机验证码：只有占位，未接短信服务。
@@ -49,8 +52,6 @@
 
 ## 未实现
 
-- AI 助理分析治疗方案和血液指标。
-- 加密分享 / 授权码分享。
 - MSD 健康查询。
 - Windows / Mac / Android / iOS / 小程序 / 鸿蒙原生或全平台版本。
 - OpenClaw / WebChrome 扩展集成。
@@ -65,7 +66,7 @@
 - LLM proxy 的 JWT 校验、匿名 / 登录用户频率限制、用户 provider 设置与 DeepSeek 连通性测试。
 - GitHub Actions + Cloudflare Pages 部署基线。
 - 社区健康文件：`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`。
-- 自动测试覆盖：39 个测试文件、294 个测试通过。
+- 自动测试覆盖：39 个测试文件、307 个测试通过。
 
 ## 关键实现入口
 
@@ -76,17 +77,24 @@
 - `src/lib/lab-report-ingestion.ts`
 - `src/lib/lab-report-storage.ts`
 - `src/lib/lab-results.ts`
+- `src/lib/clinical-analysis.ts`
+- `src/lib/record-sharing.ts`
 - `src/lib/record-editing.ts`
 - `src/lib/llm/provider-settings.ts`
 - `src/routes/workspace-page.tsx`
 - `src/routes/lab-analytics-page.tsx`
+- `src/routes/shared-record-page.tsx`
 - `src/components/analytics/demo-lab-analytics.ts`
 - `src/routes/record-page.tsx`
 - `src/components/analytics/lab-analytics-dashboard.tsx`
+- `src/components/record/ClinicalAnalysisPanel.tsx`
 - `src/components/record/LabTrendsTable.tsx`
+- `src/components/record/RecordSharePanel.tsx`
+- `src/components/timeline/TimelineTable.tsx`
 - `src/components/timeline/TreatmentGanttView.tsx`
 - `src/lib/export-record.ts`
 - `supabase/migrations/001_init.sql`
 - `supabase/migrations/005_lab_report_batches.sql`
+- `supabase/migrations/006_record_shares.sql`
 - `supabase/functions/llm-proxy/handler.ts`
 - `supabase/functions/medical-document-ocr/handler.ts`

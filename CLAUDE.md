@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The user-owned LLM provider settings work is archived at `openspec/changes/archive/2026-05-05-add-user-llm-provider-settings/`; current baseline behavior lives in `openspec/specs/llm-provider-settings/spec.md`, `openspec/specs/llm-adapter/spec.md`, and `openspec/specs/supabase-schema/spec.md`.
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
 - Active lab analytics implementation lives in `openspec/changes/add-lab-analytics-page/`; all tasks are applied, and the change remains the web-side lab statistics ledger until archived into baseline specs.
+- Active P0 implementation lives in `openspec/changes/add-clinical-ai-analysis/`, `openspec/changes/add-secure-record-sharing/`, and `openspec/changes/restore-minimal-timeline-table-view/`; these changes are the current ledger for AI auxiliary analysis, authorization-code sharing, and the restored TimelineTable record view until archived.
 - Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 - Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
@@ -54,7 +55,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `stitch/` — Stitch-origin design references and runtime screenshot evidence
 - `docs/products/`
   - `prd-implementation-status.md` — current PRD implementation status, preserving the implemented / partial / not implemented feature audit
-  - `product-priority-roadmap.md` — current product priority roadmap, separating completed OpenSpec milestones from next work such as AI analysis, sharing, and TimelineTable return
+  - `product-priority-roadmap.md` — current product priority roadmap, separating completed OpenSpec milestones, implemented P0 active changes, and next work such as WeChat auth
   - `archive/` — archived product snapshots: `prd.md`, `spec.md`, `design-system.md`, `stitch-screen-mapping.md`, and `product-goals-2026-05-05.md`; archived `design-system.md` is historical and must not override `DESIGN.md`, and archived goals are not the current execution queue
 - `docs/log/`
   - `index.md` — commit history 总入口
@@ -65,6 +66,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `CLAUDE.md` maps each baseline spec file and records that main specs must use `## Purpose` + `## Requirements`
 - `openspec/changes/add-lab-analytics-page/`
   - completed-but-unarchived OpenSpec contract and task ledger for the lab analytics work: `/app` lab file input, `/analytics/:id` and `/analytics/demo`, Supabase `lab_report_batches` / `lab_results` extension, grouped lab trend charts, latest abnormal summaries, tumor-marker continuous-rise reminders, and the selected dark clinical control-tower visual baseline
+- `openspec/changes/add-clinical-ai-analysis/`
+  - active P0 OpenSpec contract and task ledger for non-diagnostic AI treatment/lab analysis on `/record/:id`, using the existing LLM proxy/provider settings boundary
+- `openspec/changes/add-secure-record-sharing/`
+  - active P0 OpenSpec contract and task ledger for `record_shares`, authorization-code hash storage, revocation/expiration, and public read-only `/share/:code`
+- `openspec/changes/restore-minimal-timeline-table-view/`
+  - active P0 OpenSpec contract and task ledger for restoring `TimelineTable` as the third `/record/:id` view without replacing dossier or Gantt export behavior
 - `openspec/changes/CLAUDE.md`
   - active/archive OpenSpec change map; update it when active change directories are created, archived, renamed, or removed
 - `openspec/changes/archive/2026-05-03-add-background-music-toggle/`
@@ -95,7 +102,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `functions/`
   - Cloudflare Pages Functions; currently contains WeChat OAuth2 adapter prework that can translate Supabase custom provider requests into WeChat Open Platform QR login, while the active login page keeps WeChat as `敬请期待`
 - `supabase/`
-  - `migrations/*.sql` — schema, RLS, trigger, and storage-adjacent infrastructure migrations
+  - `migrations/*.sql` — schema, RLS, trigger, record sharing, and storage-adjacent infrastructure migrations
 - `src/components/analytics/`
   - analytics UI module for the lab statistics page, rendering grouped lab trends, chart-equivalent tables, demo lab data, abnormal summaries, tumor-marker rise reminders, and non-diagnostic messaging
 - Global Claude OpenSpec helpers
@@ -108,7 +115,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
 - **Edge adapter:** Cloudflare Pages Functions host WeChat OAuth2 adapter prework for future Supabase custom provider compatibility; current login UI keeps WeChat deferred
 - **AI boundary:** frontend calls a Supabase Edge Function proxy; system provider keys stay server-side, and user-owned provider keys are saved only through encrypted `llm_provider_settings` rows
-- **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → PDF/PNG export
+- **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → AI auxiliary analysis / read-only sharing / PDF/PNG export
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
 - **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
 
@@ -157,7 +164,9 @@ The OpenSpec artifacts are aligned on these points:
 - The LLM proxy supports system DeepSeek fallback plus user-owned Gemini, Claude, OpenAI, GLM, DeepSeek, Kimi, and custom OpenAI-style provider settings through a Supabase Edge Function boundary.
 - The app now provides a user-facing LLM provider settings entry: no saved setting falls back to system DeepSeek, while user-owned preset/custom provider keys are saved through `llm-proxy/settings` with server-side encryption and RLS-backed storage.
 - Data storage uses normalized `patients` + `treatment_lines` + `lab_report_batches` + `lab_results` tables with RLS; `lab_results` remains the single reading truth for web charts and monitoring, while `lab_report_batches` stores upload/OCR/review source facts.
+- Read-only sharing uses `record_shares` with hashed authorization codes, revocation/expiration, active-share RLS, and a public `/share/:code` route that never exposes raw owner user ids.
 - The active `add-lab-analytics-page` change is still unarchived, so its tasks/specs remain the implementation ledger until baseline specs are updated during archive.
+- The three active P0 changes remain unarchived, so their tasks/specs remain the implementation ledger until baseline specs are updated during archive.
 
 ## Stitch note
 

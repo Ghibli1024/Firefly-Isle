@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的 CSSProperties/RefObject/useRef、react-router-dom 的 Link、PatientRecord、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
- * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入、多行概要证据、无重复卡片标题的桌面独立不换行时间段/PFS rail、移动卡内 PFS、页面级字段保存编辑和时间线 rail draw-in 的档案视图。
- * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、多段检查证据、按需实验室趋势、左侧时间段 rail、移动卡内 PFS、无重复标题时间线、证据卡、临床备注、导出按钮、可编辑展示值与不可用态，不再在标题旁渲染线别小字或重复已表达信息。
+ * [INPUT]: 依赖 react 的 CSSProperties/RefObject/useRef、react-router-dom 的 Link、PatientRecord、ClinicalAnalysisPanel、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
+ * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入、多行概要证据、AI 辅助分析、无重复卡片标题的桌面独立不换行时间段/PFS rail、移动卡内 PFS、页面级字段保存编辑和时间线 rail draw-in 的档案视图。
+ * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、多段检查证据、AI 分析面板、按需实验室趋势、左侧时间段 rail、移动卡内 PFS、无重复标题时间线、证据卡、临床备注、导出按钮、可编辑展示值与不可用态，不再在标题旁渲染线别小字或重复已表达信息。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useRef, type CSSProperties, type RefObject } from 'react'
@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'
 import type { Locale } from '@/lib/locale'
 import type { PatientFieldTarget, PatientRangeTarget, PatientRecord } from '@/types/patient'
 
+import { ClinicalAnalysisPanel, type ClinicalAnalysisPanelState } from './ClinicalAnalysisPanel'
 import { getRecordSummaryMetrics, getRecordTimelineEntries } from './record-derived'
 import { LabTrendsTable } from './LabTrendsTable'
 import { getTimelineEntries, labels, summaryMetrics } from './record-copy'
@@ -326,6 +327,7 @@ function TimelineRailMarker({
 }
 
 export function RecordDossier({
+  clinicalAnalysisState,
   exportError,
   exportFormat,
   isEditable,
@@ -334,10 +336,12 @@ export function RecordDossier({
   locale,
   onCommitField,
   onCommitRange,
+  onClinicalAnalyze,
   onExport,
   record,
   recordRef,
 }: {
+  clinicalAnalysisState: ClinicalAnalysisPanelState
   exportError: string | null
   exportFormat: ExportFormat | null
   isEditable: boolean
@@ -346,6 +350,7 @@ export function RecordDossier({
   locale: Locale
   onCommitField?: (target: PatientFieldTarget, value: string) => Promise<void> | void
   onCommitRange?: (target: PatientRangeTarget, value: string) => Promise<void> | void
+  onClinicalAnalyze?: () => void
   onExport: (format: ExportFormat) => void
   record?: PatientRecord
   recordRef: RefObject<HTMLDivElement>
@@ -418,6 +423,13 @@ export function RecordDossier({
           <LabTrendsTable locale={locale} record={labTrendRecord} />
         </div>
       ) : null}
+
+      <ClinicalAnalysisPanel
+        disabled={!record}
+        locale={locale}
+        onAnalyze={record ? onClinicalAnalyze : undefined}
+        state={clinicalAnalysisState}
+      />
 
       <section className="mt-8">
         <div className="mb-6 flex items-center gap-3">

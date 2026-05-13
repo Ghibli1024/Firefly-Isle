@@ -6,7 +6,9 @@ CLAUDE.md: 说明前端基础设施模块职责，[PROTOCOL]: 变更时更新此
 background-audio-tracks.ts: 本地授权背景歌单 manifest，声明四首用户指定歌曲的稳定 id、标题、Apple Music 来源链接与 public 音频路径，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio.tsx: 全局背景音乐状态中心，管理单一 audio 实例、本地歌单、播放/暂停意图持久化、刷新恢复、浏览器拦截、当前曲目持久化与共享 hook，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio.test.ts: 背景音乐状态机回归测试，约束本地歌单默认值、曲目持久化、循环切歌、ended 前进、播放/暂停意图刷新恢复、自动播放拦截与不可用状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、/analytics/demo 与 /analytics/:id 装配、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、/analytics/demo、/analytics/:id 与公开 /share/:code 装配、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+clinical-analysis.ts: 临床辅助分析边界，把 PatientRecord 与 labResults 压缩为非诊断 LLM prompt，校验 JSON 输出并提供 analyzePatientRecord 入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+clinical-analysis.test.ts: 临床辅助分析回归测试，约束非诊断 prompt、json_object 调用、无 labResults 降级与非法响应拒绝，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.tsx: 全局 locale 状态中心，负责 zh / en 切换、持久化恢复、HTML lang/data-locale 同步与 useLocale 消费入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.test.ts: locale 文档语义回归测试，约束 zh/en 到 HTML lang/data-locale 的映射与 LocaleProvider 同步桥接，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -35,9 +37,11 @@ timeline-duration.ts: 病程时间纯逻辑，集中日期清理/解析、含 on
 timeline-duration.test.ts: 病程时间合同测试，约束 baseline rail 时间段、每线 PFS、日精度约数、进行中与待补充状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.ts: 医学文档 OCR 前端协议边界，负责图片/PDF 校验、base64 编码、Supabase JWT 透传、Edge Function 调用与本地化错误映射，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图片/PDF 成功、类型拒绝、错误 envelope、空文本与浏览器不泄露 provider key，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-patient-record-storage.ts: 患者记录持久化边界，统一 patients/basic_info/clinical_notes、treatment_lines、可选 lab_results 与 lab_report_batches 的读取、归属校验、映射与落库同步，缺失 clinical_notes 或 lab_results 远端迁移时不阻断主病历读写，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+patient-record-storage.ts: 患者记录持久化边界，统一 patients/basic_info/clinical_notes、treatment_lines、可选 lab_results 与 lab_report_batches 的读取、归属校验、只读分享读取、映射与落库同步，缺失 clinical_notes 或 lab_results 远端迁移时不阻断主病历读写，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 patient-record-storage.test.ts: 患者记录持久化合同测试，约束假 id 新建真实 patient、record-page 字段编辑落库、lab_results/lab_report_batches row 映射、缺表/缺列读写降级、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-sharing.ts: 病历分享边界，负责授权码生成/hash、record_shares 创建/列表/撤销、分享链接生成与授权码只读读取状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+record-sharing.test.ts: 病历分享回归测试，约束授权码 hash、record_shares 迁移/RLS/RPC、非 owner 拒绝、撤销写入、active/expired/revoked/unavailable 状态与单份记录读取，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-editing.ts: 自然语言病历编辑边界，要求 LLM 返回 PatientFieldTarget 字段级 patch，并复用逐格编辑的归一化 merge 语义，支持姓名、临床备注与可带单位的数值字段，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-editing.test.ts: 自然语言病历编辑回归测试，约束 basicInfo、initialOnset、treatmentLine、清空字段、带单位数值、无效目标与提示词合同，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 supabase.ts: Supabase 客户端初始化与环境变量边界，Auth 使用 PKCE + detectSessionInUrl，区分 Auth 所需 env、Edge Function env 与非敏感微信 custom provider id，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
