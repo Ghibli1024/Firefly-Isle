@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
 - Active lab analytics implementation lives in `openspec/changes/add-lab-analytics-page/`; all tasks are applied, and the change remains the web-side lab statistics ledger until archived into baseline specs.
 - Active P0 implementation lives in `openspec/changes/add-clinical-ai-analysis/`, `openspec/changes/add-secure-record-sharing/`, and `openspec/changes/restore-minimal-timeline-table-view/`; these changes are the current ledger for AI auxiliary analysis, authorization-code sharing, and the restored TimelineTable record view until archived.
-- Product context lives in `README.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
+- Product context lives in `README.md`, `README.en.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 - Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
 
@@ -46,6 +46,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - project collaboration standards and conduct-reporting boundary for a privacy-sensitive medical workflow
 - `package.json`
   - npm script map for Vite dev/build, lint, app/node type-check, Cloudflare Pages Functions type-check, Supabase Edge Functions type-check, and Vitest
+- `README.en.md`
+  - English project entrypoint mirroring the centered Chinese README surface for GitHub visitors
 - `tsconfig.*.json`
   - TypeScript boundaries split by runtime: SPA app, Vite node config, Cloudflare Pages Functions, and Supabase Edge Functions
 - `DESIGN.md`

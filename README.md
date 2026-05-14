@@ -1,15 +1,24 @@
-# Firefly-Isle：One-page oncology treatment timeline & record builder.
-一页萤屿，晚期癌症患者治疗方案管理助手。
-> Keep it running, make it helpful.
+<div align="center">
+  <img src="public/logo-island-lighthouse.png" alt="Firefly-Isle logo" width="140" />
+  <h1>Firefly-Isle</h1>
+  <p><strong>一页萤屿，晚期癌症患者治疗方案管理助手。</strong></p>
+  <p>One-page oncology treatment timeline and record builder.</p>
+  <p>Keep it running, make it helpful.</p>
+  <p>
+    中文 |
+    <a href="README.en.md">English</a>
+  </p>
+  <p>
+    <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
+    <img alt="Supabase" src="https://img.shields.io/badge/Supabase-RLS-3FCF8E?logo=supabase&logoColor=white" />
+    <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflarepages&logoColor=white" />
+  </p>
+</div>
 
-## 当前状态
+## 项目背景
 
-- 当前仓库已完成 MVP 的 **1.x 脚手架基线**、**4.x 认证主链路**、**5.x LLM adapter 边界**、**6.x 信息提取主链路**、**7.x 时间线正式渲染**、**8.x 行内编辑与 Supabase 持久化**、**9.x PDF/PNG 导出**、**10.x 集成验证收口**、**11.x 部署链路与上线前复核**：Vite + React 18 + TypeScript、Tailwind CSS v4、shadcn/ui 初始化、React Router 四类页面骨架、Dark/Light 主题切换、隐私门控与独立隐私页、Supabase 邮箱登录 / 注册 / 匿名登录 / session 恢复 / 退出登录、Gemini / DeepSeek Edge Function provider proxy / 前端 `chat(messages, options)` 调用边界、`PatientRecord` schema prompt、JSON 解析、类型归一化、关键字段缺失检测、追问 merge、正式时间线表格、提取/追问后自动落库、刷新后恢复最近患者记录、inline edit 保存到 `patients` / `treatment_lines`、`/record/:id` 正式 PDF / PNG 导出，以及 GitHub Actions + Cloudflare Pages 部署基线。
-- 当前 MVP 的行为真相源是 `openspec/specs/`；实现真相源是 `src/`、`supabase/`、`.github/` 与 `public/`；`openspec/changes/archive/2026-04-13-mvp-core/` 与 `openspec/changes/archive/2026-04-14-commit-history-log/` 仅保留历史设计与决策证据。
-- 已实现路由：`/login`、`/privacy`、`/app`、`/record/:id`，并在 App 根部恢复 Supabase session。
-- 已实现边界：`supabase/functions/llm-proxy/index.ts` + `src/lib/llm/`；`src/lib/extractionPrompt.ts` + `src/lib/extraction.ts`；`src/components/timeline/TimelineTable.tsx` + `src/routes/workspace-page.tsx` 的正式渲染 / 编辑 / 导出链路。
-- 10.x 集成验证已完成：`10.1` 端到端主链路、`10.2` RLS 双会话隔离、`10.3` 匿名模式恢复、`10.4` 隐私门控、`10.5` 主题恢复、`10.6` PDF/PNG 导出命名与失败提示、`10.7` 文档同步、`10.8` phase exit criteria 收口、`10.9` README 复核均已完成。
-- 尚未实现：当前 `mvp-core` 变更中的任务已全部完成；后续若要继续优化发布流程或扩展产品能力，应通过新的 OpenSpec change 继续推进。
+本项目源于癌症患者及其家属的真实需求。晚期癌症患者由于频繁复发和疾病进展，往往需要经历多线治疗。在整理病历和治疗信息的过程中，患者及家属常因信息过载而感到无助；而在异地就医或门诊沟通中，由于患者数量众多，医生能够分配给单个患者的沟通时间有限，难以进行充分、系统的交流。因此，本项目旨在帮助患者更好地进行治疗方案与病历信息的管理。
 
 ## 开发启动
 
@@ -118,6 +127,3 @@ Cloudflare Pages 继续作为托管目标，保留：
 GitHub Actions 的构建期 `VITE_SUPABASE_*` 值统一从已提交的 `wrangler.jsonc > vars` 读取，不再要求在 GitHub 仓库重复配置一份 secrets / variables。
 
 Cloudflare Pages 的 Git 分支自动生产 / 自动预览部署应关闭，避免与 GitHub Actions 发布链路形成双真相。
-
-## 项目背景 
-本项目源于癌症患者及其家属的真实需求。晚期癌症患者由于频繁复发和疾病进展，往往需要经历多线治疗。在整理病历和治疗信息的过程中，患者及家属常因信息过载而感到无助；而在异地就医或门诊沟通中，由于患者数量众多，医生能够分配给单个患者的沟通时间有限，难以进行充分、系统的交流。因此，本项目旨在帮助患者更好地进行治疗方案与病历信息的管理。
