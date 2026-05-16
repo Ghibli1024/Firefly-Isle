@@ -1,5 +1,5 @@
 <!--
- * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/、public/、v1.4.0 发布基线，以及 openspec/changes/archive/2026-05-16-* 的 P0/Demo 归档证据。
+ * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/、public/、v1.4.0 发布基线，以及 openspec/changes/archive/2026-05-16-* 的 P0/Demo/PWA 归档证据。
  * [OUTPUT]: 对外提供 PRD 功能的已实现、部分实现、未实现与额外能力盘点。
  * [POS]: docs/products 的当前产品状态真相源，连接历史 PRD 快照、baseline specs 与运行时代码现实。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -12,10 +12,10 @@
 - PRD 快照：`docs/products/archive/prd.md`
 - 当前发布基线：`v1.4.0` / `2a1bd34`
 - 当前规格真相源：`openspec/specs/`
-- 当前 P0 / Demo 归档状态：`add-lab-analytics-page`、`add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view`、`make-demo-mode-cover-full-product` 已归档到 `openspec/changes/archive/2026-05-16-*`，行为并入 `openspec/specs/`
+- 当前 P0 / Demo / PWA 归档状态：`add-lab-analytics-page`、`add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view`、`make-demo-mode-cover-full-product`、`add-cross-platform-pwa-foundation` 已归档到 `openspec/changes/archive/2026-05-16-*`，行为并入 `openspec/specs/`
 - 实现核对范围：`src/`、`supabase/`、`functions/`、`public/`
 - 最近验证：以本轮最终验证命令为准；P0 聚焦验证已覆盖 AI 分析、分享、record page 视图切换与 route 合同
-- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、公开全产品 Demo、对话式修改、甘特图视图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享与极简 TimelineTable 视图已进入当前实现；多端平台仍未实现。
+- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、公开全产品 Demo、对话式修改、甘特图视图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享、极简 TimelineTable 视图与 PWA foundation 已进入当前实现；Capacitor / Electron / Tauri / React Native / Flutter / 小程序 / 鸿蒙原生壳仍未实现。
 
 ## 已实现
 
@@ -27,6 +27,7 @@
 - `/record/:id` 基础实验室趋势表：已有 `LabTrendsTable`，当真实记录含 `labResults` 时展示最新值、参考范围、最近日期、读数与持续增高提示。
 - `/analytics/:id` 统计页面：已实现侧栏真实入口、血常规 / 血生化 / 肿瘤标志物分组、指标列表、网页端折线图、等价数据表、最近异常汇总和非诊断提示。
 - 公开 Demo 模式：已实现登录页 `查看 Demo`、`/demo`、`/demo/record`、`/demo/analytics` 入口，复用真实病历和统计页面组件，每个 Demo 页面显示模式提醒，展示统一 demo patient + `labResults`、静态 AI 分析预览、分享预览、TimelineTable、Gantt 与 PDF/PNG 导出；可通过 `VITE_DEMO_RECORD_SHARE_CODE` 优先读取 Supabase 公开只读演示病历，缺失 / 失效 / 不完整时回退本地完整 fixture，且不要求创建 Supabase session。
+- PWA foundation：已实现 Web App Manifest、PWA 图标、移动 metadata、隐私优先 service worker、离线状态提示、safe-area 基础适配、SPA 深链路 fallback 与 PWA 验证矩阵；只缓存 app shell / 静态资产，不缓存患者数据、授权码、Supabase 私有响应、OCR 或 LLM 响应。
 - `/analytics/demo` 演示统计页：已保留为受保护统计 fallback；无真实输入时推荐使用公开 `/demo/analytics` 查看演示统计。
 - `/app` 文件输入：已实现病历 / 检验报告图片或 PDF 上传与 OCR 文本确认，统计页本身不再承载上传表单。
 - 肿瘤标志物监测提醒：已实现连续两段上涨超过 20% 的项目扫描与网页端提醒，提示语限定为趋势提醒，不输出诊断、进展结论、用药或治疗建议。
@@ -54,7 +55,7 @@
 ## 未实现
 
 - MSD 健康查询。
-- Windows / Mac / Android / iOS / 小程序 / 鸿蒙原生或全平台版本。
+- Capacitor iOS / Android 原生壳、Windows / Mac 桌面包、小程序、鸿蒙原生或全平台重写。
 - OpenClaw / WebChrome 扩展集成。
 - 许愿墙。
 - 每日鼓励语。

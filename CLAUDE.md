@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
 - The user-owned LLM provider settings work is archived at `openspec/changes/archive/2026-05-05-add-user-llm-provider-settings/`; current baseline behavior lives in `openspec/specs/llm-provider-settings/spec.md`, `openspec/specs/llm-adapter/spec.md`, and `openspec/specs/supabase-schema/spec.md`.
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
-- Lab analytics, P0 clinical analysis, secure sharing, restored TimelineTable, and full-product Demo work are archived under `openspec/changes/archive/2026-05-16-*`; current behavior lives in `openspec/specs/`.
+- Lab analytics, P0 clinical analysis, secure sharing, restored TimelineTable, full-product Demo, and PWA foundation work are archived under `openspec/changes/archive/2026-05-16-*`; current behavior lives in `openspec/specs/`.
 - Product context lives in `README.md`, `README.en.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 - Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
@@ -77,6 +77,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived P0 artifacts for restoring `TimelineTable` as the third `/record/:id` view without replacing dossier or Gantt export behavior
 - `openspec/changes/archive/2026-05-16-make-demo-mode-cover-full-product/`
   - archived Demo artifacts for public `/demo` full-product showcase routes, page reminders, optional Supabase share-code Demo data, static AI/share previews, and real-workspace blank-state separation
+- `openspec/changes/archive/2026-05-16-add-cross-platform-pwa-foundation/`
+  - archived PWA foundation artifacts for Web App Manifest, install icons, privacy-first service worker caching, offline/weak-network boundaries, mobile safe-area/touch behavior, SPA deep-link fallback, and platform validation expectations
 - `openspec/changes/archive/2026-05-03-add-background-music-toggle/`
   - archived global background music toggle artifacts defining the app-level controller, shared UI entrypoint and autoplay boundary
 - `openspec/changes/archive/2026-05-03-add-local-background-playlist/`
@@ -168,7 +170,7 @@ The OpenSpec artifacts are aligned on these points:
 - The app now provides a user-facing LLM provider settings entry: no saved setting falls back to system DeepSeek, while user-owned preset/custom provider keys are saved through `llm-proxy/settings` with server-side encryption and RLS-backed storage.
 - Data storage uses normalized `patients` + `treatment_lines` + `lab_report_batches` + `lab_results` tables with RLS; `lab_results` remains the single reading truth for web charts and monitoring, while `lab_report_batches` stores upload/OCR/review source facts.
 - Read-only sharing uses `record_shares` with hashed authorization codes, revocation/expiration, active-share RLS, and a public `/share/:code` route that never exposes raw owner user ids.
-- Lab analytics, clinical AI analysis, record sharing, TimelineTable, and full-product Demo have been archived into baseline specs; future work should create new OpenSpec changes instead of editing archived contracts as active ledgers.
+- Lab analytics, clinical AI analysis, record sharing, TimelineTable, full-product Demo, and PWA foundation have been archived into baseline specs; future work should create new OpenSpec changes instead of editing archived contracts as active ledgers.
 
 ## Stitch note
 

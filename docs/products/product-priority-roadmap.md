@@ -1,5 +1,5 @@
 <!--
- * [INPUT]: 依赖 docs/products/prd-implementation-status.md 的 v1.4.0+P0+Demo 工作树实现盘点，依赖 openspec/specs/ 的 baseline 行为，并参考 openspec/changes/archive/2026-05-16-* 的 P0/Demo 归档证据。
+ * [INPUT]: 依赖 docs/products/prd-implementation-status.md 的 v1.4.0+P0+Demo+PWA 工作树实现盘点，依赖 openspec/specs/ 的 baseline 行为，并参考 openspec/changes/archive/2026-05-16-* 的 P0/Demo/PWA 归档证据。
  * [OUTPUT]: 对外提供当前 P0 落地状态、下一阶段产品能力优先级、排序理由与推荐 OpenSpec 切分。
  * [POS]: docs/products 的产品路线图排序文件，区别于 PRD 实现状态盘点，负责回答“P0 已推进到哪、下一步先做什么”。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -10,9 +10,9 @@
 ## 当前基准
 
 - 当前发布基线：`v1.4.0` / `2a1bd34`。
-- 当前归档状态：`add-lab-analytics-page`、`add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view`、`make-demo-mode-cover-full-product` 已归档进 `openspec/changes/archive/2026-05-16-*`，行为已并入 baseline specs。
+- 当前归档状态：`add-lab-analytics-page`、`add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view`、`make-demo-mode-cover-full-product`、`add-cross-platform-pwa-foundation` 已归档进 `openspec/changes/archive/2026-05-16-*`，行为已并入 baseline specs。
 - 当前验证：以本轮最终验证命令为准；P0 聚焦验证已覆盖 AI 分析、分享、record page 视图切换与 app route 合同。
-- 当前产品事实：网页端统计入口、实验室报告摄入、`lab_results` 趋势视图、公开全产品 Demo、对话式修改、治疗甘特图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享和极简 TimelineTable 视图都已落地；下一步从“可分析、可协作、可一页讲清”进入真实用户配置与发布前打磨。
+- 当前产品事实：网页端统计入口、实验室报告摄入、`lab_results` 趋势视图、公开全产品 Demo、对话式修改、治疗甘特图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享、极简 TimelineTable 视图和 PWA foundation 都已落地；下一步从“可分析、可协作、可一页讲清”进入真实用户配置、发布前打磨与 Capacitor 原生壳评估。
 
 ## 排序原则
 
@@ -29,6 +29,7 @@
 - `add-conversational-record-editing`：已完成并归档，当前 baseline 为已有记录自然语言编辑和字段级 merge。
 - `add-user-llm-provider-settings`：已完成并归档，当前 baseline 为系统 DeepSeek、用户 preset / custom provider、服务端加密与 RLS 隔离。
 - `add-lab-analytics-page`：已完成并归档，当前 baseline 为 `/app` 病历 / 检验报告文件输入、`/analytics/:id` 统计入口、`/analytics/demo` 演示统计页、`lab_report_batches` 批次能力、分组趋势图、等价数据表、最近异常汇总与肿瘤标志物连续上涨提醒。
+- `add-cross-platform-pwa-foundation`：已完成并归档，当前 baseline 为 Web App Manifest、隐私优先 service worker、离线/弱网提示、移动 safe-area、SPA 深链路 fallback 与平台验证矩阵。
 
 ## P0 本轮完成（已归档）
 
@@ -70,8 +71,8 @@
 8. 每日鼓励语、许愿墙、拥抱动画欢迎页
    - 原因：能增加温度，但当前阶段不如 AI 分析、受控分享和一页极简表格重要。
 
-9. Windows / Mac / Android / iOS / 小程序 / 鸿蒙原生版本
-   - 原因：先让 Web 产品跑通真实病历场景，再扩平台。
+9. Capacitor / 桌面壳 / 小程序 / 鸿蒙原生版本
+   - 原因：PWA foundation 先解决安装、弱网、移动 Web 和 installed shell；Capacitor iOS/Android、Tauri/Electron 桌面壳、小程序和鸿蒙原生必须作为后续独立 change，不能和 PWA foundation 混成一次重写。
 
 10. OpenClaw / WebChrome 扩展集成
     - 原因：除非确定为获客或固定工作流入口，否则会分散核心架构注意力。
@@ -91,3 +92,4 @@
 - `restore-minimal-timeline-table-view` 只复用已有 `TimelineTable` 与 PatientRecord，不复制第二套治疗线编辑逻辑。
 - `make-demo-mode-cover-full-product` 只做公开 Demo 演示、教程和调试入口，不自动把 Demo 写入真实用户工作区；后续“载入 Demo 到我的工作区”应拆成独立 sandbox change。
 - `add-wechat-auth` 必须以真实微信开放平台配置和回调验证为准；缺配置时保留可解释失败，不伪装可用。
+- `add-cross-platform-pwa-foundation` 已完成归档；`add-capacitor-mobile-shell` 应只在现有 PWA baseline 外层补 iOS/Android shell、签名配置、原生桥边界与真机验收，不重写 React UI 或医疗数据模型。

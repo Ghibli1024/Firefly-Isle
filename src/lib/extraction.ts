@@ -386,6 +386,7 @@ export function getExtractionFailureMessage(error: unknown, locale: Locale, phas
         auth: '登录状态已失效，请重新登录或重新进入匿名会话后再提取。',
         invalidRequest: '模型请求被拒绝，请稍后重试或切换模型设置。',
         invalidResponse: phase === 'follow-up' ? '追问解析失败，请重试这轮补充。' : '解析失败，请检查返回内容后重试。',
+        network: '当前网络不可用，请联网后重试。',
         rateLimit: '请求太频繁，请稍等一分钟后再重试。',
         timeout: '模型响应超时，请稍后重试。',
         upstream: '模型服务暂时不可用，请稍后重试或切换到 API 自提供。',
@@ -395,6 +396,7 @@ export function getExtractionFailureMessage(error: unknown, locale: Locale, phas
         auth: 'Your session expired. Sign in again or start a new anonymous session before extracting.',
         invalidRequest: 'The model request was rejected. Try again later or change model settings.',
         invalidResponse: phase === 'follow-up' ? 'Follow-up parsing failed. Retry this answer.' : 'Parsing failed. Check the returned content and retry.',
+        network: 'Network unavailable. Reconnect and retry.',
         rateLimit: 'Too many requests. Wait about one minute and retry.',
         timeout: 'The model response timed out. Please retry later.',
         upstream: 'The model service is temporarily unavailable. Retry later or use your own API provider.',
@@ -410,6 +412,7 @@ export function getExtractionFailureMessage(error: unknown, locale: Locale, phas
   }
 
   if (error.name === 'AuthError') return messages.auth
+  if (error.name === 'LLMNetworkUnavailableError') return messages.network
   if (error.name === 'LLMRateLimitError') return messages.rateLimit
   if (error.name === 'LLMTimeoutError') return messages.timeout
   if (error.name === 'LLMUpstreamError' || error.name === 'ConfigurationError') return messages.upstream

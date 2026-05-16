@@ -6,6 +6,7 @@
  */
 import { getSupabaseClient, hasSupabaseEnv, hasSupabaseFunctionEnv, supabaseEdgeFunctionUrl } from '@/lib/supabase'
 import type { Locale } from '@/lib/locale'
+import { isBrowserOffline } from '@/lib/network-status'
 
 export type MedicalDocumentOcrErrorName =
   | 'AuthError'
@@ -13,6 +14,7 @@ export type MedicalDocumentOcrErrorName =
   | 'OCRInvalidFileError'
   | 'OCRInvalidRequestError'
   | 'OCRInvalidResponseError'
+  | 'OCRNetworkUnavailableError'
   | 'OCRTimeoutError'
   | 'OCRUpstreamError'
 
@@ -123,6 +125,10 @@ export async function recognizeMedicalDocument(file: File) {
   ensureConfigured()
   validateFile(file)
 
+  if (isBrowserOffline()) {
+    throw new MedicalDocumentOcrError('OCRNetworkUnavailableError', 'Network connection is required for OCR.')
+  }
+
   const [accessToken, dataBase64] = await Promise.all([getAccessToken(), fileToBase64(file)])
   const response = await fetch(buildUrl(), {
     body: JSON.stringify({
@@ -176,6 +182,10 @@ export function getMedicalDocumentOcrMessage(error: unknown, locale: Locale) {
     OCRInvalidResponseError: {
       en: 'No readable medical text was found. You can retry or type it manually.',
       zh: '未识别到可读病历文字，可重试或手动输入。',
+    },
+    OCRNetworkUnavailableError: {
+      en: 'Network unavailable. Reconnect before uploading a medical document.',
+      zh: '当前网络不可用，请联网后再上传病历文件。',
     },
     OCRTimeoutError: {
       en: 'OCR timed out. Please retry with a smaller file.',

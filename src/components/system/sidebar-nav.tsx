@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历/统计 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/公开 Demo 病历入口、真实统计/公开 Demo 统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/公开 Demo 病历入口、真实统计/公开 Demo 统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、44px 恢复热区、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
@@ -396,12 +396,14 @@ export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSign
         >
           <button
             aria-label={locale === 'zh' ? '显示侧边栏' : 'Show sidebar'}
-            className="absolute left-0 top-1/2 flex h-20 w-[14px] -translate-y-1/2 items-center justify-center rounded-r-[var(--ff-radius-md)] border border-l-0 border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-accent-primary)] shadow-[0_0_22px_rgba(0,0,0,0.32)] transition-[width,border-color,background-color] duration-200 hover:w-[18px] hover:border-[var(--ff-accent-primary)]"
+            className="group absolute left-0 top-1/2 flex h-20 w-11 -translate-y-1/2 items-center justify-start rounded-r-[var(--ff-radius-md)] text-[var(--ff-accent-primary)] outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[var(--ff-accent-primary)]"
             onClick={restoreSidebar}
             title={locale === 'zh' ? '显示侧边栏，或从左向右滑出' : 'Show sidebar, or swipe right from the left edge'}
             type="button"
           >
-            <span className="h-10 w-[3px] rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)]" />
+            <span className="flex h-20 w-[14px] items-center justify-center rounded-r-[var(--ff-radius-md)] border border-l-0 border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] shadow-[0_0_22px_rgba(0,0,0,0.32)] transition-[width,border-color,background-color] duration-200 group-hover:w-[18px] group-hover:border-[var(--ff-accent-primary)]">
+              <span className="h-10 w-[3px] rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-primary)]" />
+            </span>
           </button>
         </div>
       ) : null}
@@ -409,7 +411,7 @@ export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSign
       {hidden ? null : (
         <SidebarShell
           className={cn(
-            'fixed left-0 top-0 z-50 flex h-screen flex-col justify-between overflow-visible py-4 transition-[width,background-color,border-color] duration-200 ease-out',
+            'fixed left-0 top-0 z-50 flex h-screen flex-col justify-between overflow-visible pb-[calc(1rem+var(--ff-safe-bottom))] pt-[calc(1rem+var(--ff-safe-top))] transition-[width,background-color,border-color] duration-200 ease-out',
             sidebarWidthClass,
             compact ? 'items-center px-2' : 'px-3',
           )}

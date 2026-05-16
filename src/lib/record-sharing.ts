@@ -5,6 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { loadSharedPatientRecordById } from '@/lib/patient-record-storage'
+import { ensureBrowserOnline } from '@/lib/network-status'
 import { getSupabaseClient } from '@/lib/supabase'
 import type { PatientRecord } from '@/types/patient'
 
@@ -137,6 +138,8 @@ export function getRecordShareUrl(code: string) {
 }
 
 export async function createRecordShare(patientId: string, expiresAt = getDefaultShareExpiry()): Promise<CreatedRecordShare> {
+  ensureBrowserOnline()
+
   const { supabase, userId } = await requireAuthenticatedUser()
   const { data: ownedPatient, error: ownerError } = await supabase
     .from('patients')
@@ -178,6 +181,8 @@ export async function createRecordShare(patientId: string, expiresAt = getDefaul
 }
 
 export async function listRecordShares(patientId: string) {
+  ensureBrowserOnline()
+
   const { data, error } = await getSupabaseClient()
     .from('record_shares')
     .select(RECORD_SHARE_COLUMNS)
@@ -193,6 +198,8 @@ export async function listRecordShares(patientId: string) {
 }
 
 export async function revokeRecordShare(shareId: string, revokedAt = new Date().toISOString()) {
+  ensureBrowserOnline()
+
   const { data, error } = await getSupabaseClient()
     .from('record_shares')
     .update({ revoked_at: revokedAt })
@@ -214,6 +221,8 @@ export async function loadSharedPatientRecordByCode(code: string): Promise<Share
       status: 'unavailable',
     }
   }
+
+  ensureBrowserOnline()
 
   const codeHash = await hashShareCode(code)
   const { data, error } = await getSupabaseClient()

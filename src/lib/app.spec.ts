@@ -124,7 +124,9 @@ describe('auth route guard contract', () => {
     const source = readAppSource()
 
     expect(source).toContain('BackgroundAudioProvider')
-    expect(source).toContain('<BackgroundAudioProvider>{children}</BackgroundAudioProvider>')
+    expect(source).toContain('<BackgroundAudioProvider>')
+    expect(source.indexOf('<NetworkStatusBanner />')).toBeGreaterThan(source.indexOf('<BackgroundAudioProvider>'))
+    expect(source.indexOf('{children}')).toBeGreaterThan(source.indexOf('<BackgroundAudioProvider>'))
     expect(source.indexOf('<BackgroundAudioProvider>')).toBeLessThan(source.indexOf('<AppContent />'))
   })
 })

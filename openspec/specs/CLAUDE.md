@@ -10,6 +10,7 @@ background-audio-playlist/spec.md: 本地授权背景歌单、曲目选择持久
 clinical-ai-analysis/spec.md: /record/:id 非诊断 AI 辅助分析、结构化输出、失败态与免责声明的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 commit-history/spec.md: docs/log 提交日志粒度、证据来源与置信度标注的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 conversational-record-editing/spec.md: 已有病历自然语言编辑、字段级 merge 与失败重试边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+cross-platform-pwa-foundation/spec.md: Web-first 跨平台入口、PWA manifest、隐私优先 service worker、离线/弱网边界、移动 shell 与平台验证矩阵的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 demo-mode/spec.md: 公开 /demo 全产品演示、统一 Demo fixture、可选 Supabase share-code 与真实工作区隔离的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 deployment/spec.md: 部署入口、Cloudflare Pages 与发布控制的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 editing/spec.md: 时间线表格字段编辑、blur 保存、空白高亮、布局稳定性、工作台最新检测摘要、既往检测历史、诊断日期前置与紧凑病程轨道的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

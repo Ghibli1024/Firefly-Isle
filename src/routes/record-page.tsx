@@ -16,6 +16,7 @@ import { DemoModeBanner } from '@/components/system/demo-mode-banner'
 import { MainShell } from '@/components/system/surfaces'
 import { analyzePatientRecord, ClinicalAnalysisParseError, type ClinicalAnalysisResult } from '@/lib/clinical-analysis'
 import { useLocale } from '@/lib/locale'
+import { getOnlineRequiredMessage, isOnlineRequiredError } from '@/lib/network-status'
 import { persistPatientRecord } from '@/lib/patient-record-storage'
 import { applyPatientRecordEdit, applyPatientRecordEdits, type PatientRecordEdit } from '@/lib/record-editing'
 import { createRecordShare, listRecordShares, revokeRecordShare, type RecordShare } from '@/lib/record-sharing'
@@ -169,13 +170,13 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
           recordId: id,
         })
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) {
           return
         }
 
         setRecordLoadState({
-          error: labels[locale].loadRecordError,
+          error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : labels[locale].loadRecordError,
           isLoading: false,
           record: null,
           recordId: id,
@@ -229,14 +230,14 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
           shares,
         }))
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) {
           return
         }
 
         setShareState((current) => ({
           ...current,
-          error: locale === 'zh' ? '读取分享失败，请稍后重试。' : 'Failed to load shares. Please retry.',
+          error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : locale === 'zh' ? '读取分享失败，请稍后重试。' : 'Failed to load shares. Please retry.',
           isLoading: false,
         }))
       })
@@ -280,9 +281,12 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
       const persistedRecord = await persistPatientRecord(nextRecord, userId)
       setEditableRecord(persistedRecord)
       setSaveState({ error: null, status: 'saved' })
-    } catch {
+    } catch (error) {
       setEditableRecord(previousRecord)
-      setSaveState({ error: locale === 'zh' ? '保存失败，已恢复原值。' : 'Save failed. Previous value restored.', status: 'error' })
+      setSaveState({
+        error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : locale === 'zh' ? '保存失败，已恢复原值。' : 'Save failed. Previous value restored.',
+        status: 'error',
+      })
     }
   }
 
@@ -350,6 +354,10 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   }
 
   function getClinicalAnalysisError(error: unknown) {
+    if (isOnlineRequiredError(error)) {
+      return getOnlineRequiredMessage(locale)
+    }
+
     if (error instanceof ClinicalAnalysisParseError) {
       return locale === 'zh' ? 'AI 返回内容无法解析，请稍后重试。' : 'The AI response could not be parsed. Please retry.'
     }
@@ -377,6 +385,10 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   }
 
   function getShareActionError(error: unknown) {
+    if (isOnlineRequiredError(error)) {
+      return getOnlineRequiredMessage(locale)
+    }
+
     if (error instanceof Error) {
       return locale === 'zh' ? `分享操作失败：${error.message}` : `Share action failed: ${error.message}`
     }

@@ -5,6 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient, hasSupabaseEnv, hasSupabaseFunctionEnv, supabaseEdgeFunctionUrl } from '@/lib/supabase'
+import { isBrowserOffline } from '@/lib/network-status'
 
 import { ChatError, type ChatErrorPayload, type ChatSuccessPayload } from './types'
 
@@ -120,6 +121,10 @@ function isProvider(provider: string): provider is LlmProviderId {
 async function requestProviderSetting(method: 'DELETE' | 'GET' | 'PUT', body?: SaveLlmProviderSettingInput) {
   ensureConfigured()
 
+  if (isBrowserOffline()) {
+    throw new ChatError('LLMNetworkUnavailableError', 'Network connection is required for LLM provider settings.')
+  }
+
   const accessToken = await getAccessToken()
   const response = await fetch(buildSettingsUrl(), {
     body: body ? JSON.stringify(body) : undefined,
@@ -156,6 +161,10 @@ export function resetLlmProviderSetting() {
 
 export async function testLlmProviderConnection() {
   ensureConfigured()
+
+  if (isBrowserOffline()) {
+    throw new ChatError('LLMNetworkUnavailableError', 'Network connection is required for LLM provider testing.')
+  }
 
   const accessToken = await getAccessToken()
   const response = await fetch(buildChatUrl(), {

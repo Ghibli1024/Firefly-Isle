@@ -1,13 +1,14 @@
 /**
- * [INPUT]: 依赖 react 的 lazy/Suspense/useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate、useLocation，依赖 ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF 与按路由动态加载的页面组件。
+ * [INPUT]: 依赖 react 的 lazy/Suspense/useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate、useLocation，依赖 ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、NetworkStatusBanner、PRIVACY_PAGE_HREF 与按路由动态加载的页面组件。
  * [OUTPUT]: 对外提供 App 组件。
- * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、匿名/非匿名身份标记、公开 Demo、记录页用户归属保存 id、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/demo、/record/:id、/share/:code、/analytics/:id 页面。
+ * [POS]: src 的路由装配入口，连接主题系统、隐私门控、PWA 离线状态提示、Supabase session 持久化、匿名/非匿名身份标记、公开 Demo、记录页用户归属保存 id、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/demo、/record/:id、/share/:code、/analytics/:id 页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { lazy, Suspense, type ReactNode, useMemo } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { PrivacyGate } from '@/components/privacy-gate'
+import { NetworkStatusBanner } from '@/components/system/network-status-banner'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { BackgroundAudioProvider } from '@/lib/background-audio'
 import { getCopy, copy } from '@/lib/copy'
@@ -62,7 +63,10 @@ function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <LocaleProvider>
-        <BackgroundAudioProvider>{children}</BackgroundAudioProvider>
+        <BackgroundAudioProvider>
+          <NetworkStatusBanner />
+          {children}
+        </BackgroundAudioProvider>
       </LocaleProvider>
     </ThemeProvider>
   )

@@ -5,6 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { AuthFeedback, AuthMode } from '@/components/login-page-view'
+import { getOnlineRequiredMessage, isBrowserOffline } from '@/lib/network-status'
 
 export type LoginAuthClient = {
   resetPasswordForEmail: (email: string, options?: { redirectTo?: string }) => Promise<{ error: unknown | null }>
@@ -57,6 +58,12 @@ export async function submitEmailAuth({
   password,
   passwordResetRedirectTo,
 }: SubmitEmailAuthInput): Promise<AuthActionResult> {
+  if (isBrowserOffline()) {
+    return {
+      feedback: { message: getOnlineRequiredMessage('zh'), tone: 'error' },
+    }
+  }
+
   if (mode === 'password-reset') {
     const { error } = await auth.resetPasswordForEmail(email, withRedirect(passwordResetRedirectTo))
 
@@ -107,6 +114,12 @@ export async function submitEmailAuth({
 }
 
 export async function startAnonymousAuth(auth: LoginAuthClient): Promise<AuthActionResult> {
+  if (isBrowserOffline()) {
+    return {
+      feedback: { message: getOnlineRequiredMessage('zh'), tone: 'error' },
+    }
+  }
+
   const { error } = await auth.signInAnonymously()
 
   if (error) {
@@ -121,6 +134,12 @@ export async function startAnonymousAuth(auth: LoginAuthClient): Promise<AuthAct
 }
 
 export async function startGoogleAuth(auth: LoginAuthClient, redirectTo?: string): Promise<AuthActionResult> {
+  if (isBrowserOffline()) {
+    return {
+      feedback: { message: getOnlineRequiredMessage('zh'), tone: 'error' },
+    }
+  }
+
   const { error } = await auth.signInWithOAuth({
     options: withGoogleAccountSelection(redirectTo),
     provider: 'google',

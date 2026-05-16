@@ -12,6 +12,8 @@ import { demoLabAnalyticsRecord } from '@/components/analytics/demo-lab-analytic
 import { LabAnalyticsDashboard } from '@/components/analytics/lab-analytics-dashboard'
 import { DemoModeBanner } from '@/components/system/demo-mode-banner'
 import { MainShell } from '@/components/system/surfaces'
+import { useLocale } from '@/lib/locale'
+import { getOnlineRequiredMessage, isOnlineRequiredError } from '@/lib/network-status'
 import { loadPatientRecordById } from '@/lib/patient-record-storage'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
@@ -45,6 +47,7 @@ function createInitialLoadState(id: string, demoRoute: boolean): AnalyticsLoadSt
 export function LabAnalyticsPage({ isSigningOut, onSignOut, userIsAnonymous, userLabel }: LabAnalyticsPageProps) {
   const { id = 'demo' } = useParams()
   const location = useLocation()
+  const { locale } = useLocale()
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const publicDemoRoute = location.pathname.startsWith('/demo')
@@ -88,13 +91,13 @@ export function LabAnalyticsPage({ isSigningOut, onSignOut, userIsAnonymous, use
           recordId: id,
         })
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) {
           return
         }
 
         setLoadState({
-          error: '无法读取这份病历的指标数据，请稍后重试。',
+          error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : '无法读取这份病历的指标数据，请稍后重试。',
           isLoading: false,
           record: null,
           recordId: id,
@@ -104,7 +107,7 @@ export function LabAnalyticsPage({ isSigningOut, onSignOut, userIsAnonymous, use
     return () => {
       active = false
     }
-  }, [demoRoute, id])
+  }, [demoRoute, id, locale])
 
   const activeLoadState = demoRoute
     ? loadState.recordId === 'demo'

@@ -24,6 +24,7 @@ export type ChatErrorName =
   | 'ConfigurationError'
   | 'LLMInvalidRequestError'
   | 'LLMInvalidResponseError'
+  | 'LLMNetworkUnavailableError'
   | 'LLMRateLimitError'
   | 'LLMTimeoutError'
   | 'LLMUpstreamError'

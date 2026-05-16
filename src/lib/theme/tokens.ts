@@ -17,8 +17,8 @@ export const sidebarOffsetClass = 'md:ml-[var(--ff-sidebar-offset)]'
 export const shellViewportOffsetClass = 'left-0 right-0 md:left-[var(--ff-sidebar-offset)]'
 export const shellContentWidthClass = 'w-full'
 export const shellWideContentClass = 'mx-auto w-full max-w-[1760px]'
-export const topBarHeightClass = 'h-[68px]'
-export const topBarOffsetClass = 'pt-[68px]'
+export const topBarHeightClass = 'min-h-[var(--ff-topbar-height)] pt-[var(--ff-safe-top)]'
+export const topBarOffsetClass = 'pt-[var(--ff-topbar-height)]'
 export const themeTransitionClass = 'transition-[background-color,color,border-color,box-shadow] duration-200 ease-out'
 
 export const themeTokens = {

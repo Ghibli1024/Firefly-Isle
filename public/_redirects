@@ -4,4 +4,7 @@
 /privacy / 200
 /app / 200
 /record/* / 200
+/analytics/* / 200
+/demo/* / 200
+/share/* / 200
 /brand-lockup-preview / 200

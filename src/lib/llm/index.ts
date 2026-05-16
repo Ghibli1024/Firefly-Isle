@@ -5,6 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient, hasSupabaseEnv, hasSupabaseFunctionEnv, supabaseEdgeFunctionUrl } from '@/lib/supabase'
+import { isBrowserOffline } from '@/lib/network-status'
 
 import {
   ChatError,
@@ -77,6 +78,10 @@ function toChatResult(payload: ChatSuccessPayload): ChatResult {
 export async function chat(messages: Message[], options?: ChatOptions): Promise<string> {
   ensureConfigured()
   validateMessages(messages)
+
+  if (isBrowserOffline()) {
+    throw new ChatError('LLMNetworkUnavailableError', 'Network connection is required for LLM requests.')
+  }
 
   const accessToken = await getAccessToken()
   const response = await fetch(buildUrl(), {

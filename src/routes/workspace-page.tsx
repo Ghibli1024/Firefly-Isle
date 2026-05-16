@@ -21,6 +21,7 @@ import {
   MAX_FOLLOW_UP_ROUNDS,
 } from '@/lib/extraction'
 import { getMedicalDocumentOcrMessage, recognizeMedicalDocument } from '@/lib/medical-document-ocr'
+import { getOnlineRequiredMessage, isOnlineRequiredError } from '@/lib/network-status'
 import { loadLatestPatientRecord, persistPatientRecord } from '@/lib/patient-record-storage'
 import { RecordEditParseError, applyPatientRecordEdit, applyPatientRecordEdits, extractPatientRecordEdits } from '@/lib/record-editing'
 import { useTheme } from '@/lib/theme'
@@ -176,14 +177,14 @@ function useExtractionState() {
           retryMode: null,
         }))
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) {
           return
         }
 
         setState((current) => ({
           ...current,
-          error: current.record ? current.error : getCopy(copy.workspace.errors.loadLatest, locale),
+          error: current.record ? current.error : isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : getCopy(copy.workspace.errors.loadLatest, locale),
         }))
       })
 
@@ -230,8 +231,8 @@ function useExtractionState() {
 
       try {
         persistedRecord = await persistField(record)
-      } catch {
-        persistenceError = getCopy(copy.workspace.errors.savePatient, locale)
+      } catch (error) {
+        persistenceError = isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : getCopy(copy.workspace.errors.savePatient, locale)
       }
 
       setState((current) => ({
@@ -296,10 +297,21 @@ function useExtractionState() {
             retryMode: null,
           }
         })
-      } catch {
+      } catch (error) {
         setState((current) => ({
           ...current,
-          ...getFollowUpPersistenceFailurePatch(previousRecord, answer, current.followUpAnswers.length, locale),
+          ...(isOnlineRequiredError(error)
+            ? {
+                currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
+                editFeedback: null,
+                error: getOnlineRequiredMessage(locale),
+                isExtracting: false,
+                record: previousRecord,
+                remainingMissing: getMissingCriticalFields(previousRecord),
+                retryAnswer: answer,
+                retryMode: 'follow-up' as const,
+              }
+            : getFollowUpPersistenceFailurePatch(previousRecord, answer, current.followUpAnswers.length, locale)),
         }))
       }
     } catch (error) {
@@ -389,11 +401,11 @@ function useExtractionState() {
         retryAnswer: null,
         retryMode: null,
       }))
-    } catch {
+    } catch (error) {
       setState((current) => ({
         ...current,
         editFeedback: null,
-        error: getCopy(copy.workspace.errors.editSave, locale),
+        error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : getCopy(copy.workspace.errors.editSave, locale),
         isExtracting: false,
         record: previousRecord,
         retryAnswer: editCommand,
@@ -510,12 +522,12 @@ function useExtractionState() {
         isSaving: false,
         record: persistedRecord,
       }))
-    } catch {
+    } catch (error) {
       setState((current) => ({
         ...current,
         currentQuestion: getNextQuestion(getMissingCriticalFields(previousRecord), current.followUpAnswers.length),
         editFeedback: null,
-        error: getSaveErrorMessage(target, locale),
+        error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : getSaveErrorMessage(target, locale),
         isSaving: false,
         record: previousRecord,
         remainingMissing: getMissingCriticalFields(previousRecord),

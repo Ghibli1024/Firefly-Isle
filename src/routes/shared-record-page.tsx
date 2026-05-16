@@ -11,6 +11,7 @@ import { ClinicalTopBar } from '@/components/app-shell'
 import { RecordDossier } from '@/components/record/record-dossier'
 import { MainShell } from '@/components/system/surfaces'
 import { useLocale } from '@/lib/locale'
+import { getOnlineRequiredMessage, isOnlineRequiredError } from '@/lib/network-status'
 import { loadSharedPatientRecordByCode, type SharedRecordStatus } from '@/lib/record-sharing'
 import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, topBarOffsetClass } from '@/lib/theme/tokens'
@@ -115,7 +116,7 @@ export function SharedRecordPage() {
 
         setState({
           code,
-          error: error instanceof Error ? error.message : null,
+          error: isOnlineRequiredError(error) ? getOnlineRequiredMessage(locale) : error instanceof Error ? error.message : null,
           isLoading: false,
           record: null,
           status: 'unavailable',
@@ -125,7 +126,7 @@ export function SharedRecordPage() {
     return () => {
       active = false
     }
-  }, [code])
+  }, [code, locale])
 
   const dark = theme === 'dark'
   const isStale = state.code !== code

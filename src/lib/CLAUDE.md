@@ -40,6 +40,10 @@ medical-document-ocr.test.ts: 医学文档 OCR client 回归测试，约束图�
 patient-record-storage.ts: 患者记录持久化边界，统一 patients/basic_info/clinical_notes、treatment_lines、可选 lab_results 与 lab_report_batches 的读取、归属校验、只读分享读取、映射与落库同步，缺失 clinical_notes 或 lab_results 远端迁移时不阻断主病历读写，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 patient-record-storage.test.ts: 患者记录持久化合同测试，约束假 id 新建真实 patient、record-page 字段编辑落库、lab_results/lab_report_batches row 映射、缺表/缺列读写降级、payload 形状、迁移字段与 RLS ownership 检查，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 privacy.ts: 隐私页 href、隐私门控确认 key 与共享隐私文案真相源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+network-status.ts: 浏览器在线状态、OnlineRequiredError 与中英文在线依赖提示边界，供 PWA 离线壳和网络动作提前失败复用，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+network-status.test.ts: PWA 网络状态测试，约束显式离线检测、OnlineRequiredError 与中英文在线依赖反馈，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+pwa.ts: PWA service worker 注册与敏感请求缓存判定边界，确保生产安全上下文才注册外层壳缓存且动态医疗数据不进入 Cache Storage，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+pwa.test.ts: PWA 合同测试，约束 manifest 安装字段、headers、SPA 深链路 fallback、service worker 注册条件与敏感动态请求缓存排除，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-sharing.ts: 病历分享边界，负责授权码生成/hash、record_shares 创建/列表/撤销、分享链接生成与授权码只读读取状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-sharing.test.ts: 病历分享回归测试，约束授权码 hash、record_shares 迁移/RLS/RPC、非 owner 拒绝、撤销写入、active/expired/revoked/unavailable 状态与单份记录读取，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 record-editing.ts: 自然语言病历编辑边界，要求 LLM 返回 PatientFieldTarget 字段级 patch，并复用逐格编辑的归一化 merge 语义，支持姓名、临床备注与可带单位的数值字段，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

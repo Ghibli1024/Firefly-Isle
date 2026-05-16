@@ -5,6 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { getSupabaseClient } from '@/lib/supabase'
+import { ensureBrowserOnline } from '@/lib/network-status'
 import type { LabReportBatch, LabResult, PatientRecord, TreatmentLine } from '@/types/patient'
 
 type PatientRow = {
@@ -280,6 +281,8 @@ async function loadPatientChildren(patient: PatientRow) {
 }
 
 export async function loadPatientRecordById(recordId: string): Promise<PatientRecord | null> {
+  ensureBrowserOnline()
+
   const supabase = getSupabaseClient()
   const { data: authData, error: authError } = await supabase.auth.getUser()
 
@@ -300,6 +303,8 @@ export async function loadPatientRecordById(recordId: string): Promise<PatientRe
 }
 
 export async function loadSharedPatientRecordById(recordId: string): Promise<PatientRecord | null> {
+  ensureBrowserOnline()
+
   const supabase = getSupabaseClient()
   const patient = await loadPatientRowWithFallback((columns) =>
     supabase
@@ -313,6 +318,8 @@ export async function loadSharedPatientRecordById(recordId: string): Promise<Pat
 }
 
 export async function loadLatestPatientRecord(userId: string) {
+  ensureBrowserOnline()
+
   const supabase = getSupabaseClient()
   const patient = await loadPatientRowWithFallback((columns) =>
     supabase
@@ -420,6 +427,8 @@ async function syncTreatmentLines(patientId: string, treatmentLines: TreatmentLi
 }
 
 export async function persistPatientRecord(record: PatientRecord, userId: string) {
+  ensureBrowserOnline()
+
   const patientId = await ensurePatientRecordExists(record, userId)
   const persistedRecord = record.id === patientId ? record : { ...record, id: patientId }
   const supabase = getSupabaseClient()
