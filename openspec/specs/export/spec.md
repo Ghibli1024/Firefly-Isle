@@ -53,7 +53,7 @@
 - **THEN** 系统 SHALL 向用户展示可读的错误信息，并在控制台输出完整错误堆栈
 
 ### Requirement: Alternate record views preserve dossier export
-The system SHALL keep formal PDF/PNG export behavior stable when `/record/:id` gains alternate views.
+The system SHALL keep formal PDF/PNG export behavior stable when `/record/:id` gains alternate views, including dossier, minimal TimelineTable, and Gantt views.
 
 #### Scenario: Dossier export remains available
 - **WHEN** a user opens a real `/record/:id` record
@@ -63,3 +63,8 @@ The system SHALL keep formal PDF/PNG export behavior stable when `/record/:id` g
 #### Scenario: Gantt view does not hijack export
 - **WHEN** a user switches to the Gantt view
 - **THEN** the page SHALL NOT silently redirect the existing PDF/PNG export actions to a different DOM target
+
+#### Scenario: TimelineTable view does not hijack export
+- **WHEN** a user switches to the minimal TimelineTable view
+- **THEN** the page SHALL NOT silently redirect the existing PDF/PNG export actions to a different DOM target
+- **AND** existing dossier export behavior SHALL remain available when the user returns to dossier view

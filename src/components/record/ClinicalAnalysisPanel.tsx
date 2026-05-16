@@ -60,7 +60,7 @@ export function ClinicalAnalysisPanel({
         loading: '分析中...',
         title: 'AI 辅助分析',
         treatment: '治疗线摘要',
-        unavailable: '演示或未授权记录暂不生成真实 AI 分析。',
+        unavailable: 'Demo 显示静态示例分析，不调用真实 LLM；请在自己的病历中生成实时分析。',
       }
     : {
         action: 'Generate AI analysis',
@@ -71,7 +71,7 @@ export function ClinicalAnalysisPanel({
         loading: 'Analyzing...',
         title: 'AI Assisted Analysis',
         treatment: 'Treatment summary',
-        unavailable: 'Demo or unauthorized records cannot generate real AI analysis.',
+        unavailable: 'Demo shows a static sample and does not call the live LLM. Generate live analysis from your own record.',
       }
   const result = state.result
 

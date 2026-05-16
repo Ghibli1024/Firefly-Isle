@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 lazy/Suspense/useMemo，依赖 react-router-dom 的 BrowserRouter、Routes、Route、Navigate、useLocation，依赖 ThemeProvider、BackgroundAudioProvider、AuthProvider、PrivacyGate、PRIVACY_PAGE_HREF 与按路由动态加载的页面组件。
  * [OUTPUT]: 对外提供 App 组件。
- * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、匿名/非匿名身份标记、记录页用户归属保存 id、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/record/:id、/share/:code、/analytics/:id 页面。
+ * [POS]: src 的路由装配入口，连接主题系统、隐私门控、Supabase session 持久化、匿名/非匿名身份标记、公开 Demo、记录页用户归属保存 id、OAuth 错误归一与 /login、/auth/callback、/privacy、/app、/demo、/record/:id、/share/:code、/analytics/:id 页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { lazy, Suspense, type ReactNode, useMemo } from 'react'
@@ -125,6 +125,9 @@ function AppRoutes() {
         />
         <Route path="/share/:code" element={<SharedRecordPage />} />
         <Route path="/brand-lockup-preview" element={<BrandLockupPreviewPage />} />
+        <Route path="/demo" element={<Navigate replace to="/demo/record" />} />
+        <Route path="/demo/record" element={<RecordPage userIsAnonymous userLabel="DEMO_MODE" />} />
+        <Route path="/demo/analytics" element={<LabAnalyticsPage userIsAnonymous userLabel="DEMO_MODE" />} />
         <Route
           path="/app"
           element={

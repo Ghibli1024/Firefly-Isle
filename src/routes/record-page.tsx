@@ -1,16 +1,18 @@
 /**
- * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell，依赖 demoPatientRecord、clinical-analysis、record-sharing、record-editing 字段 patch、patient-record-storage 持久化、./record-page.view 的档案/极简表格/Gantt/分享/AI 分析内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useParams 与 transitions-dev.css 的 route/stagger 动效合同。
- * [OUTPUT]: 对外提供 RecordPage 组件，对应 /record/:id，并挂载详情页主画布入场动效、授权码分享、AI 辅助分析与字段级 Supabase 保存。
- * [POS]: routes 的档案详情 orchestration 层，只负责路由参数、加载状态、视图状态、分享状态、AI 分析状态、页面级图表编辑状态、字段保存状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
+ * [INPUT]: 依赖 @/components/app-shell 的 V3 可变侧栏与顶部状态条，依赖 @/components/system/surfaces 的 MainShell 与 DemoModeBanner，依赖全产品 Demo fixture、clinical-analysis、record-sharing、record-editing 字段 patch、patient-record-storage 持久化、./demo-mode.logic 的可选公开分享码 Demo 数据源、./record-page.view 的档案/极简表格/Gantt/分享/AI 分析内容组合，点击正式导出时动态加载 @/lib/export-record，依赖 react-router-dom 的 useLocation/useParams 与 transitions-dev.css 的 route/stagger 动效合同。
+ * [OUTPUT]: 对外提供 RecordPage 组件，对应公开 /demo/record 与受保护 /record/:id，并挂载详情页主画布入场动效、Demo 模式提醒、可选 Supabase 公开 Demo 读取、Demo AI/分享预览、授权码分享、AI 辅助分析与字段级 Supabase 保存。
+ * [POS]: routes 的档案详情 orchestration 层，只负责 Demo/真实路由参数、Demo 数据源加载、加载状态、视图状态、分享状态、AI 分析状态、页面级图表编辑状态、字段保存状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
-import { demoPatientRecord } from '@/components/record/demo-record'
+import { demoClinicalAnalysisResult, demoLabAnalyticsRecord } from '@/components/analytics/demo-lab-analytics'
+import type { RecordSharePanelState } from '@/components/record/RecordSharePanel'
 import { labels } from '@/components/record/record-copy'
 import type { ExportFormat } from '@/components/record/types'
+import { DemoModeBanner } from '@/components/system/demo-mode-banner'
 import { MainShell } from '@/components/system/surfaces'
 import { analyzePatientRecord, ClinicalAnalysisParseError, type ClinicalAnalysisResult } from '@/lib/clinical-analysis'
 import { useLocale } from '@/lib/locale'
@@ -21,6 +23,7 @@ import { useTheme } from '@/lib/theme'
 import { shellWideContentClass, sidebarOffsetClass, topBarOffsetClass } from '@/lib/theme/tokens'
 import type { PatientFieldTarget, PatientRangeTarget, PatientRecord } from '@/types/patient'
 
+import { loadDemoPatientRecord } from './demo-mode.logic'
 import { getActiveRecordLoadState, loadPatientRecordById, type RecordLoadState } from './record-page.logic'
 import { RecordPageContent, type RecordExportState, type RecordSaveState, type RecordViewMode } from './record-page.view'
 
@@ -34,6 +37,40 @@ type RecordPageProps = {
 
 function isPresentValue(value: string) {
   return /^(今|至今|现在|present|ongoing)$/i.test(value.trim())
+}
+
+function getDemoSharePreviewUrl() {
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return '/demo/record'
+  }
+
+  return `${window.location.origin}/demo/record`
+}
+
+function getDemoSharePreviewState(): RecordSharePanelState {
+  return {
+    createdUrl: getDemoSharePreviewUrl(),
+    error: null,
+    isCreating: false,
+    isLoading: false,
+    revokingShareId: null,
+    shares: [
+      {
+        createdAt: '2026-05-13T00:00:00.000Z',
+        expiresAt: '2099-12-31T23:59:59.000Z',
+        id: 'demo-share-preview',
+        patientId: 'demo',
+      },
+    ],
+  }
+}
+
+function getInitialClinicalAnalysisState(demoRoute: boolean) {
+  return {
+    error: null,
+    isLoading: false,
+    result: demoRoute ? demoClinicalAnalysisResult : null,
+  }
 }
 
 export function parseRecordRangeEdits(target: PatientRangeTarget, value: string): PatientRecordEdit[] {
@@ -57,10 +94,12 @@ export function parseRecordRangeEdits(target: PatientRangeTarget, value: string)
 
 export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, userLabel }: RecordPageProps) {
   const { id = 'demo' } = useParams()
+  const location = useLocation()
   const { locale } = useLocale()
   const { theme } = useTheme()
   const recordRef = useRef<HTMLDivElement>(null)
-  const demoRoute = id.trim() === 'demo'
+  const publicDemoRoute = location.pathname.startsWith('/demo')
+  const demoRoute = publicDemoRoute || id.trim() === 'demo'
   const [recordLoadState, setRecordLoadState] = useState<RecordLoadState>(() => ({
     error: null,
     isLoading: !demoRoute,
@@ -74,13 +113,13 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   })
   const [recordViewMode, setRecordViewMode] = useState<RecordViewMode>('dossier')
   const [isChartEditing, setIsChartEditing] = useState(false)
-  const [demoRecord, setDemoRecord] = useState<PatientRecord>(demoPatientRecord)
+  const [demoRecord, setDemoRecord] = useState<PatientRecord>(demoLabAnalyticsRecord)
   const [saveState, setSaveState] = useState<RecordSaveState>({ error: null, status: 'idle' })
   const [clinicalAnalysisState, setClinicalAnalysisState] = useState<{
     error: string | null
     isLoading: boolean
     result: ClinicalAnalysisResult | null
-  }>({ error: null, isLoading: false, result: null })
+  }>(() => getInitialClinicalAnalysisState(demoRoute))
   const [shareState, setShareState] = useState<{
     createdUrl: string | null
     error: string | null
@@ -100,7 +139,19 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
 
   useEffect(() => {
     if (demoRoute) {
-      return undefined
+      let active = true
+
+      void loadDemoPatientRecord().then(({ record }) => {
+        if (!active) {
+          return
+        }
+
+        setDemoRecord(record)
+      })
+
+      return () => {
+        active = false
+      }
     }
 
     let active = true
@@ -138,10 +189,11 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
 
   const activeRecordLoadState = getActiveRecordLoadState({ demoRoute, id, recordLoadState })
   const shareRecordId = demoRoute ? undefined : activeRecordLoadState.record?.id
+  const visibleShareState = demoRoute ? getDemoSharePreviewState() : shareRecordId ? shareState : undefined
 
   useEffect(() => {
-    setClinicalAnalysisState({ error: null, isLoading: false, result: null })
-  }, [id])
+    setClinicalAnalysisState(getInitialClinicalAnalysisState(demoRoute))
+  }, [demoRoute, id])
 
   useEffect(() => {
     if (!shareRecordId) {
@@ -263,7 +315,7 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   }
 
   async function handleExport(format: ExportFormat) {
-    if (!recordRef.current || demoRoute || !activeRecordLoadState.record || exportState.isExporting) {
+    if (!recordRef.current || !getEditableRecord() || exportState.isExporting) {
       return
     }
 
@@ -363,11 +415,13 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
   }
 
   function handleCopyShareUrl() {
-    if (!shareState.createdUrl) {
+    const createdUrl = demoRoute ? getDemoSharePreviewUrl() : shareState.createdUrl
+
+    if (!createdUrl) {
       return
     }
 
-    void navigator.clipboard?.writeText(shareState.createdUrl)
+    void navigator.clipboard?.writeText(createdUrl)
   }
 
   async function handleRevokeShare(shareId: string) {
@@ -399,13 +453,13 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '病历详情' : 'Record Detail'} withRail />
       <ArchiveSideNav
-        analyticsHref={demoRoute ? '/analytics/demo' : `/analytics/${id}`}
+        analyticsHref={demoRoute ? (publicDemoRoute ? '/demo/analytics' : '/analytics/demo') : `/analytics/${id}`}
         dark={dark}
         isSigningOut={isSigningOut}
         onSignOut={onSignOut}
-        recordHref={demoRoute ? undefined : `/record/${id}`}
+        recordHref={demoRoute ? (publicDemoRoute ? '/demo/record' : '/record/demo') : `/record/${id}`}
         userIsAnonymous={userIsAnonymous}
-        userLabel={userLabel ?? id}
+        userLabel={userLabel ?? (demoRoute ? 'DEMO_MODE' : id)}
       />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
         <div
@@ -413,6 +467,7 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
           data-testid="record-responsive-canvas"
           style={{ '--t-order': 0 } as CSSProperties}
         >
+          {demoRoute ? <DemoModeBanner /> : null}
           <RecordPageContent
             activeRecordLoadState={activeRecordLoadState}
             clinicalAnalysisState={clinicalAnalysisState}
@@ -432,7 +487,8 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
             onViewModeChange={setRecordViewMode}
             recordRef={recordRef}
             saveState={saveState}
-            shareState={shareRecordId ? shareState : undefined}
+            sharePreviewNotice={demoRoute ? (locale === 'zh' ? 'Demo 只展示分享入口形态，不创建真实授权码，也不会写入 record_shares。' : 'Demo previews sharing only. It does not create authorization codes or write record_shares.') : undefined}
+            shareState={visibleShareState}
             theme={theme}
             viewMode={recordViewMode}
           />

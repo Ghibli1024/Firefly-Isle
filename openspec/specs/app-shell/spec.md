@@ -3,7 +3,7 @@
 定义 Firefly-Isle MVP 的页面壳层、三类核心页面、主题切换空间角色与登录页入口边界。
 ## Requirements
 ### Requirement: MVP 仅包含三类 Web 页面结构
-系统 SHALL 在 MVP 中围绕登录页面、临床工作区、档案详情与独立隐私页组织界面结构，并要求这些页面在 dark / light 主题间共享同一套视觉系统、组件角色与主题语义；登录页面 SHALL 在同一路由内使用项目介绍页与 CTA 驱动统一登录弹层的组合入口。
+系统 SHALL 围绕登录页面、临床工作区、档案详情、指标管理统计页面、指标管理演示页面与独立隐私页组织界面结构，并要求这些页面在 dark / light 主题间共享同一套视觉系统、组件角色与主题语义；登录页面 SHALL 在同一路由内使用项目介绍页与 CTA 驱动统一登录弹层的组合入口。
 
 #### Scenario: 登录页保持单一路由
 - **WHEN** 系统实现项目介绍页与统一登录弹层
@@ -34,6 +34,11 @@
 - **THEN** 页面 SHALL 以弹层呈现同源登录卡
 - **AND** 登录卡 SHALL 保留邮箱登录、注册模式、匿名会话与隐私说明入口
 - **AND** 用户 SHALL 能关闭弹层回到项目介绍区域
+
+#### Scenario: 统计页复用已登录壳层
+- **WHEN** 用户访问指标管理统计页面
+- **THEN** 页面 SHALL 复用已登录应用壳层、侧栏、顶部状态条、主题切换与语言切换能力
+- **AND** 页面 SHALL NOT 创建独立于 V3 壳层的新导航系统
 
 ### Requirement: 页面结构必须复刻设计稿
 系统 SHALL 以输入提取台和正式档案导出台的职责分离为 `/app` 与 `/record/:id` 的页面结构依据，并保持 dark / light 主题只改变 token、材质与品牌 mark，不改变页面职责。
@@ -194,3 +199,36 @@
 - **THEN** 控制 SHALL 暴露可访问标签
 - **AND** 控制 SHALL 支持键盘触发
 - **AND** 当前曲目标题 SHALL 作为可读文本呈现
+
+### Requirement: 侧栏统计入口进入真实统计页面
+系统 SHALL 将已登录壳层中的 `统计` 入口连接到真实指标管理统计页面，而不是继续作为敬请期待动作。
+
+#### Scenario: 用户点击统计入口
+- **WHEN** 用户在已登录壳层点击 `统计`
+- **THEN** 系统 SHALL 在存在当前真实病历时导航到 `/analytics/:id`
+- **AND** 系统 SHALL 在没有当前真实病历时导航到 `/analytics/demo`
+- **AND** 系统 SHALL NOT 弹出 `敬请期待` 提示作为该入口的最终行为
+
+#### Scenario: 统计入口激活态
+- **WHEN** 用户位于指标管理统计页面
+- **THEN** 侧栏 `统计` 项 SHALL 呈现激活态
+- **AND** 激活态 SHALL 复用现有 V3 侧栏语义，而不是引入新的导航样式
+
+### Requirement: 壳层区分真实数据入口与 Demo 入口
+系统 SHALL 在应用壳层中明确区分真实用户数据入口和 Demo 入口，避免无记录状态把演示数据伪装成用户自己的病历。
+
+#### Scenario: 无真实病历时侧栏进入 Demo
+- **WHEN** 已认证或匿名用户在 `/app` 中尚无用户自有病历
+- **THEN** 侧栏病历入口 SHALL 指向 Demo 病历页
+- **AND** 侧栏统计入口 SHALL 指向 Demo 统计页
+- **AND** 工作区主内容 SHALL 继续保持空白输入/预览状态
+
+#### Scenario: 有真实病历时侧栏进入真实记录
+- **WHEN** 已认证或匿名用户在 `/app` 中已有用户自有病历
+- **THEN** 侧栏病历入口 SHALL 指向 `/record/:id`
+- **AND** 侧栏统计入口 SHALL 指向 `/analytics/:id`
+
+#### Scenario: Demo 模式侧栏不跳回受保护 fallback
+- **WHEN** 用户位于公开 Demo 模式
+- **THEN** 壳层病历和统计入口 SHALL 保持在 `/demo/*` 路由内
+- **AND** 壳层 SHALL NOT 使用 `/record/demo` 或 `/analytics/demo` 作为公开 Demo 的模式内导航目标

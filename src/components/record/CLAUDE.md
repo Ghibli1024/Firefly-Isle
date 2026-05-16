@@ -5,7 +5,7 @@
 CLAUDE.md: 说明病例详情展示层内部拆分与 route 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 types.ts: 病例详情展示类型边界，定义 ExportFormat、带字段保存 target 的 Metric/EvidenceCard、带日期范围 target 的 TimelineEntry 等 UI 数据形状，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 ClinicalAnalysisPanel.tsx: AI 辅助分析展示组件，渲染生成入口、加载态、失败态、治疗线摘要、指标趋势摘要、复核关注点、就诊前问题与非诊断免责声明，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-RecordSharePanel.tsx: 授权码分享管理组件，渲染创建、一次性链接复制/查看、已有分享状态、过期时间与撤销动作，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+RecordSharePanel.tsx: 授权码分享管理组件，渲染创建、一次性链接复制/查看、已有分享状态、Demo 预览禁用态、过期时间与撤销动作，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 LabTrendsTable.tsx: 实验室趋势表展示组件，消费 PatientRecord.labResults 并渲染最新值、参考范围、持续增高提示与空态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 LabTrendsTable.test.tsx: 实验室趋势表回归测试，约束持续增高高亮、非诊断文本与空态渲染，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 demo-record.ts: 默认乳腺癌病例 fixture，提供 demoPatientRecord 与 demoTreatmentGanttSupplementNotes，作为 /record/demo 与 demo-only 甘特补充资料的数据源，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 react 的 CSSProperties/useState、BackgroundMusicToggle、FireflyMark、FireflyBrandWordmark、LoginTraceMap、AuthOverlay、locale/copy 与隐私摘要文案。
- * [OUTPUT]: 对外提供 V3LoginView，渲染登录页全屏入口、小屏可纵向生长且随文档流/大屏右下固定的工具区、安全状态、全站进入动效与认证弹层入口。
+ * [INPUT]: 依赖 react 的 CSSProperties/useState、react-router-dom 的 Link、BackgroundMusicToggle、FireflyMark、FireflyBrandWordmark、LoginTraceMap、AuthOverlay、locale/copy 与隐私摘要文案。
+ * [OUTPUT]: 对外提供 V3LoginView，渲染登录页全屏入口、小屏可纵向生长且随文档流/大屏右下固定的工具区、安全状态、Demo 入口、全站进入动效与认证弹层入口。
  * [POS]: components/login 的入口页编排层，被 login-page-view facade 消费，保持登录展示层对外 API 稳定。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 
 import { BackgroundMusicToggle } from '@/components/background-music-toggle'
 import { FireflyBrandWordmark } from '@/components/system/firefly-brand-wordmark'
@@ -52,6 +53,23 @@ function IntroAccessCta({
         {locale === 'zh' ? '登录' : 'Login'}
       </span>
     </button>
+  )
+}
+
+function IntroDemoCta({ locale }: { locale: 'zh' | 'en' }) {
+  return (
+    <Link
+      className="t-control-press inline-flex min-h-[52px] min-w-[156px] items-center justify-center gap-2.5 rounded-[12px] border border-[var(--ff-border-default)] bg-[var(--ff-surface-raised)] px-6 text-base font-bold text-[var(--ff-text-primary)] shadow-[0_10px_18px_rgba(5,9,11,0.10)] transition-colors hover:border-[var(--ff-accent-primary)]"
+      data-testid="login-demo-cta"
+      to="/demo/record"
+    >
+      <span className="material-symbols-outlined text-[24px]" aria-hidden="true">
+        preview
+      </span>
+      <span className="whitespace-nowrap">
+        {locale === 'zh' ? '查看 Demo' : 'View Demo'}
+      </span>
+    </Link>
   )
 }
 
@@ -205,6 +223,7 @@ export function V3LoginView({
 
             <div className="t-stagger mt-10 flex flex-col gap-4 sm:flex-row sm:items-center" style={{ '--t-order': 3 } as CSSProperties}>
               <IntroAccessCta isOpen={isAuthOpen} locale={locale} onOpen={() => setIsAuthOpen(true)} />
+              <IntroDemoCta locale={locale} />
               <LoginSecurityStatus locale={locale} theme={theme} />
             </div>
             <LoginPageUtilityControls

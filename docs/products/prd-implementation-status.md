@@ -1,5 +1,5 @@
 <!--
- * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/、public/、v1.4.0 发布基线、openspec/changes/add-lab-analytics-page/ 与三个 P0 active changes 的实现方向。
+ * [INPUT]: 依赖 docs/products/archive/prd.md、openspec/specs/、src/、supabase/、functions/、public/、v1.4.0 发布基线，以及 openspec/changes/archive/2026-05-16-* 的 P0/Demo 归档证据。
  * [OUTPUT]: 对外提供 PRD 功能的已实现、部分实现、未实现与额外能力盘点。
  * [POS]: docs/products 的当前产品状态真相源，连接历史 PRD 快照、baseline specs 与运行时代码现实。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -12,10 +12,10 @@
 - PRD 快照：`docs/products/archive/prd.md`
 - 当前发布基线：`v1.4.0` / `2a1bd34`
 - 当前规格真相源：`openspec/specs/`
-- 当前已完成待归档需求变更：`openspec/changes/add-lab-analytics-page/`，OpenSpec 任务 `32/32` 完成；P0 active changes `add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view` 已实现并等待最终验证 / 归档
+- 当前 P0 / Demo 归档状态：`add-lab-analytics-page`、`add-clinical-ai-analysis`、`add-secure-record-sharing`、`restore-minimal-timeline-table-view`、`make-demo-mode-cover-full-product` 已归档到 `openspec/changes/archive/2026-05-16-*`，行为并入 `openspec/specs/`
 - 实现核对范围：`src/`、`supabase/`、`functions/`、`public/`
 - 最近验证：以本轮最终验证命令为准；P0 聚焦验证已覆盖 AI 分析、分享、record page 视图切换与 route 合同
-- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、演示统计页、对话式修改、甘特图视图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享与极简 TimelineTable 视图已进入当前实现；多端平台仍未实现。
+- 最近核对结论：核心病历闭环、/app OCR 文件输入、实验室指标结构、网页端统计页面、公开全产品 Demo、对话式修改、甘特图视图、用户 LLM provider 设置、AI 辅助分析、授权码只读分享与极简 TimelineTable 视图已进入当前实现；多端平台仍未实现。
 
 ## 已实现
 
@@ -26,7 +26,8 @@
 - 实验室指标持久化：已实现 `lab_results` 读写、索引、RLS 用户隔离与缺表降级。
 - `/record/:id` 基础实验室趋势表：已有 `LabTrendsTable`，当真实记录含 `labResults` 时展示最新值、参考范围、最近日期、读数与持续增高提示。
 - `/analytics/:id` 统计页面：已实现侧栏真实入口、血常规 / 血生化 / 肿瘤标志物分组、指标列表、网页端折线图、等价数据表、最近异常汇总和非诊断提示。
-- `/analytics/demo` 演示统计页：已实现无输入时的统计演示入口，复用 record demo 病例但使用独立实验室趋势 fixture，不污染 `/record/demo`。
+- 公开 Demo 模式：已实现登录页 `查看 Demo`、`/demo`、`/demo/record`、`/demo/analytics` 入口，复用真实病历和统计页面组件，每个 Demo 页面显示模式提醒，展示统一 demo patient + `labResults`、静态 AI 分析预览、分享预览、TimelineTable、Gantt 与 PDF/PNG 导出；可通过 `VITE_DEMO_RECORD_SHARE_CODE` 优先读取 Supabase 公开只读演示病历，缺失 / 失效 / 不完整时回退本地完整 fixture，且不要求创建 Supabase session。
+- `/analytics/demo` 演示统计页：已保留为受保护统计 fallback；无真实输入时推荐使用公开 `/demo/analytics` 查看演示统计。
 - `/app` 文件输入：已实现病历 / 检验报告图片或 PDF 上传与 OCR 文本确认，统计页本身不再承载上传表单。
 - 肿瘤标志物监测提醒：已实现连续两段上涨超过 20% 的项目扫描与网页端提醒，提示语限定为趋势提醒，不输出诊断、进展结论、用药或治疗建议。
 - 最多 3 轮追问：已实现。
@@ -45,7 +46,7 @@
 
 ## 部分实现 / 有偏差
 
-- 实验室趋势归档状态：`/record/:id` 保留基础趋势表，`/analytics/:id` 已承接主统计入口；当前仍待归档 OpenSpec change 后并入 baseline specs。
+- 实验室趋势归档状态：`/record/:id` 保留基础趋势表，`/analytics/:id` 已承接主统计入口；统计页和实验室摄入合同已并入 baseline specs。
 - 微信登录：Cloudflare Pages Functions 适配层已写，前端仍显示“敬请期待”，不会启动真实微信 OAuth。
 - 手机验证码：只有占位，未接短信服务。
 - 上传 / 语音入口：`/app` 文件导入已升级为病历 / 检验报告 OCR；语音仍为“暂未开放”。
@@ -66,7 +67,7 @@
 - LLM proxy 的 JWT 校验、匿名 / 登录用户频率限制、用户 provider 设置与 DeepSeek 连通性测试。
 - GitHub Actions + Cloudflare Pages 部署基线。
 - 社区健康文件：`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`。
-- 自动测试覆盖：39 个测试文件、307 个测试通过。
+- 自动测试覆盖：以当前最终验证输出为准；Demo route、P0 route、分享、AI、统计与工作区合同均有回归测试覆盖。
 
 ## 关键实现入口
 
@@ -83,6 +84,7 @@
 - `src/lib/llm/provider-settings.ts`
 - `src/routes/workspace-page.tsx`
 - `src/routes/lab-analytics-page.tsx`
+- `src/routes/demo-mode.logic.ts`
 - `src/routes/shared-record-page.tsx`
 - `src/components/analytics/demo-lab-analytics.ts`
 - `src/routes/record-page.tsx`

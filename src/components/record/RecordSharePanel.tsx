@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/record-sharing 的 RecordShare 类型与 @/lib/locale 的 Locale。
- * [OUTPUT]: 对外提供 RecordSharePanel 组件和 RecordSharePanelState，渲染创建、复制、查看、撤销与过期/撤销状态。
- * [POS]: components/record 的分享管理展示层，由 record-page.tsx 注入分享状态和动作，不直接读取 Supabase。
+ * [OUTPUT]: 对外提供 RecordSharePanel 组件和 RecordSharePanelState，渲染创建、复制、查看、撤销、Demo 预览禁用态与过期/撤销状态。
+ * [POS]: components/record 的分享管理展示层，由 record-page.tsx 注入真实分享状态或 Demo 预览状态和动作，不直接读取 Supabase。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Locale } from '@/lib/locale'
@@ -44,12 +44,14 @@ export function RecordSharePanel({
   onCopyCreatedUrl,
   onCreateShare,
   onRevokeShare,
+  previewNotice,
   state,
 }: {
   locale: Locale
   onCopyCreatedUrl: () => void
   onCreateShare: () => void
   onRevokeShare: (shareId: string) => void
+  previewNotice?: string
   state: RecordSharePanelState
 }) {
   const copy = locale === 'zh'
@@ -93,7 +95,7 @@ export function RecordSharePanel({
         </div>
         <button
           className="t-control-press inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={state.isCreating}
+          disabled={state.isCreating || Boolean(previewNotice)}
           onClick={onCreateShare}
           type="button"
         >
@@ -101,6 +103,12 @@ export function RecordSharePanel({
           {state.isCreating ? copy.creating : copy.create}
         </button>
       </div>
+
+      {previewNotice ? (
+        <div className="mt-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-muted)] bg-[var(--ff-surface-inset)] px-4 py-3 text-sm font-semibold text-[var(--ff-text-secondary)]">
+          {previewNotice}
+        </div>
+      ) : null}
 
       {state.error ? (
         <div className="mt-4 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-3 text-sm font-semibold text-[var(--ff-accent-primary)]" role="alert">
@@ -148,7 +156,7 @@ export function RecordSharePanel({
               </div>
               <button
                 className="t-control-press h-10 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={status !== 'active' || state.revokingShareId === share.id}
+                disabled={Boolean(previewNotice) || status !== 'active' || state.revokingShareId === share.id}
                 onClick={() => onRevokeShare(share.id)}
                 type="button"
               >

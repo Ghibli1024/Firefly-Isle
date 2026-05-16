@@ -419,7 +419,7 @@ export function LabAnalyticsDashboard({
       {!hasData ? (
         <PanelSurface className="p-8 text-center" theme={theme} tone="panel">
           <div className="font-[var(--ff-font-display)] text-2xl font-black tracking-normal">暂无已保存指标</div>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[var(--ff-text-secondary)]">请回到 /app 输入区上传病历、血常规、血生化或肿瘤标志物图片/PDF；本页只读取已保存到网页端的指标数据。没有真实输入时，请使用 /analytics/demo 查看演示统计。</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[var(--ff-text-secondary)]">请回到 /app 输入区上传病历、血常规、血生化或肿瘤标志物图片/PDF；本页只读取已保存到网页端的指标数据。没有真实输入时，请使用 /demo/analytics 查看演示统计。</p>
         </PanelSurface>
       ) : (
         <div className="grid gap-4">

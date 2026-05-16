@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/components/app-shell 的设计复刻壳层，依赖 @/components/workspace 的输入区、追问区与报告预览 feature 组件，依赖 @/lib/auth 的当前会话身份标签，依赖 @/lib/extraction 的提取主链路，依赖 @/lib/record-editing 的自然语言编辑边界，依赖 @/lib/medical-document-ocr 的医学文档 OCR client，依赖 @/lib/patient-record-storage 的落库与最近记录恢复入口，依赖 @/lib/theme 的 useTheme。
  * [OUTPUT]: 对外提供 WorkspacePage 组件与工作区状态补丁 helpers，对应 /app。
- * [POS]: routes 的临床工作区 orchestration 层，保留文本/OCR 文件输入、追问、解析错误恢复、显式新病历提取分流与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
+ * [POS]: routes 的临床工作区 orchestration 层，保留真实用户空白输入态、公开 Demo fallback 导航、文本/OCR 文件输入、追问、解析错误恢复、显式新病历提取分流与 inline edit 持久化，并编排统一 system shell 与 workspace feature 组件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -570,7 +570,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
     <div className="min-h-screen bg-[var(--ff-surface-base)] font-[var(--ff-font-ui)] text-[var(--ff-text-primary)]">
       <ClinicalTopBar theme="dark" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
       <ArchiveSideNav
-        analyticsHref={record?.id ? `/analytics/${record.id}` : '/analytics/demo'}
+        analyticsHref={record?.id ? `/analytics/${record.id}` : '/demo/analytics'}
         dark
         isSigningOut={isSigningOut}
         onSignOut={onSignOut}
@@ -657,7 +657,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
     <div className="ff-light-workspace-bg min-h-screen text-[var(--ff-text-primary)]">
       <ClinicalTopBar theme="light" title={locale === 'zh' ? '病程整理台' : 'Clinical Course Organizer'} withRail />
       <ArchiveSideNav
-        analyticsHref={record?.id ? `/analytics/${record.id}` : '/analytics/demo'}
+        analyticsHref={record?.id ? `/analytics/${record.id}` : '/demo/analytics'}
         dark={false}
         isSigningOut={isSigningOut}
         onSignOut={onSignOut}

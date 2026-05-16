@@ -6,7 +6,7 @@ CLAUDE.md: 说明前端基础设施模块职责，[PROTOCOL]: 变更时更新此
 background-audio-tracks.ts: 本地授权背景歌单 manifest，声明四首用户指定歌曲的稳定 id、标题、Apple Music 来源链接与 public 音频路径，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio.tsx: 全局背景音乐状态中心，管理单一 audio 实例、本地歌单、播放/暂停意图持久化、刷新恢复、浏览器拦截、当前曲目持久化与共享 hook，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio.test.ts: 背景音乐状态机回归测试，约束本地歌单默认值、曲目持久化、循环切歌、ended 前进、播放/暂停意图刷新恢复、自动播放拦截与不可用状态，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、/analytics/demo、/analytics/:id 与公开 /share/:code 装配、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+app.spec.ts: 应用级合同测试，约束隐私内容、患者类型、认证路由守卫、公开 /demo/record 与 /demo/analytics、/analytics/demo、/analytics/:id 与公开 /share/:code 装配、OAuth 错误透传与 BackgroundAudioProvider 生命周期位置，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 clinical-analysis.ts: 临床辅助分析边界，把 PatientRecord 与 labResults 压缩为非诊断 LLM prompt，校验 JSON 输出并提供 analyzePatientRecord 入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 clinical-analysis.test.ts: 临床辅助分析回归测试，约束非诊断 prompt、json_object 调用、无 labResults 降级与非法响应拒绝，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

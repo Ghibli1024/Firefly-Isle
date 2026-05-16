@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历/统计 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/演示病历入口、真实统计/演示统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/公开 Demo 病历入口、真实统计/公开 Demo 统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、窄恢复胶囊、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
@@ -87,18 +87,18 @@ export type ArchiveSideNavProps = {
 }
 
 function isActive(pathname: string, href: string) {
-  if (href.startsWith('/record/')) {
-    return pathname.startsWith('/record')
+  if (href.startsWith('/record/') || href === '/demo/record') {
+    return pathname.startsWith('/record') || pathname === '/demo/record'
   }
 
-  if (href.startsWith('/analytics/')) {
-    return pathname.startsWith('/analytics')
+  if (href.startsWith('/analytics/') || href === '/demo/analytics') {
+    return pathname.startsWith('/analytics') || pathname === '/demo/analytics'
   }
 
   return pathname === href
 }
 
-export function ArchiveSideNav({ analyticsHref = '/analytics/demo', dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
+export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
   const { locale, toggleLocale } = useLocale()
   const { toggleTheme } = useTheme()
@@ -116,7 +116,7 @@ export function ArchiveSideNav({ analyticsHref = '/analytics/demo', dark, isSign
     () =>
       [
         { icon: 'my_location', href: '/app', labelKey: 'extract' },
-        { icon: 'clinical_notes', href: recordHref ?? '/record/demo', labelKey: 'record' },
+        { icon: 'clinical_notes', href: recordHref ?? '/demo/record', labelKey: 'record' },
         { icon: 'bar_chart', href: analyticsHref, labelKey: 'analytics' },
       ] as const,
     [analyticsHref, recordHref],
@@ -435,6 +435,7 @@ export function ArchiveSideNav({ analyticsHref = '/analytics/demo', dark, isSign
               {navItems.map((item) => {
                 const active = 'href' in item ? isActive(location.pathname, item.href) : false
                 const label = getCopy(copy.shell.nav[item.labelKey], locale)
+                const demoTarget = item.href.startsWith('/demo/')
                 const itemClassName = cn(
                   'group relative flex h-[50px] min-w-0 items-center overflow-visible rounded-[var(--ff-radius-sm)] border text-[var(--ff-text-secondary)]',
                   themeTransitionClass,
@@ -450,6 +451,11 @@ export function ArchiveSideNav({ analyticsHref = '/analytics/demo', dark, isSign
                       {item.icon}
                     </span>
                     {renderLabel(label, cn('text-[16px] font-semibold leading-none', active ? 'text-[var(--ff-accent-primary)]' : ''))}
+                    {demoTarget && !compact ? (
+                      <span className="ml-auto rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-muted)] px-1.5 py-0.5 font-[var(--ff-font-mono)] text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--ff-text-muted)]">
+                        Demo
+                      </span>
+                    ) : null}
                     {iconOnlyTooltip(label)}
                   </>
                 )

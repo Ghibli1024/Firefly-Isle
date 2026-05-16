@@ -41,6 +41,7 @@ cp .env.local.example .env.local
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_SUPABASE_EDGE_FUNCTION_URL`
+- `VITE_DEMO_RECORD_SHARE_CODE`（可选；填入公开只读分享授权码后，`/demo/*` 优先从 Supabase 读取演示病历；缺失、过期、撤销、不可用或数据不完整时回退本地完整 Demo fixture）
 
 如果要跑认证主链路，还需要在 Supabase Dashboard 的 Auth Providers / URL Configuration 里确认：
 
@@ -124,6 +125,6 @@ Cloudflare Pages 继续作为托管目标，保留：
 - Node.js: `22`
 - SPA fallback: `public/_redirects`
 
-GitHub Actions 的构建期 `VITE_SUPABASE_*` 值统一从已提交的 `wrangler.jsonc > vars` 读取，不再要求在 GitHub 仓库重复配置一份 secrets / variables。
+GitHub Actions 的构建期 `VITE_SUPABASE_*` 值统一从已提交的 `wrangler.jsonc > vars` 读取，不再要求在 GitHub 仓库重复配置一份 secrets / variables。公开 Demo 若要使用 Supabase 演示病历，需要同时在 `wrangler.jsonc > vars.VITE_DEMO_RECORD_SHARE_CODE` 填入可公开的只读分享码；留空时前端使用本地完整 fixture。
 
 Cloudflare Pages 的 Git 分支自动生产 / 自动预览部署应关闭，避免与 GitHub Actions 发布链路形成双真相。

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 BackgroundAudioProvider 与 ./login-page-view 的 LoginPageView。
- * [OUTPUT]: 对外提供登录页主题壳层、认证弹层语义与 Transitions.dev 弹层动效合同的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、内页同源品牌字标、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效、登录 scene 全站动效与无伪控件边界。
+ * [OUTPUT]: 对外提供登录页主题壳层、Demo 入口、认证弹层语义与 Transitions.dev 弹层动效合同的回归测试。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、内页同源品牌字标、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、Demo CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效、登录 scene 全站动效与无伪控件边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -134,6 +134,15 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('data-testid="login-submit-button"')
     expect(markup).not.toContain('凭证就绪')
     expect(markup).not.toContain('等待凭证')
+  })
+
+  it('offers a public Demo entry without opening the auth overlay', () => {
+    const markup = renderLogin('dark')
+
+    expect(markup).toContain('data-testid="login-demo-cta"')
+    expect(markup).toContain('href="/demo/record"')
+    expect(markup).toContain('查看 Demo')
+    expect(markup).not.toContain('data-testid="login-auth-overlay"')
   })
 
   it('keeps credential actions out of the initial narrow-screen markup', () => {

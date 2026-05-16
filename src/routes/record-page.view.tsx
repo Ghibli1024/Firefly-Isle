@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier/AI 分析/分享展示、demo-record 的默认病例、record-copy 的 labels、@/components/timeline 的 TimelineTable/TreatmentGanttView、PatientRecord 字段编辑目标、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
- * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode、RecordExportState 与 RecordSaveState，并统一档案/极简表格/Gantt 切换动效锚点、页面级编辑入口、分享入口、AI 分析入口和字段保存状态展示。
+ * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode、RecordExportState 与 RecordSaveState，并统一档案/极简表格/Gantt 切换动效锚点、页面级编辑入口、真实分享入口、Demo 分享预览、AI 分析入口和字段保存状态展示。
  * [POS]: routes 的档案详情内容组合层，隔离 dossier/table/gantt 视图切换、分享面板、AI 分析面板、右侧编辑工具条、字段提交入口与 crossfade 入场，让 record-page.tsx 保持路由、副作用和 Supabase 持久化编排。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -52,6 +52,7 @@ type RecordPageContentProps = {
   onViewModeChange: (viewMode: RecordViewMode) => void
   recordRef: RefObject<HTMLDivElement>
   saveState: RecordSaveState
+  sharePreviewNotice?: string
   shareState?: RecordSharePanelState
   theme: Theme
   viewMode: RecordViewMode
@@ -194,6 +195,7 @@ export function RecordPageContent({
   onViewModeChange,
   recordRef,
   saveState,
+  sharePreviewNotice,
   shareState,
   theme,
   viewMode,
@@ -253,13 +255,23 @@ export function RecordPageContent({
     return (
       <>
         {controlsNode}
+        {shareState && onCreateShare && onCopyShareUrl && onRevokeShare ? (
+          <RecordSharePanel
+            locale={locale}
+            onCopyCreatedUrl={onCopyShareUrl}
+            onCreateShare={onCreateShare}
+            onRevokeShare={onRevokeShare}
+            previewNotice={sharePreviewNotice}
+            state={shareState}
+          />
+        ) : null}
         <div className="t-record-view" data-active-page="dossier">
           <RecordDossier
             clinicalAnalysisState={clinicalAnalysisState}
             exportError={exportState.error}
             exportFormat={exportState.format}
             isEditable={isChartEditing}
-            isExportDisabled
+            isExportDisabled={false}
             isExporting={exportState.isExporting}
             locale={locale}
             onCommitField={onCommitField}
@@ -284,6 +296,7 @@ export function RecordPageContent({
             onCopyCreatedUrl={onCopyShareUrl}
             onCreateShare={onCreateShare}
             onRevokeShare={onRevokeShare}
+            previewNotice={sharePreviewNotice}
             state={shareState}
           />
         ) : null}

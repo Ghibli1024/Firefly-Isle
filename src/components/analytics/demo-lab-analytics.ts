@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 @/components/record/demo-record 的默认病例，依赖 @/types/patient 的 LabResult 与 PatientRecord 类型。
- * [OUTPUT]: 对外提供 demoLabResults 与 demoLabAnalyticsRecord。
- * [POS]: components/analytics 的统计页演示数据源，把本地三份实验室表格压缩成 /analytics/demo 的网页端趋势 fixture，避免污染 /record/demo 的正式病例 fixture。
+ * [INPUT]: 依赖 @/components/record/demo-record 的默认病例，依赖 @/lib/clinical-analysis 的结果类型，依赖 @/types/patient 的 LabResult 与 PatientRecord 类型。
+ * [OUTPUT]: 对外提供 demoLabResults、demoLabAnalyticsRecord 与 demoClinicalAnalysisResult。
+ * [POS]: components/analytics 的全产品 Demo 数据源，把本地三份实验室表格压缩成网页端趋势 fixture，并为公开 Demo 病历/统计/AI 预览提供同一语义患者记录。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { demoPatientRecord } from '@/components/record/demo-record'
+import type { ClinicalAnalysisResult } from '@/lib/clinical-analysis'
 import type { LabResult, LabResultCategory, PatientRecord } from '@/types/patient'
 
 type DemoLabRow = {
@@ -174,4 +175,28 @@ export const demoLabAnalyticsRecord: PatientRecord = {
   },
   id: 'demo',
   labResults: demoLabResults,
+}
+
+export const demoClinicalAnalysisResult: ClinicalAnalysisResult = {
+  attentionPoints: [
+    '当前资料显示治疗线较长，复核时应优先核对每线起止时间、方案组成和停药原因是否完整。',
+    '2025 年后白细胞、中性粒细胞绝对值和红细胞相关指标多次低于参考范围，适合在复诊前整理成趋势问题。',
+    'CA15-3 在近几次检测中有波动上行信号，但仍需结合影像、症状和医生评估，不能单独判断疾病进展。',
+  ],
+  disclaimer: 'Demo 示例仅展示病历整理和随访沟通方式，不构成诊断、疾病进展判断、用药建议或治疗指令。',
+  followUpQuestions: [
+    '最近一次影像复查日期、结果和下一次复查计划是什么？',
+    '当前治疗线是否仍在继续，是否有减量、暂停或不良反应处理记录？',
+    '白细胞和中性粒细胞偏低时，是否已有医生给出的复查或处理安排？',
+  ],
+  labTrendSummary: [
+    '血常规显示 2025-09 至 2026-04 存在多次白细胞和中性粒细胞偏低记录，适合按时间轴随访复核。',
+    '血生化整体较稳定，部分脂蛋白、锌、转铁蛋白等项目有异常或波动，需要结合营养状态和用药背景阅读。',
+    '肿瘤标志物中 CA15-3 在 2025-10 之后有多点变化，页面只提示趋势线索，不作进展结论。',
+  ],
+  treatmentSummary: [
+    'Demo 病例从 2021.07 初发治疗开始，2022.10 后进入多线复发/晚期治疗记录。',
+    '治疗线覆盖 CDK4/6 抑制剂、化疗、ADC、免疫联合和后续靶向/内分泌组合，适合展示长病程整理能力。',
+    '第 9 线为当前线，结局字段仍待补充，Demo 用它展示缺失字段高亮和后续复核入口。',
+  ],
 }

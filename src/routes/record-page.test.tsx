@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、dossier/极简表格/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
- * [POS]: routes 的病例详情测试文件，约束 /record/:id 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、TimelineTable/Gantt 备用视图、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/表格/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 正式导出入口。
+ * [OUTPUT]: 对外提供病例详情页响应式版心、公开 Demo 完整产品预览、Demo 模式提醒、dossier/极简表格/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [POS]: routes 的病例详情测试文件，约束 /record/:id 与 /demo/record 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Demo banner、TimelineTable/Gantt 备用视图、Demo AI/分享/指标预览、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/表格/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { summaryMetrics } from '@/components/record/record-copy'
 import { demoPatientRecord } from '@/components/record/demo-record'
+import { demoLabAnalyticsRecord } from '@/components/analytics/demo-lab-analytics'
 import { getRecordSummaryMetrics } from '@/components/record/record-derived'
 import { BackgroundAudioProvider } from '@/lib/background-audio'
 import { LocaleProvider } from '@/lib/locale'
@@ -76,6 +77,7 @@ function renderRecord(theme: 'light' | 'dark', initialEntry = '/record/demo') {
         <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route path="/record/:id" element={<RecordPage isSigningOut={false} onSignOut={() => undefined} userLabel="ANON_SESSION" />} />
+            <Route path="/demo/record" element={<RecordPage userIsAnonymous userLabel="DEMO_MODE" />} />
           </Routes>
         </MemoryRouter>
       </BackgroundAudioProvider>
@@ -162,6 +164,25 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('档案视图')
     expect(markup).toContain('极简表格')
     expect(markup).toContain('甘特图视图')
+  })
+
+  it('renders public Demo record as a full-product showcase without live LLM or real share writes', () => {
+    const markup = renderRecord('light', '/demo/record')
+
+    expect(markup).toContain('href="/demo/record"')
+    expect(markup).toContain('href="/demo/analytics"')
+    expect(markup).toContain('data-testid="demo-mode-banner"')
+    expect(markup).toContain('当前为 Demo 视图')
+    expect(markup).toContain('AI 辅助分析')
+    expect(markup).toContain('Demo 示例仅展示病历整理和随访沟通方式')
+    expect(markup).toContain('指标趋势摘要')
+    expect(markup).toContain('授权码分享')
+    expect(markup).toContain('Demo 只展示分享入口形态')
+    expect(markup).toContain('实验室趋势')
+    expect(markup).toContain('糖类抗原153')
+    expect(markup).toContain('导出 PDF')
+    expect(markup).toContain('导出 PNG')
+    expect(markup).not.toContain('href="/analytics/demo"')
   })
 
   it('exposes a compact page-level editing toggle', () => {
@@ -711,11 +732,19 @@ describe('RecordPage responsive dossier shell', () => {
     expect(ganttMarkup).not.toContain('导出 PNG')
   })
 
-  it('does not allow demo fallback export before a real saved record is loaded', () => {
-    const markup = renderRecord('light')
+  it('allows Demo dossier export because Demo is now a showcase surface', () => {
+    const markup = renderRecordContent({
+      demoRoute: true,
+      record: demoLabAnalyticsRecord,
+      viewMode: 'dossier',
+    })
+    const pdfPrefix = markup.slice(Math.max(0, markup.indexOf('导出 PDF') - 240), markup.indexOf('导出 PDF'))
+    const pngPrefix = markup.slice(Math.max(0, markup.indexOf('导出 PNG') - 240), markup.indexOf('导出 PNG'))
 
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PDF/)
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*导出 PNG/)
+    expect(markup).toContain('导出 PDF')
+    expect(markup).toContain('导出 PNG')
+    expect(pdfPrefix).not.toContain('disabled=""')
+    expect(pngPrefix).not.toContain('disabled=""')
   })
 
   it('does not show static demo patient content for arbitrary record ids before loading data', () => {
