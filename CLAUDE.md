@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The DeepSeek API provider integration is archived at `openspec/changes/archive/2026-05-02-integrate-deepseek-api/`.
 - The user-owned LLM provider settings work is archived at `openspec/changes/archive/2026-05-05-add-user-llm-provider-settings/`; current baseline behavior lives in `openspec/specs/llm-provider-settings/spec.md`, `openspec/specs/llm-adapter/spec.md`, and `openspec/specs/supabase-schema/spec.md`.
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
-- Lab analytics, P0 clinical analysis, secure sharing, restored TimelineTable, full-product Demo, and PWA foundation work are archived under `openspec/changes/archive/2026-05-16-*`; current behavior lives in `openspec/specs/`.
+- Lab analytics, P0 clinical analysis, secure sharing, restored TimelineTable, full-product Demo, PWA foundation, and Capacitor mobile shell work are archived under `openspec/changes/archive/2026-05-16-*`; current behavior lives in `openspec/specs/`.
 - Product context lives in `README.md`, `README.en.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
 - Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
 - Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
@@ -44,7 +44,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `CODE_OF_CONDUCT.md`
   - project collaboration standards and conduct-reporting boundary for a privacy-sensitive medical workflow
 - `package.json`
-  - npm script map for Vite dev/build, lint, app/node type-check, Cloudflare Pages Functions type-check, Supabase Edge Functions type-check, and Vitest
+  - npm script map for Vite dev/build, lint, app/node type-check, Cloudflare Pages Functions type-check, Supabase Edge Functions type-check, Vitest, and Capacitor mobile sync/open commands
+- `capacitor.config.ts`
+  - Capacitor 8 iOS/Android shell config using app id `com.ghibli1024.fireflyisle`, app name `一页萤屿`, and `dist` as the only web build source
 - `README.en.md`
   - English project entrypoint mirroring the centered Chinese README surface for GitHub visitors
 - `tsconfig.*.json`
@@ -58,6 +60,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `prd-implementation-status.md` — current PRD implementation status, preserving the implemented / partial / not implemented feature audit
   - `product-priority-roadmap.md` — current product priority roadmap, separating completed OpenSpec milestones, archived P0/Demo baseline behavior, and next work such as WeChat auth
   - `archive/` — archived product snapshots: `prd.md`, `spec.md`, `design-system.md`, `stitch-screen-mapping.md`, and `product-goals-2026-05-05.md`; archived `design-system.md` is historical and must not override `DESIGN.md`, and archived goals are not the current execution queue
+- `docs/operations/`
+  - `capacitor-mobile-shell.md` — local Capacitor build/sync/open runbook, native project checks, platform-sensitive product-flow matrix, and signing-secret boundary
 - `docs/log/`
   - `index.md` — commit history 总入口
   - `0001-*.md ~ 0022-*.md` — 每个 git commit 一份历史日志
@@ -79,6 +83,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - archived Demo artifacts for public `/demo` full-product showcase routes, page reminders, optional Supabase share-code Demo data, static AI/share previews, and real-workspace blank-state separation
 - `openspec/changes/archive/2026-05-16-add-cross-platform-pwa-foundation/`
   - archived PWA foundation artifacts for Web App Manifest, install icons, privacy-first service worker caching, offline/weak-network boundaries, mobile safe-area/touch behavior, SPA deep-link fallback, and platform validation expectations
+- `openspec/changes/archive/2026-05-16-add-capacitor-mobile-shell/`
+  - archived Capacitor mobile shell artifacts for the iOS/Android wrapper, fixed app id/name, native platform projects, mobile sync/open scripts, signing-secret boundary, and local native tooling checks
 - `openspec/changes/archive/2026-05-03-add-background-music-toggle/`
   - archived global background music toggle artifacts defining the app-level controller, shared UI entrypoint and autoplay boundary
 - `openspec/changes/archive/2026-05-03-add-local-background-playlist/`
@@ -102,6 +108,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `workflows/*.yml` — GitHub Actions workflows for verification and explicit Cloudflare Pages deploy
 - `public/`
   - static assets plus Cloudflare Pages `_headers` / `_redirects` deployment config
+- `ios/`
+  - Capacitor-generated iOS shell project; loads the existing Vite build and keeps Apple signing artifacts out of Git
+- `android/`
+  - Capacitor-generated Android shell project; loads the existing Vite build and keeps keystores/local Gradle artifacts out of Git
 - `wrangler.jsonc`
   - Cloudflare Pages build config; public Vite vars include Supabase URL/anon key/Edge Function URL, optional public Demo share code, and a retained non-secret `custom:wechat` provider identifier for future WeChat work; server-side vars/bindings expose the WeChat OAuth adapter client id, callback URL, public base URL and short-lived KV namespace
 - `functions/`
@@ -118,6 +128,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend:** Vite + React 18 + TypeScript SPA
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Backend/BaaS:** Supabase Auth + PostgreSQL + RLS + Edge Functions
+- **Mobile shell:** Capacitor 8 iOS/Android wrapper around the same `dist` Web build; no separate native product UI or local patient-record truth source
 - **Edge adapter:** Cloudflare Pages Functions host WeChat OAuth2 adapter prework for future Supabase custom provider compatibility; current login UI keeps WeChat deferred
 - **AI boundary:** frontend calls a Supabase Edge Function proxy; system provider keys stay server-side, and user-owned provider keys are saved only through encrypted `llm_provider_settings` rows
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → AI auxiliary analysis / read-only sharing / PDF/PNG export

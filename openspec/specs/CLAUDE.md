@@ -7,6 +7,7 @@ asset-storage/spec.md: Supabase Storage 基础设施、用户隔离与 MVP 上�
 auth/spec.md: 邮箱登录、密码重置、Google OAuth、匿名模式、隐私条款门控与 session 持久化的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio/spec.md: 应用级背景音乐控制器、播放偏好、自动播放拦截与路由切换稳定性的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 background-audio-playlist/spec.md: 本地授权背景歌单、曲目选择持久化、切歌与资源边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+capacitor-mobile-shell/spec.md: Capacitor iOS/Android 本地壳、dist Web build 包装、原生平台工程、隐私边界、平台验证矩阵与商店发布延后语义的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 clinical-ai-analysis/spec.md: /record/:id 非诊断 AI 辅助分析、结构化输出、失败态与免责声明的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 commit-history/spec.md: docs/log 提交日志粒度、证据来源与置信度标注的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 conversational-record-editing/spec.md: 已有病历自然语言编辑、字段级 merge 与失败重试边界的 baseline spec，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

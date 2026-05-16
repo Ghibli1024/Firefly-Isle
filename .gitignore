@@ -10,3 +10,14 @@ output/
 .env.*.local
 .dev.vars
 supabase/.temp/
+
+# Native signing secrets and local build state
+*.cer
+*.jks
+*.keystore
+*.mobileprovision
+*.p12
+*.provisionprofile
+*.xcarchive
+android/local.properties
+ios/DerivedData/
