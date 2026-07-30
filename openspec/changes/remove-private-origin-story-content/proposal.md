@@ -5,14 +5,14 @@
 ## What Changes
 
 - **BREAKING**：移除旧的非公开纸页正文及其静态预览资源，不保留可公开访问的副本。
-- 将顶栏“创作初衷”纸页改为对指定公开 YouTube 社区帖的简要整理，而不是原文转载。
+- 将顶栏“创作初衷”纸页改为对指定公开 YouTube 社区帖的忠实段落整理，不引入任何非公开内容。
 - 在 WebGL、无 WebGL 降级与辅助技术文本中提供同一个可点击的原帖链接。
 - 重写可控 Git refs，去除承载旧内容的历史路径与对象；刷新原生壳中由 Web 构建生成的静态资源。
 
 ## Capabilities
 
 ### New Capabilities
-- `origin-story-content`: 定义创作初衷纸页仅展示公开摘要、来源归属和安全外链的内容合同。
+- `origin-story-content`: 定义创作初衷纸页展示指定公开故事、来源归属和安全外链的内容合同。
 
 ### Modified Capabilities
 - None.
