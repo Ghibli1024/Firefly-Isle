@@ -105,7 +105,7 @@ function safeTracks(tracks: BackgroundAudioTrack[]) {
 
 export function readBackgroundAudioPreference(storage: StorageLike | null = readBrowserStorage()): BackgroundAudioPreference {
   const storedPreference = storage?.getItem(BACKGROUND_AUDIO_STORAGE_KEY)
-  return storedPreference === 'paused' || storedPreference === 'off' ? 'paused' : 'playing'
+  return storedPreference === 'playing' || storedPreference === 'on' ? 'playing' : 'paused'
 }
 
 export function readBackgroundAudioTrackId(

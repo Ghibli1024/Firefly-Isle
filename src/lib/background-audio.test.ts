@@ -63,7 +63,7 @@ function createAudio(playImpl: () => Promise<void> = () => Promise.resolve()) {
 }
 
 describe('background audio controller', () => {
-  it('uses a local public asset path and defaults to enabled playback intent', () => {
+  it('uses a local public asset path and defaults to paused playback intent', () => {
     const storage = new MemoryStorage()
 
     expect(BACKGROUND_AUDIO_TRACKS).toHaveLength(2)
@@ -72,12 +72,36 @@ describe('background audio controller', () => {
       'merry-christmas-mr-lawrence',
     ])
     expect(BACKGROUND_AUDIO_SRC).toBe('/audio/tracks/nagisa-sakano-shitano-wakare.mp3')
-    expect(readBackgroundAudioPreference(storage)).toBe('playing')
+    expect(readBackgroundAudioPreference(storage)).toBe('paused')
     expect(readBackgroundAudioTrackId(storage)).toBe('nagisa-sakano-shitano-wakare')
+  })
+
+  it('keeps explicit and legacy playback preferences readable', () => {
+    const storage = new MemoryStorage()
+
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
+    expect(readBackgroundAudioPreference(storage)).toBe('playing')
+
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'on')
+    expect(readBackgroundAudioPreference(storage)).toBe('playing')
+
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'unexpected')
+    expect(readBackgroundAudioPreference(storage)).toBe('paused')
+  })
+
+  it('starts a new visit paused without requesting playback', () => {
+    const storage = new MemoryStorage()
+    const audio = createAudio()
+    const controller = createBackgroundAudioController({ audio, storage })
+
+    expect(controller.getSnapshot().preference).toBe('paused')
+    expect(controller.getSnapshot().status).toBe('paused')
+    expect(audio.play).not.toHaveBeenCalled()
   })
 
   it('records successful playback after the app requests background music', async () => {
     const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
 
@@ -100,10 +124,11 @@ describe('background audio controller', () => {
     await controller.selectTrack('merry-christmas-mr-lawrence')
 
     expect(audio.src).toContain('/audio/tracks/merry-christmas-mr-lawrence.mp3')
-    expect(audio.play).toHaveBeenCalledTimes(1)
+    expect(audio.play).not.toHaveBeenCalled()
     expect(storage.getItem(BACKGROUND_AUDIO_TRACK_STORAGE_KEY)).toBe('merry-christmas-mr-lawrence')
     expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBeNull()
     expect(controller.getSnapshot().currentTrackId).toBe('merry-christmas-mr-lawrence')
+    expect(controller.getSnapshot().preference).toBe('paused')
   })
 
   it('falls back to the first track when stored track id is no longer valid', () => {
@@ -134,6 +159,7 @@ describe('background audio controller', () => {
 
   it('advances to the next track when the current song ends', async () => {
     const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
 
@@ -147,6 +173,7 @@ describe('background audio controller', () => {
 
   it('lets track switching recover from an unavailable current source', async () => {
     const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
     const audio = createAudio()
     const controller = createBackgroundAudioController({ audio, storage })
 
@@ -160,13 +187,14 @@ describe('background audio controller', () => {
 
   it('treats browser autoplay rejection as a recoverable blocked state', async () => {
     const storage = new MemoryStorage()
+    storage.setItem(BACKGROUND_AUDIO_STORAGE_KEY, 'playing')
     const audio = createAudio(() => Promise.reject(new DOMException('gesture required', 'NotAllowedError')))
     const controller = createBackgroundAudioController({ audio, storage })
 
     await controller.requestPlayback()
 
     expect(controller.getSnapshot().status).toBe('blocked')
-    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBeNull()
+    expect(storage.getItem(BACKGROUND_AUDIO_STORAGE_KEY)).toBe('playing')
   })
 
   it('persists paused preference and skips the next automatic playback request', async () => {
