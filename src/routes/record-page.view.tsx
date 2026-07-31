@@ -1,10 +1,10 @@
 /**
  * [INPUT]: 依赖 react 的 RefObject，依赖 @/components/record 的 dossier/AI 分析/分享展示、demo-record 的默认病例、record-copy 的 labels、@/components/timeline 的 TimelineTable/TreatmentGanttView、PatientRecord 字段编辑目标、./record-page.logic 的 RecordLoadState 与 transitions-dev.css 的 tab/record view 动效合同。
- * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode、RecordExportState 与 RecordSaveState，并统一档案/极简表格/Gantt 切换动效锚点、页面级编辑入口、真实分享入口、Demo 分享预览、AI 分析入口和字段保存状态展示。
- * [POS]: routes 的档案详情内容组合层，隔离 dossier/table/gantt 视图切换、分享面板、AI 分析面板、右侧编辑工具条、字段提交入口与 crossfade 入场，让 record-page.tsx 保持路由、副作用和 Supabase 持久化编排。
+ * [OUTPUT]: 对外提供 RecordPageContent、RecordViewMode、RecordExportState 与 RecordSaveState，并统一档案/极简表格/Gantt 文字标签切换、轻量编辑入口、次级分享 disclosure、AI 分析入口和字段保存状态展示。
+ * [POS]: routes 的档案详情内容组合层，隔离 dossier/table/gantt 视图切换、分享面板、AI 分析面板、轻量编辑工具条、字段提交入口与 crossfade 入场，让 record-page.tsx 保持路由、副作用和 Supabase 持久化编排。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { CSSProperties, RefObject } from 'react'
+import type { RefObject } from 'react'
 
 import type { ClinicalAnalysisPanelState } from '@/components/record/ClinicalAnalysisPanel'
 import { demoTreatmentGanttSupplementNotes } from '@/components/record/demo-record'
@@ -92,9 +92,8 @@ function RecordEditToolbar({
   onChartEditingChange: (isEditing: boolean) => void
   saveState: RecordSaveState
 }) {
-  const activeLabel = locale === 'zh' ? '关闭编辑' : 'Turn off editing'
-  const inactiveLabel = locale === 'zh' ? '开启编辑' : 'Turn on editing'
-  const inactiveText = locale === 'zh' ? '编辑' : 'Edit'
+  const activeLabel = locale === 'zh' ? '完成编辑' : 'Finish editing'
+  const inactiveLabel = locale === 'zh' ? '编辑病历' : 'Edit record'
   const statusText = {
     error: saveState.error ?? (locale === 'zh' ? '保存失败' : 'Save failed'),
     idle: '',
@@ -113,16 +112,15 @@ function RecordEditToolbar({
         aria-label={isChartEditing ? activeLabel : inactiveLabel}
         aria-pressed={isChartEditing}
         className={[
-          'inline-flex h-8 items-center gap-1.5 rounded-[var(--ff-radius-sm)] border px-2.5 text-xs font-bold',
+          't-control-press border-b pb-0.5 text-sm font-semibold',
           isChartEditing
-            ? 'border-[var(--ff-accent-primary)] bg-[color-mix(in_srgb,var(--ff-accent-primary)_14%,transparent)] text-[var(--ff-accent-primary)]'
-            : 'border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] text-[var(--ff-text-secondary)]',
+            ? 'border-[var(--ff-accent-primary)] text-[var(--ff-accent-primary)]'
+            : 'border-[var(--ff-border-default)] text-[var(--ff-text-secondary)] hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-text-primary)]',
         ].join(' ')}
         onClick={() => onChartEditingChange(!isChartEditing)}
         type="button"
       >
-        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{isChartEditing ? 'done' : 'edit'}</span>
-        {isChartEditing ? (locale === 'zh' ? '完成编辑' : 'Done') : inactiveText}
+        {isChartEditing ? activeLabel : inactiveLabel}
       </button>
     </div>
   )
@@ -139,33 +137,31 @@ function RecordViewSwitch({
 }) {
   const text = switchCopy[locale]
   const modes: RecordViewMode[] = ['dossier', 'table', 'gantt']
-  const activeIndex = modes.indexOf(viewMode)
-  const sliderStyle = {
-    '--tab-switch-count': modes.length,
-    '--tab-switch-index': activeIndex,
-  } as CSSProperties
 
   return (
     <div
       aria-label={locale === 'zh' ? '病历详情视图切换' : 'Record detail view switch'}
-      className="t-tab-switch t-tab-switch-slider inline-flex rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-1"
+      className="t-tab-switch flex w-full border-b border-[var(--ff-border-default)] sm:w-auto"
       data-active-page={viewMode}
       data-testid="record-view-switch"
-      style={sliderStyle}
+      role="tablist"
     >
-      <span aria-hidden="true" className="t-tab-switch-thumb" />
       {modes.map((mode) => {
         const active = viewMode === mode
 
         return (
           <button
-            aria-pressed={active}
+            aria-selected={active}
             className={[
-              'relative z-[1] h-10 rounded-[var(--ff-radius-md)] px-4 text-sm font-semibold tracking-normal',
-              active ? 'text-white' : 'text-[var(--ff-text-secondary)]',
+              't-control-press -mb-px border-b-2 px-3 py-2.5 text-sm font-semibold tracking-normal first:pl-0',
+              active
+                ? 'border-[var(--ff-accent-primary)] text-[var(--ff-text-primary)]'
+                : 'border-transparent text-[var(--ff-text-muted)] hover:text-[var(--ff-text-secondary)]',
             ].join(' ')}
             key={mode}
             onClick={() => onViewModeChange(mode)}
+            role="tab"
+            tabIndex={active ? 0 : -1}
             type="button"
           >
             {text[mode]}
@@ -211,7 +207,7 @@ export function RecordPageContent({
     />
   ) : null
   const controlsNode = ganttRecord ? (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       {switchNode}
       {toolbarNode}
     </div>
@@ -257,6 +253,7 @@ export function RecordPageContent({
         {controlsNode}
         {shareState && onCreateShare && onCopyShareUrl && onRevokeShare ? (
           <RecordSharePanel
+            defaultOpen={!demoRoute}
             locale={locale}
             onCopyCreatedUrl={onCopyShareUrl}
             onCreateShare={onCreateShare}
@@ -292,6 +289,7 @@ export function RecordPageContent({
         {controlsNode}
         {shareState && onCreateShare && onCopyShareUrl && onRevokeShare ? (
           <RecordSharePanel
+            defaultOpen={!demoRoute}
             locale={locale}
             onCopyCreatedUrl={onCopyShareUrl}
             onCreateShare={onCreateShare}

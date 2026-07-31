@@ -137,7 +137,7 @@ export function SharedRecordPage() {
     <div className={dark ? 'min-h-screen bg-[var(--ff-surface-base)] text-[var(--ff-text-primary)]' : 'ff-light-record-bg min-h-screen text-[var(--ff-text-primary)]'}>
       <ClinicalTopBar theme={theme} title={locale === 'zh' ? '只读分享' : 'Read-only Share'} />
       <MainShell className={`${topBarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
-        <div className={`${shellWideContentClass} t-route-reveal t-stagger mt-5 md:mt-6`}>
+        <div className={`${shellWideContentClass} t-route-reveal mt-5 md:mt-6`}>
           {visibleRecord ? (
             <RecordDossier
               clinicalAnalysisState={{ error: null, isLoading: false, result: null }}

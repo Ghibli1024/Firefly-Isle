@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/lib/locale 的 Locale 类型、demo-record 的默认病例、record-derived 的多段检查证据摘要、record-line-labels 的中文线别、record-timeline-time 的 rail 时间段/PFS facade、PatientFieldTarget 与 components/record/types 的展示类型。
- * [OUTPUT]: 对外提供 record labels、含癌种/体格指标占位/多段检查证据的 demo summaryMetrics 与带字段保存 target 的 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一演示时间线文案。
+ * [OUTPUT]: 对外提供无装饰性认证状态的 record labels、含癌种/体格指标占位/多段检查证据的 demo summaryMetrics 与带字段保存 target 的 BL/Ln 标记/补充资料/逐线 rail 时间段/每线 PFS 归一演示时间线文案。
  * [POS]: components/record 的静态文案模块，被 RecordDossier 和路由错误态复用；默认病例原始数据留在 demo-record，本文只做文案、字段 target 与 timeline 组装，并复用真实记录的检查证据聚合规则。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,43 +16,33 @@ import type { EvidenceItem, Metric, TimelineEntry } from './types'
 export const labels = {
   en: {
     access: 'Protected medical record / Authorized access only',
-    aiStatus: 'AI Verification',
-    archiveComplete: 'Archive complete · unchanged',
     back: 'Back to workspace',
     clinicalNotes: 'Clinical Notes',
-    completeness: 'Data Completeness',
     exportError: 'Export failed. Please try again later.',
     exportPdf: 'Export PDF',
     exportPdfLoading: 'Exporting PDF...',
     exportPng: 'Export PNG',
     exportPngLoading: 'Exporting PNG...',
-    footer: 'Firefly Core System V3.1',
     loadingRecord: 'Loading medical record...',
     loadRecordError: 'Unable to load this medical record.',
     missingRecord: 'No authorized medical record was found for this ID.',
     pageTitle: 'Clinical History Dossier',
     timeline: 'Treatment Timeline',
-    verified: 'AI VERIFIED',
   },
   zh: {
     access: '受控医疗记录 / 仅限授权访问',
-    aiStatus: 'AI 验证状态',
-    archiveComplete: '档案完整 · 未篡改',
     back: '返回工作台',
     clinicalNotes: '临床备注',
-    completeness: '数据完整性',
     exportError: '导出失败，请稍后重试。',
     exportPdf: '导出 PDF',
     exportPdfLoading: '导出 PDF 中...',
     exportPng: '导出 PNG',
     exportPngLoading: '导出 PNG 中...',
-    footer: '萤岛核心系统 V3.1',
     loadingRecord: '正在载入病历...',
     loadRecordError: '无法载入这份病历。',
     missingRecord: '没有找到当前账号可访问的病历。',
     pageTitle: '临床病史档案',
     timeline: '治疗时间线',
-    verified: 'AI VERIFIED',
   },
 } satisfies Record<Locale, Record<string, string>>
 

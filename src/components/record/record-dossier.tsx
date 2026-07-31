@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 CSSProperties/RefObject/useRef、react-router-dom 的 Link、PatientRecord、ClinicalAnalysisPanel、LabTrendsTable、record-copy、record-derived、record 展示类型与 transitions-dev.css 的 stagger/control/timeline rail 动效合同。
- * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，渲染带顺序进入、多行概要证据、AI 辅助分析、无重复卡片标题的桌面独立不换行时间段/PFS rail、移动卡内 PFS、页面级字段保存编辑和时间线 rail draw-in 的档案视图。
- * [POS]: components/record 的主展示层，承载宽幅病历档案、概要指标、多段检查证据、AI 分析面板、按需实验室趋势、左侧时间段 rail、移动卡内 PFS、无重复标题时间线、证据卡、临床备注、导出按钮、可编辑展示值与不可用态，不再在标题旁渲染线别小字或重复已表达信息。
+ * [OUTPUT]: 对外提供 RecordDossier 与 RecordUnavailableDossier 两个病例详情展示组件，以平面文档层级渲染概要证据、实验室趋势、AI 辅助分析、治疗时间线、临床备注、导出和编辑能力。
+ * [POS]: components/record 的主阅读层，承载宽幅病历正文、definition-grid 概要、左侧时间段 rail、移动卡内 PFS、必要警示与交互边界；不再用装饰性卡片、系统认证或固定更新时间制造层级。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useRef, type CSSProperties, type RefObject } from 'react'
@@ -107,18 +107,18 @@ function SummaryGrid({
 }) {
   return (
     <div
-      className="t-stagger grid overflow-hidden rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] sm:grid-cols-2 lg:grid-cols-3"
+      className="t-stagger grid border-t border-[var(--ff-border-default)] sm:grid-cols-2 lg:grid-cols-3"
       style={{ '--t-order': 1 } as CSSProperties}
     >
       {metrics.map((metric) => {
         const hasEvidenceLines = metric.value.includes('\n')
         const valueClass = hasEvidenceLines
           ? 'whitespace-pre-line text-base font-semibold leading-7 tracking-normal text-[var(--ff-text-primary)]'
-          : 'text-2xl font-semibold tracking-normal'
+          : 'text-xl font-semibold tracking-normal'
 
         return (
           <div
-            className="-mb-px -mr-px min-h-[100px] border-b border-r border-[var(--ff-border-default)] p-6"
+            className="min-h-[96px] border-b border-[var(--ff-border-muted)] py-5 pr-5 sm:even:pl-5"
             key={metric.label}
           >
             <div className="text-sm text-[var(--ff-text-muted)]">{metric.label}</div>
@@ -145,7 +145,7 @@ function EvidenceCardView({
 }) {
   return (
     <article
-      className="t-stagger rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5"
+      className="t-stagger border-t border-[var(--ff-border-muted)] pt-4"
       style={{ '--t-order': order } as CSSProperties}
     >
       <h4 className="mb-4 font-bold text-[var(--ff-accent-primary)]">{card.title}</h4>
@@ -192,7 +192,7 @@ function TimelineNode({
   return (
     <article
       className={[
-        't-stagger relative grid gap-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 sm:p-6 2xl:p-8',
+        't-stagger relative grid gap-7 border-b border-[var(--ff-border-default)] py-8',
         hasCards
           ? 'lg:grid-cols-[minmax(0,1fr)_minmax(260px,32%)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]'
           : '',
@@ -201,7 +201,7 @@ function TimelineNode({
     >
       <div>
         <div className="mb-5 flex flex-wrap items-end gap-4">
-          <EditableTextValue ariaLabel={`编辑${entry.index}编号`} className="font-[var(--ff-font-mono)] text-5xl font-bold text-[var(--ff-accent-primary)]" isEditable={false}>{entry.index}</EditableTextValue>
+          <EditableTextValue ariaLabel={`编辑${entry.index}编号`} className="font-[var(--ff-font-mono)] text-3xl font-semibold text-[var(--ff-accent-primary)]" isEditable={false}>{entry.index}</EditableTextValue>
           <div className={detailColumnClass}>
             <div className="flex flex-wrap items-center gap-3">
               {entry.badge ? (
@@ -269,7 +269,7 @@ function TimelineNode({
         ) : null}
 
         {entry.footMetrics ? (
-          <div className="mt-6 grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] sm:grid-cols-2">
+          <div className="mt-6 grid border-y border-[var(--ff-border-default)] sm:grid-cols-2">
             {entry.footMetrics.map((metric, index) => (
               <div className={index === 0 ? 'border-b border-[var(--ff-border-default)] p-5 sm:border-b-0 sm:border-r' : 'p-5'} key={metric.label}>
                 <div className="text-sm text-[var(--ff-text-muted)]">{metric.label}</div>
@@ -283,7 +283,7 @@ function TimelineNode({
       </div>
 
       {hasCards ? (
-        <div className="space-y-4 border-[var(--ff-border-default)] md:border-l md:pl-6">
+        <div className="space-y-6 border-[var(--ff-border-default)] md:border-l md:pl-7">
           {entry.cards.map((card, cardIndex) => (
             <EvidenceCardView card={card} isEditable={isEditable} key={card.title} onCommitField={onCommitField} order={order + cardIndex + 1} />
           ))}
@@ -362,53 +362,54 @@ export function RecordDossier({
   const clinicalNotes =
     record?.clinicalNotes ??
     (locale === 'zh'
-      ? '此档案由临床 AI 自动整理并结构化，所有数据点均经过病理报告与影像诊断交叉验证。'
-      : 'This dossier is automatically structured by clinical AI and cross-checked against pathology and imaging reports.')
+      ? '病历按诊断与治疗阶段整理。请结合原始报告和临床记录复核重要信息。'
+      : 'The record is organized by diagnosis and treatment stage. Review important details against the original reports and clinical notes.')
+  const patientSummary = [
+    record?.basicInfo?.name,
+    record?.basicInfo?.tumorType,
+    record?.basicInfo?.stage,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' · ')
 
   return (
-    <div
-      className="w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] md:p-8 2xl:p-10"
-      ref={recordRef}
-    >
-      <header className="mb-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
+    <div className="mx-auto w-full max-w-[1180px] pb-8" ref={recordRef}>
+      <header className="mb-8 border-b border-[var(--ff-border-default)] pb-7">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <p className="mb-3 text-sm text-[var(--ff-text-muted)]">{text.access}</p>
+            <h1 className="text-3xl font-semibold leading-tight tracking-normal md:text-4xl">{text.pageTitle}</h1>
+            {patientSummary ? (
+              <p className="mt-3 text-base leading-7 text-[var(--ff-text-secondary)]">{patientSummary}</p>
+            ) : null}
           </div>
-          <div className="text-left md:text-right">
-            <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
-              <span className="material-symbols-outlined text-base">lock</span>
-              {text.access}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
+          <div className="shrink-0">
+            <div className="flex flex-wrap gap-2 md:justify-end">
               <button
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-9 items-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isExportDisabled || isExporting}
                 onClick={() => onExport('pdf')}
                 type="button"
               >
-                <span className="material-symbols-outlined text-xl">description</span>
                 {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
               </button>
               <button
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-9 items-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isExportDisabled || isExporting}
                 onClick={() => onExport('png')}
                 type="button"
               >
-                <span className="material-symbols-outlined text-xl">image</span>
                 {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
               </button>
               <Link
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
+                className="t-control-press inline-flex h-9 items-center border-b border-[var(--ff-border-default)] px-1 text-sm font-semibold text-[var(--ff-text-secondary)] hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-text-primary)]"
                 to="/app"
               >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
                 {text.back}
               </Link>
             </div>
             {exportError ? (
-              <div className="mt-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
+              <div className="mt-3 border-l-2 border-[var(--ff-accent-primary)] py-1 pl-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
                 {exportError}
               </div>
             ) : null}
@@ -431,13 +432,10 @@ export function RecordDossier({
         state={clinicalAnalysisState}
       />
 
-      <section className="mt-8">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="h-8 w-[3px] bg-[var(--ff-accent-primary)]" />
-          <h2 className="text-2xl font-bold">{text.timeline}</h2>
-        </div>
+      <section className="mt-10 border-t border-[var(--ff-border-default)] pt-7">
+        <h2 className="mb-6 text-2xl font-semibold">{text.timeline}</h2>
 
-        <div className="relative space-y-4">
+        <div className="relative">
           <div className="t-timeline-rail absolute bottom-0 left-7 top-0 hidden w-px bg-[var(--ff-border-default)] md:block" />
           {entries.map((entry, index) => (
             <div
@@ -451,62 +449,19 @@ export function RecordDossier({
         </div>
       </section>
 
-      <section className="mt-6 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="font-bold">{text.clinicalNotes}</h3>
-            <p className="mt-2 text-sm leading-7 text-[var(--ff-text-secondary)]">
-              <EditableTextValue
-                ariaLabel={locale === 'zh' ? '编辑临床备注' : 'Edit clinical notes'}
-                isEditable={isEditable}
-                onCommitField={onCommitField}
-                target={record ? { field: 'clinicalNotes', section: 'record' } : undefined}
-              >
-                {clinicalNotes}
-              </EditableTextValue>
-            </p>
-          </div>
-          <div className="flex items-center gap-4 font-[var(--ff-font-mono)] text-sm text-[var(--ff-text-muted)]">
-            2024-05-20 12:08:00
-            <button className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)]" type="button">
-              <span className="material-symbols-outlined text-xl">edit</span>
-            </button>
-          </div>
-        </div>
+      <section className="mt-10 border-t border-[var(--ff-border-default)] pt-7">
+        <h3 className="font-semibold">{text.clinicalNotes}</h3>
+        <p className="mt-3 max-w-4xl text-sm leading-7 text-[var(--ff-text-secondary)]">
+          <EditableTextValue
+            ariaLabel={locale === 'zh' ? '编辑临床备注' : 'Edit clinical notes'}
+            isEditable={isEditable}
+            onCommitField={onCommitField}
+            target={record ? { field: 'clinicalNotes', section: 'record' } : undefined}
+          >
+            {clinicalNotes}
+          </EditableTextValue>
+        </p>
       </section>
-
-      <section className="mt-5 grid rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] md:grid-cols-3">
-        <div className="flex items-center gap-4 border-[var(--ff-border-default)] p-6 md:border-r">
-          <span className="material-symbols-outlined text-[40px]">health_and_safety</span>
-          <div>
-            <h3 className="font-bold">{text.aiStatus}</h3>
-            <p className="mt-1 text-sm text-[var(--ff-accent-success)]">{text.verified}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 border-[var(--ff-border-default)] p-6 md:border-r">
-          <span className="material-symbols-outlined text-[40px]">database</span>
-          <div>
-            <h3 className="font-bold">{text.completeness}</h3>
-            <p className="mt-1 text-sm text-[var(--ff-accent-success)]">
-              {locale === 'zh' ? '所有必填字段已完整捕获' : 'All required fields captured'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 p-6">
-          <span className="material-symbols-outlined text-[40px] text-[var(--ff-accent-primary)]">verified</span>
-          <div>
-            <h3 className="text-2xl font-bold">
-              <span className="text-[var(--ff-accent-primary)]">AI</span> VERIFIED
-            </h3>
-            <p className="mt-1 text-sm text-[var(--ff-text-secondary)]">{text.archiveComplete}</p>
-          </div>
-        </div>
-      </section>
-
-      <footer className="mt-6 flex flex-col gap-2 border-t border-[var(--ff-border-default)] pt-5 font-[var(--ff-font-mono)] text-xs text-[var(--ff-text-muted)] md:flex-row md:justify-between">
-        <span>{text.footer}</span>
-        <span>LAST_UPDATE: 2024.05.20 12:08:00</span>
-      </footer>
     </div>
   )
 }
@@ -529,49 +484,43 @@ export function RecordUnavailableDossier({
   const text = labels[locale]
 
   return (
-    <div className="w-full rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5 md:p-8 2xl:p-10">
-      <header className="mb-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+    <div className="mx-auto w-full max-w-[1180px] pb-8">
+      <header className="mb-8 border-b border-[var(--ff-border-default)] pb-7">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-5xl font-bold leading-tight tracking-normal md:text-5xl xl:text-6xl">{text.pageTitle}</h1>
-            <p className="mt-5 font-[var(--ff-font-mono)] text-xl tracking-[0.08em] text-[var(--ff-text-secondary)]">
+            <p className="mb-3 text-sm text-[var(--ff-text-muted)]">{text.access}</p>
+            <h1 className="text-3xl font-semibold leading-tight tracking-normal md:text-4xl">{text.pageTitle}</h1>
+            <p className="mt-3 text-base text-[var(--ff-text-secondary)]">
               {locale === 'zh' ? '真实病历载入中' : 'Loading saved medical record'}
             </p>
           </div>
-          <div className="text-left md:text-right">
-            <div className="mt-4 flex items-center gap-2 text-sm text-[var(--ff-text-secondary)] md:justify-end">
-              <span className="material-symbols-outlined text-base">lock</span>
-              {text.access}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3 md:justify-end">
+          <div className="shrink-0">
+            <div className="flex flex-wrap gap-2 md:justify-end">
               <button
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-9 items-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled
                 onClick={() => onExport('pdf')}
                 type="button"
               >
-                <span className="material-symbols-outlined text-xl">description</span>
                 {isExporting && exportFormat === 'pdf' ? text.exportPdfLoading : text.exportPdf}
               </button>
               <button
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="t-control-press inline-flex h-9 items-center rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-default)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled
                 onClick={() => onExport('png')}
                 type="button"
               >
-                <span className="material-symbols-outlined text-xl">image</span>
                 {isExporting && exportFormat === 'png' ? text.exportPngLoading : text.exportPng}
               </button>
               <Link
-                className="t-control-press inline-flex h-12 items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 text-sm font-semibold"
+                className="t-control-press inline-flex h-9 items-center border-b border-[var(--ff-border-default)] px-1 text-sm font-semibold text-[var(--ff-text-secondary)]"
                 to="/app"
               >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
                 {text.back}
               </Link>
             </div>
             {exportError ? (
-              <div className="mt-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-accent-primary)] bg-[var(--ff-surface-warning)] px-4 py-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
+              <div className="mt-3 border-l-2 border-[var(--ff-accent-primary)] py-1 pl-3 text-sm font-semibold text-[var(--ff-accent-primary)]">
                 {exportError}
               </div>
             ) : null}
@@ -579,7 +528,7 @@ export function RecordUnavailableDossier({
         </div>
       </header>
 
-      <div className="rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-5 py-8 text-base font-semibold text-[var(--ff-text-secondary)]">
+      <div className="border-l-2 border-[var(--ff-border-default)] py-2 pl-4 text-base font-semibold text-[var(--ff-text-secondary)]">
         {message}
       </div>
     </div>

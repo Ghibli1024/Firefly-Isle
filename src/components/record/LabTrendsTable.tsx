@@ -76,14 +76,11 @@ export function LabTrendsTable({ locale, record }: { locale: Locale; record: Pat
   const rows = buildLabTrendRows(record.labResults ?? [])
 
   return (
-    <section className="mt-8 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] p-5">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="h-8 w-[3px] bg-[var(--ff-accent-primary)]" />
-        <h2 className="text-2xl font-bold">{text.title}</h2>
-      </div>
+    <section className="mt-10 border-t border-[var(--ff-border-default)] pt-7">
+      <h2 className="mb-5 text-2xl font-semibold">{text.title}</h2>
 
       {rows.length === 0 ? (
-        <div className="rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-inset)] px-4 py-5 text-sm font-semibold text-[var(--ff-text-secondary)]">
+        <div className="border-l-2 border-[var(--ff-border-default)] py-1 pl-4 text-sm font-semibold text-[var(--ff-text-secondary)]">
           {text.empty}
         </div>
       ) : (
@@ -96,7 +93,7 @@ export function LabTrendsTable({ locale, record }: { locale: Locale; record: Pat
                 <th className="border-b border-[var(--ff-border-default)] px-4 py-3">{text.range}</th>
                 <th className="border-b border-[var(--ff-border-default)] px-4 py-3">{text.date}</th>
                 <th className="border-b border-[var(--ff-border-default)] px-4 py-3">{text.readingCount}</th>
-                <th className="border-b border-[var(--ff-border-default)] px-4 py-3">Status</th>
+                <th className="border-b border-[var(--ff-border-default)] px-4 py-3">{locale === 'zh' ? '状态' : 'Status'}</th>
               </tr>
             </thead>
             <tbody>

@@ -4,7 +4,7 @@
  * [POS]: routes 的指标管理统计 orchestration 层，负责按 Demo/真实路由 id 读取真实病历或可选 Supabase 公开 Demo 病历，并把 /analytics 收敛为只读指标展示；文件上传入口归 /app 输入区。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
@@ -139,7 +139,7 @@ export function LabAnalyticsPage({ isSigningOut, onSignOut, userIsAnonymous, use
         userLabel={userLabel ?? (demoRoute ? 'DEMO_MODE' : undefined)}
       />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-8 md:px-6 md:pb-10`} theme={theme}>
-        <div className={`${shellWideContentClass} t-route-reveal t-stagger mt-5 md:mt-6`} style={{ '--t-order': 0 } as CSSProperties}>
+        <div className={`${shellWideContentClass} t-route-reveal mt-5 md:mt-6`}>
           {demoRoute ? <DemoModeBanner /> : null}
           <LabAnalyticsDashboard
             isDemo={demoRoute}

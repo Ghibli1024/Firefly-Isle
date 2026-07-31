@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的单一顶栏弹层状态、hover 延迟关闭与复制反馈计时器，依赖 @/components/background-music-toggle 的共享背景音乐开关，依赖 @/components/system/origin-story/origin-story-paper 的创作初衷纸页，依赖 @/components/system/surfaces 的 TopBarShell，依赖 @/lib/theme/tokens 的可变侧栏边缘钉住、标题截断与高度合同。
  * [OUTPUT]: 对外提供 ClinicalTopBar 与 DarkTopBar 组件，并在邮件联系弹窗内提供公开联系邮箱点击复制。
- * [POS]: src/components/system 的共享顶部状态条，统一 dark/light 页面名、系统状态、背景音乐直接开关、创作初衷入口、邮件 hover 联系弹窗与邮箱复制反馈，并通过单一 overlay 状态避免弹层互相叠加。
+ * [POS]: src/components/system 的共享顶部工具条，统一 dark/light 页面名、背景音乐直接开关、创作初衷入口、邮件 hover 联系弹窗与邮箱复制反馈，并通过单一 overlay 状态避免弹层互相叠加。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useRef, useState } from 'react'
@@ -139,19 +139,15 @@ export function ClinicalTopBar({ theme, title, withRail = false }: ClinicalTopBa
       </div>
 
       <div className="relative flex shrink-0 items-center gap-1 sm:gap-3">
-        <div className="hidden items-center gap-3 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] px-4 py-2 font-[var(--ff-font-mono)] text-[11px] text-[var(--ff-text-primary)] md:flex">
-          <span className="h-2.5 w-2.5 rounded-[var(--ff-radius-full)] bg-[var(--ff-accent-success)]" />
-          <span>{locale === 'zh' ? '系统状态：就绪' : 'System Ready'}</span>
-        </div>
         <BackgroundMusicToggle
-          className="t-control-press h-10 w-10 rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
+          className="t-control-press h-10 w-10 rounded-[var(--ff-radius-sm)] border border-transparent bg-transparent text-[var(--ff-text-primary)] hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
           layout="compact"
         />
         <button
           aria-controls="origin-story-paper"
           aria-expanded={originStoryOpen}
           aria-label={locale === 'zh' ? '为什么做一页萤屿' : 'Why Firefly Isle'}
-          className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
+          className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-sm)] border border-transparent bg-transparent text-[var(--ff-text-primary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
           data-topbar-action="origin-story"
           onClick={() => setOpenOverlay((current) => (current === 'origin-story' ? null : 'origin-story'))}
           ref={originStoryButtonRef}
@@ -167,7 +163,7 @@ export function ClinicalTopBar({ theme, title, withRail = false }: ClinicalTopBa
             aria-controls={contactPanelId}
             aria-expanded={contactOpen}
             aria-label={contactLabel}
-            className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
+            className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-sm)] border border-transparent bg-transparent text-[var(--ff-text-primary)] transition-colors hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
             data-topbar-action="contact"
             onClick={openContact}
             onFocus={openContact}

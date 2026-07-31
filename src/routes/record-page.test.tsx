@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、./record-page、./record-page.view 与 ./record-page.logic。
- * [OUTPUT]: 对外提供病例详情页响应式版心、公开 Demo 完整产品预览、Demo 模式提醒、dossier/极简表格/Gantt 切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
+ * [OUTPUT]: 对外提供病例详情页平面阅读层、响应式版心、公开 Demo 完整产品预览、Demo 模式提醒、dossier/极简表格/Gantt 文字页签切换、当前病历编辑工具条、字段级保存状态、日期范围 patch、默认病例逐线档案、页头去重、癌种概要、人口学/体格指标/多段检查证据概要、BL/L 标记、时间线 rail 逐线时间段/每线 PFS、编号/标题/补充资料去重、全站动效与导出职责回归测试。
  * [POS]: routes 的病例详情测试文件，约束 /record/:id 与 /demo/record 使用 V3 宽幅 shell 合同而不是旧 980px 固定画布，承接背景音 topbar、Demo banner、TimelineTable/Gantt 备用视图、Demo AI/分享/指标预览、默认病例档案内容、字段级 Supabase 保存边界、页头/时间线不重复摘要、年龄/性别/身高/体重/BMI/基因与免疫组化证据、档案/表格/Gantt 动效、BL/L1/L2 标记与 PDF/PNG 导出入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -182,14 +182,21 @@ describe('RecordPage responsive dossier shell', () => {
     expect(markup).toContain('糖类抗原153')
     expect(markup).toContain('导出 PDF')
     expect(markup).toContain('导出 PNG')
+    expect(markup).toContain('<details')
+    expect(markup).not.toContain('<details open=')
+    expect(markup).not.toContain('AI VERIFIED')
+    expect(markup).not.toContain('数据完整性')
+    expect(markup).not.toContain('LAST_UPDATE')
+    expect(markup).not.toContain('2024-05-20 12:08:00')
+    expect(markup).not.toContain('系统状态：就绪')
     expect(markup).not.toContain('href="/analytics/demo"')
   })
 
   it('exposes a compact page-level editing toggle', () => {
     const markup = renderRecord('dark')
 
-    expect(markup).toContain('开启编辑')
-    expect(markup).toContain('编辑')
+    expect(markup).toContain('编辑病历')
+    expect(markup).toContain('aria-pressed="false"')
     expect(markup).not.toContain('当前病历：乳腺癌')
     expect(markup).not.toContain('当前病历：未命名病历')
     expect(markup).not.toContain('开启图表编辑')
@@ -200,8 +207,8 @@ describe('RecordPage responsive dossier shell', () => {
     const markup = renderRecord('dark')
 
     expect(markup).toContain('t-route-reveal')
-    expect(markup).toContain('t-stagger')
-    expect(markup).toContain('style="--t-order:0"')
+    expect(markup).not.toContain('t-route-reveal t-stagger')
+    expect(markup).not.toContain('t-stagger t-route-reveal')
   })
 
   it('uses a tab-switch contract for dossier, table and Gantt view changes', () => {
@@ -220,16 +227,22 @@ describe('RecordPage responsive dossier shell', () => {
     const transitionsSource = readTransitionsSource()
 
     expect(dossierMarkup).toContain('t-tab-switch')
-    expect(dossierMarkup).toContain('t-tab-switch-slider')
-    expect(dossierMarkup).toContain('t-tab-switch-thumb')
+    expect(dossierMarkup).toContain('role="tablist"')
+    expect(dossierMarkup).toContain('role="tab"')
+    expect(dossierMarkup).toContain('aria-selected="true"')
+    expect(dossierMarkup).toContain('aria-selected="false"')
+    expect(dossierMarkup).toContain('tabindex="0"')
+    expect(dossierMarkup).toContain('tabindex="-1"')
+    expect(dossierMarkup).not.toContain('aria-pressed="true"')
+    expect(dossierMarkup).toContain('border-b-2')
     expect(dossierMarkup).toContain('data-active-page="dossier"')
-    expect(dossierMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:0"')
     expect(tableMarkup).toContain('data-active-page="table"')
-    expect(tableMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:1"')
     expect(ganttMarkup).toContain('data-active-page="gantt"')
-    expect(ganttMarkup).toContain('style="--tab-switch-count:3;--tab-switch-index:2"')
-    expect(transitionsSource).toContain('.t-tab-switch-thumb')
-    expect(transitionsSource).toContain('transform: translateX(calc(var(--tab-switch-index) * 100%))')
+    expect(dossierMarkup).not.toContain('t-tab-switch-slider')
+    expect(dossierMarkup).not.toContain('t-tab-switch-thumb')
+    expect(dossierMarkup).not.toContain('--tab-switch-index')
+    expect(transitionsSource).not.toContain('.t-tab-switch-thumb')
+    expect(transitionsSource).not.toContain('@keyframes t-tab-switch-pop')
   })
 
   it('renders the minimal TimelineTable view for real record content without hijacking dossier export', () => {
@@ -318,7 +331,7 @@ describe('RecordPage responsive dossier shell', () => {
       </MemoryRouter>,
     )
 
-    expect(dossierMarkup).toContain('关闭编辑')
+    expect(dossierMarkup).toContain('完成编辑')
     expect(dossierMarkup).not.toContain('关闭图表编辑')
     expect(dossierMarkup).toContain('contenteditable="true"')
     expect(dossierMarkup).toContain('role="textbox"')
@@ -646,7 +659,7 @@ describe('RecordPage responsive dossier shell', () => {
 
     expect(markup).toContain('癌种')
     expect(markup).toContain('黑色素瘤')
-    expect(markup).not.toContain('黑色素瘤 · IV期')
+    expect(markup).toContain('黑色素瘤 · IV期')
   })
 
   it('renders persisted demographics and calculated BMI in the record summary metrics', () => {

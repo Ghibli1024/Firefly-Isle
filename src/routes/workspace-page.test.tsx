@@ -474,7 +474,7 @@ describe('WorkspacePage report shell', () => {
     const enMarkup = renderWorkspace('light')
 
     expect(enMarkup).not.toContain('Operational')
-    expect(enMarkup).toContain('System Ready')
+    expect(enMarkup).not.toContain('System Ready')
   })
 
   it('turns the topbar settings placeholder into a hover contact card with clickable email copy', () => {

@@ -4,7 +4,7 @@
  * [POS]: routes 的档案详情 orchestration 层，只负责 Demo/真实路由参数、Demo 数据源加载、加载状态、视图状态、分享状态、AI 分析状态、页面级图表编辑状态、字段保存状态、导出状态、动效挂载与壳层组合；展示和数据映射下沉到 record-page.view、components/record 与 record-page.logic。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { ArchiveSideNav, ClinicalTopBar } from '@/components/app-shell'
@@ -475,9 +475,8 @@ export function RecordPage({ isSigningOut, onSignOut, userId, userIsAnonymous, u
       />
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen px-4 pb-4 md:px-6 md:pb-6`} theme={theme}>
         <div
-          className={`${shellWideContentClass} t-route-reveal t-stagger mt-5 md:mt-6`}
+          className={`${shellWideContentClass} t-route-reveal mt-5 md:mt-6`}
           data-testid="record-responsive-canvas"
-          style={{ '--t-order': 0 } as CSSProperties}
         >
           {demoRoute ? <DemoModeBanner /> : null}
           <RecordPageContent
