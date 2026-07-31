@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、真实病历/统计 href 与紧凑可拖拽侧栏 token。
+ * [INPUT]: 依赖 react 的状态、ref 与 pointer/keyboard 事件，依赖 react-router-dom 的 Link/useLocation，依赖 FireflyMark、FireflyBrandWordmark 与 SidebarShell，依赖 @/lib/theme、locale、可选真实病历/统计 href 与紧凑可拖拽侧栏 token。
  * [OUTPUT]: 对外提供 ArchiveSideNav 组件、ArchiveSideNavProps 类型与 AVATAR_PLACEHOLDER 常量。
- * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/公开 Demo 病历入口、真实统计/公开 Demo 统计入口、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、44px 恢复热区、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
+ * [POS]: src/components/system 的共享侧栏导航组件，统一 dark/light 的紧凑桌面默认展开、移动端默认收起、真实病历/统计入口、显式公开 Demo 入口、无自有病历时禁用病历/统计并显示“先提取”提示、独立品牌 mark/中英文 display token 侧栏字标、中文“萤”与英文 Firefly 主题光晕、边线胶囊折叠、44px 恢复热区、左缘渐进拉出、拖拽缩放到隐藏、阈值 icon-only、active 细左标与低强度行面、Google Translate 与临床笔记图标、匿名/非匿名身份图标、无下拉误导的偏好控制与会话出口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent } from 'react'
@@ -86,6 +86,12 @@ export type ArchiveSideNavProps = {
   userLabel?: string
 }
 
+type SidebarNavItem = {
+  href?: string
+  icon: string
+  labelKey: 'extract' | 'record' | 'analytics'
+}
+
 function isActive(pathname: string, href: string) {
   if (href.startsWith('/record/') || href === '/demo/record') {
     return pathname.startsWith('/record') || pathname === '/demo/record'
@@ -98,7 +104,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href
 }
 
-export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
+export function ArchiveSideNav({ analyticsHref, dark, isSigningOut = false, onSignOut, recordHref, userIsAnonymous = false, userLabel }: ArchiveSideNavProps) {
   const location = useLocation()
   const { locale, toggleLocale } = useLocale()
   const { toggleTheme } = useTheme()
@@ -112,13 +118,12 @@ export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSign
   const themeName = dark ? 'dark' : 'light'
   const compact = width <= sidebarLabelHideWidth
   const sidebarStyle = useMemo(() => ({ width: `${width}px` }), [width])
-  const navItems = useMemo(
-    () =>
-      [
-        { icon: 'my_location', href: '/app', labelKey: 'extract' },
-        { icon: 'clinical_notes', href: recordHref ?? '/demo/record', labelKey: 'record' },
-        { icon: 'bar_chart', href: analyticsHref, labelKey: 'analytics' },
-      ] as const,
+  const navItems = useMemo<SidebarNavItem[]>(
+    () => [
+      { icon: 'my_location', href: '/app', labelKey: 'extract' },
+      { icon: 'clinical_notes', href: recordHref, labelKey: 'record' },
+      { icon: 'bar_chart', href: analyticsHref, labelKey: 'analytics' },
+    ],
     [analyticsHref, recordHref],
   )
 
@@ -435,16 +440,20 @@ export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSign
 
             <nav className={cn('flex w-full flex-col gap-1', compact ? 'items-center' : 'items-stretch')}>
               {navItems.map((item) => {
-                const active = 'href' in item ? isActive(location.pathname, item.href) : false
+                const active = item.href ? isActive(location.pathname, item.href) : false
                 const label = getCopy(copy.shell.nav[item.labelKey], locale)
-                const demoTarget = item.href.startsWith('/demo/')
+                const unavailableHint = item.href ? null : getCopy(copy.shell.nav.extractFirst, locale)
+                const navigationLabel = unavailableHint ? `${label}：${unavailableHint}` : label
+                const demoTarget = item.href?.startsWith('/demo/') ?? false
                 const itemClassName = cn(
                   'group relative flex h-[50px] min-w-0 items-center overflow-visible rounded-[var(--ff-radius-sm)] border text-[var(--ff-text-secondary)]',
                   themeTransitionClass,
                   compact ? 'w-12 justify-center' : 'w-full justify-start gap-3 px-4',
-                  active
-                    ? 'border-[color-mix(in_srgb,var(--ff-accent-primary)_24%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent-primary)_8%,transparent)] text-[var(--ff-accent-primary)]'
-                    : 'border-transparent hover:border-[var(--ff-border-default)] hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-text-primary)]',
+                  unavailableHint
+                    ? 'cursor-not-allowed border-transparent text-[var(--ff-text-muted)] opacity-65'
+                    : active
+                      ? 'border-[color-mix(in_srgb,var(--ff-accent-primary)_24%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent-primary)_8%,transparent)] text-[var(--ff-accent-primary)]'
+                      : 'border-transparent hover:border-[var(--ff-border-default)] hover:bg-[var(--ff-surface-panel)] hover:text-[var(--ff-text-primary)]',
                 )
                 const itemContent = (
                   <>
@@ -458,14 +467,32 @@ export function ArchiveSideNav({ analyticsHref = '/demo/analytics', dark, isSign
                         Demo
                       </span>
                     ) : null}
-                    {iconOnlyTooltip(label)}
+                    {unavailableHint && !compact ? (
+                      <span className="ml-auto rounded-[var(--ff-radius-sm)] border border-[var(--ff-border-muted)] px-1.5 py-0.5 font-[var(--ff-font-mono)] text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--ff-text-muted)]" data-sidebar-unavailable-hint="true">
+                        {unavailableHint}
+                      </span>
+                    ) : null}
+                    {iconOnlyTooltip(navigationLabel)}
                   </>
                 )
 
-                return (
-                  <Link aria-label={label} className={itemClassName} key={item.href} title={label} to={item.href}>
+                return item.href ? (
+                  <Link aria-label={navigationLabel} className={itemClassName} key={item.labelKey} title={navigationLabel} to={item.href}>
                     {itemContent}
                   </Link>
+                ) : (
+                  <button
+                    aria-disabled="true"
+                    aria-label={navigationLabel}
+                    className={itemClassName}
+                    data-nav-unavailable="true"
+                    disabled
+                    key={item.labelKey}
+                    title={navigationLabel}
+                    type="button"
+                  >
+                    {itemContent}
+                  </button>
                 )
               })}
             </nav>

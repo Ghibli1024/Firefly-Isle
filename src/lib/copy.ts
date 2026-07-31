@@ -68,6 +68,7 @@ export const copy = {
       extract: text('提取', 'Extract'),
       record: text('病历', 'Record'),
       analytics: text('统计', 'Analytics'),
+      extractFirst: text('先提取', 'Extract first'),
       comingSoon: text('敬请期待', 'Coming Soon'),
       languageToggle: text('语言', 'Language'),
       newExtraction: text('新建提取', 'New Extraction'),

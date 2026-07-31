@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 vitest 的模块 mock，依赖 BackgroundAudioProvider、patient-record-storage 与 ./workspace-page。
- * [OUTPUT]: 对外提供工作区报告预览、输入 composer、侧栏壳层、公开 Demo fallback、职责边界、患者记录持久化、Transitions.dev 动效、模型设置整块收起态与 locale 回归测试。
- * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻病历预览主表面、真实治疗线预览、真实空白态进入公开 Demo 导航、无正式导出入口、textarea 输入工具行、提取/追问/缺失数字/全站动效、背景音 topbar 依赖、模型设置紧凑整块展开入口、创作初衷纸页入口、邮件 hover 联系弹窗与邮箱点击复制入口、中英艺术字标、无装饰性状态卡侧栏、主题/语言顺序、active 细左标与低强度行面导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
+ * [OUTPUT]: 对外提供工作区报告预览、输入 composer、侧栏壳层、空工作区导航边界、职责边界、患者记录持久化、Transitions.dev 动效、模型设置整块收起态与 locale 回归测试。
+ * [POS]: routes 的工作区测试文件，约束 /app 报告区复刻病历预览主表面、真实治疗线预览、真实空白态禁用病历/统计入口而不跳公开 Demo、无正式导出入口、textarea 输入工具行、提取/追问/缺失数字/全站动效、背景音 topbar 依赖、模型设置紧凑整块展开入口、创作初衷纸页入口、邮件 hover 联系弹窗与邮箱点击复制入口、中英艺术字标、无装饰性状态卡侧栏、主题/语言顺序、active 细左标与低强度行面导航、紧凑默认侧栏弹出态、隐藏态左缘渐进拉出与拖拽到隐藏。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -618,16 +618,18 @@ describe('WorkspacePage report shell', () => {
     expect(markup).not.toContain('>expand_more</span>')
   })
 
-  it('points the sidebar record entry at the persisted record when a record href is provided', () => {
+  it('keeps explicit Demo navigation separate from a persisted record link', () => {
     const markup = renderToStaticMarkup(
       <LocaleProvider>
         <MemoryRouter initialEntries={['/app']}>
-          <ArchiveSideNav dark={false} recordHref="/record/patient-42" userIsAnonymous userLabel="ANON_SESSION" />
+          <ArchiveSideNav analyticsHref="/demo/analytics" dark={false} recordHref="/record/patient-42" userIsAnonymous userLabel="ANON_SESSION" />
         </MemoryRouter>
       </LocaleProvider>,
     )
 
     expect(markup).toContain('href="/record/patient-42"')
+    expect(markup).toContain('href="/demo/analytics"')
+    expect(markup).toContain('>Demo</span>')
     expect(markup).not.toContain('href="/record/demo"')
   })
 
@@ -660,18 +662,20 @@ describe('WorkspacePage report shell', () => {
     expect(markup).toMatch(/<div[^>]*aria-label="ANON_SESSION"[^>]*>[\s\S]*?>theater_comedy<\/span>/)
   })
 
-  it('wires no-record navigation to the public Demo instead of a coming-soon button', () => {
+  it('keeps no-record navigation unavailable until extraction instead of routing to public Demo', () => {
     const markup = renderWorkspace('light')
     const sidebarSource = readSidebarSource()
 
-    expect(markup).toMatch(/<a[^>]*aria-label="病历"[^>]*href="\/demo\/record"/)
-    expect(markup).toMatch(/<a[^>]*aria-label="统计"[^>]*href="\/demo\/analytics"/)
-    expect(markup).not.toContain('data-nav-action="coming-soon"')
+    expect(markup).toContain('aria-label="病历：先提取"')
+    expect(markup).toContain('aria-label="统计：先提取"')
+    expect(markup).toContain('data-nav-unavailable="true"')
+    expect(markup).toContain('>先提取</span>')
+    expect(markup).not.toContain('href="/demo/record"')
+    expect(markup).not.toContain('href="/demo/analytics"')
     expect(markup).not.toContain('href="/login"')
-    expect(sidebarSource).not.toContain("href: '/login'")
-    expect(sidebarSource).toContain("analyticsHref = '/demo/analytics'")
-    expect(sidebarSource).toContain("recordHref ?? '/demo/record'")
-    expect(sidebarSource).not.toContain('showComingSoon')
+    expect(sidebarSource).not.toContain("analyticsHref = '/demo/analytics'")
+    expect(sidebarSource).not.toContain("recordHref ?? '/demo/record'")
+    expect(sidebarSource).toContain('data-nav-unavailable="true"')
   })
 
   it('wires the help button to the origin story paper instead of a passive icon', () => {
