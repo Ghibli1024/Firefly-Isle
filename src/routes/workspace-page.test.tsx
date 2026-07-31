@@ -121,10 +121,6 @@ function readOriginStoryContentSource() {
   return readFileSync(new URL('../components/system/origin-story/origin-story-content.ts', import.meta.url), 'utf8')
 }
 
-function readOriginStoryCanvasSource() {
-  return readFileSync(new URL('../components/system/origin-story/origin-story-canvas.ts', import.meta.url), 'utf8')
-}
-
 describe('WorkspacePage report shell', () => {
   it.each(['light', 'dark'] as const)('does not render the outer 临床结构化报告 heading shell in %s mode', (theme) => {
     const markup = renderWorkspace(theme)
@@ -654,13 +650,17 @@ describe('WorkspacePage report shell', () => {
     expect(sidebarSource).toContain('data-nav-unavailable="true"')
   })
 
-  it('wires the help button to the origin story paper instead of a passive icon', () => {
+  it('wires the life-story button to the origin story paper with a semantic icon', () => {
     const topbarSource = readTopbarSource()
 
     expect(topbarSource).toContain('OriginStoryPaper')
     expect(topbarSource).toContain('originStoryOpen')
+    expect(topbarSource).toContain('originStoryButtonRef')
+    expect(topbarSource).toContain('          eco')
     expect(topbarSource).toContain("title={locale === 'zh' ? '为什么做一页萤屿' : 'Why Firefly Isle'}")
     expect(topbarSource).toContain("aria-label={locale === 'zh' ? '为什么做一页萤屿' : 'Why Firefly Isle'}")
+    expect(topbarSource).not.toContain('helpButtonRef')
+    expect(topbarSource).not.toContain('          help')
   })
 
   it('keeps the origin story as a public-source summary', () => {
@@ -672,32 +672,21 @@ describe('WorkspacePage report shell', () => {
     expect(source).toContain('storyParagraphs')
   })
 
-  it('uses the editorial origin story paper and removes decorative close furniture', () => {
+  it('uses the V3 clinical archive dialog without a separate paper or WebGL material system', () => {
     const source = readOriginStoryPaperSource()
-    const canvasSource = readOriginStoryCanvasSource()
 
-    expect(source).toContain('calculateOriginStoryStageBox')
-    expect(source).toContain('camera.zoom = 1.14')
-    expect(source).toContain("theme === 'dark' ? 'bg-[#071012]/78' : 'bg-[#cfc7b8]/72'")
-    expect(canvasSource).toContain("gradient.addColorStop(0, '#f4eddd')")
-    expect(source).not.toContain('const centerX = anchor ? anchor.left + anchor.width / 2 : window.innerWidth / 2')
-    expect(source).toContain('data-origin-story-close-minimal')
-    expect(source).toContain('h-px w-px')
-    expect(source).toContain('opacity-0')
-    expect(source).toContain('focus:opacity-100')
-    expect(source).toContain('right-4 top-4')
-    expect(source).not.toContain('data-origin-story-close-fold')
-    expect(source).not.toContain('data-origin-story-close-pin')
-    expect(source).not.toContain("clipPath: 'polygon(100% 0, 100% 100%, 0 0)'")
-    expect(source).not.toContain("filter: 'drop-shadow(-4px 6px 5px rgba(62,44,25,0.12))'")
-    expect(source).not.toContain('radial-gradient(circle at 34% 28%')
-    expect(source).not.toContain('rotate-45')
-    expect(source).not.toContain('-rotate-45')
-    expect(source).not.toContain('h-[76px] w-[76px]')
-    expect(source).not.toContain('h-[62px] w-[62px]')
-    expect(source).not.toContain('<span>关闭</span>')
-    expect(source).not.toContain('Close</span>')
-    expect(source).not.toContain('rounded-full border border-[#d9cdb8]')
+    expect(source).toContain('var(--ff-surface-panel)')
+    expect(source).toContain('var(--ff-border-default)')
+    expect(source).toContain('var(--ff-accent-primary)')
+    expect(source).toContain('t-modal is-open')
+    expect(source).toContain('aria-label="关闭创作初衷"')
+    expect(source).toContain('focusableSelector')
+    expect(source).toContain('document.body.style.overflow')
+    expect(source).not.toContain("from 'three'")
+    expect(source).not.toContain('<canvas')
+    expect(source).not.toContain('supportsWebGL')
+    expect(source).not.toContain('font-bold">{paragraph}')
+    expect(source).not.toContain('<a ')
   })
 
   it('keeps the hidden-sidebar restore handle narrow', () => {

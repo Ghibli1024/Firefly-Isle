@@ -2,11 +2,10 @@
 > L2 | 父级: /src/components/system/CLAUDE.md
 
 成员清单
-CLAUDE.md: 说明创作初衷纸页子模块的边界与成员清单，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-origin-story-content.ts: 创作初衷纸页的唯一公开内容源，集中提供摘要、来源归属、来源地址、拼接正文与页脚文案，被纸页弹层和 Canvas 纹理层复用，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-origin-story-content.test.ts: 公开内容与来源 URL 合同测试，阻止展示层重新引入非公开材料，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-origin-story-canvas.ts: 创作初衷纸页 Canvas 纹理层，负责纸张底纹、摘要排版、长文画布与滚动视口纹理绘制，被 WebGL 纸页材质消费，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-origin-story-paper.tsx: 顶栏问号触发的创作初衷纸页，导出 OriginStoryPaper、calculateOriginStoryStageBox 与 getOriginStoryClothBudget，使用 Three.js WebGL、Verlet 粒子约束、全屏自适应阅读舞台、可点击的公开来源链接、拖拽性能预算与暗档案遮罩，保留降级与可访问文本副本，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-origin-story-paper.test.ts: 创作初衷纸页舞台尺寸与 WebGL 布料性能预算回归测试，用数值断言覆盖全屏桌面、窄屏移动、低高度窗口和拖拽性能上限，不再通过源码字符串约束尺寸实现，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+CLAUDE.md: 说明创作初衷阅读弹层子模块的边界与成员清单，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+origin-story-content.ts: 创作初衷阅读弹层的唯一公开内容源，集中提供完整故事、正文末尾纯文本来源地址、拼接正文与页脚文案，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+origin-story-content.test.ts: 公开内容与正文末尾纯文本来源地址合同测试，阻止展示层重新引入非公开材料或独立链接控件，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+origin-story-paper.tsx: 顶栏生命故事图标触发的 V3 Clinical Archive Console 阅读弹层，使用项目 surface/text/border token、可见关闭按钮和单一 DOM 滚动层呈现公开正文，并负责 Esc、遮罩关闭、焦点约束、滚动锁定与焦点恢复，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+origin-story-paper.test.ts: 创作初衷阅读弹层结构合同测试，覆盖暗亮同构 token、普通字重尾段、正文末尾纯文本来源、可见关闭入口与无 Canvas/WebGL 边界，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
-法则: 内容、纹理、交互三相分离；纸页入口只编排，不吞并素材与绘制细节。
+法则: 公开内容与阅读交互分离；弹层复用 V3 系统 token，不自建纸张材质、绘制管线或 WebGL 上下文。

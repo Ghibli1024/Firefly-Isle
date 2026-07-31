@@ -1,13 +1,14 @@
 /**
  * [INPUT]: 不依赖运行时模块，只保存用户指定的公开 YouTube 帖子内容、来源归属与访问地址。
- * [OUTPUT]: 对外提供标题、副标题、公开故事段落、正文拼接、来源标签/URL 与页脚文案。
- * [POS]: components/system/origin-story 的单一内容源，被纸页弹层与 Canvas 纹理层共同消费。
+ * [OUTPUT]: 对外提供标题、副标题、公开故事段落、正文末尾来源地址、正文拼接与页脚文案。
+ * [POS]: components/system/origin-story 的单一公开内容源，被 V3 临床档案阅读弹层与内容合同测试共同消费。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export const originStoryTitle = '为什么做一页萤屿'
-export const originStorySubtitle = '一位92岁老人想看完世界杯决赛的故事'
+export const originStorySubtitle = '生命'
 export const originStorySourceLabel = '原帖：YouTube 社区帖子'
 export const originStorySourceUrl = 'https://www.youtube.com/post/Ugkx2pyfj6hZm_j7M4tjutIm7D9BFqg-mfyB'
+export const originStorySourceText = `${originStorySourceLabel} ${originStorySourceUrl}`
 
 export const storyParagraphs = [
   '今天遇到一个让我印象很深的病人。',
@@ -37,6 +38,6 @@ export const storyParagraphs = [
   '而我们能做的，就是尽力帮他把这个愿望，留到终场哨响的那一刻。',
 ]
 
-export const originStoryText = storyParagraphs.join('\n\n')
+export const originStoryText = [...storyParagraphs, originStorySourceText].join('\n\n')
 
 export const originStoryFooter = '公开原帖内容经页面排版整理；不构成医疗建议，医疗决策请与专业医生共同作出。'

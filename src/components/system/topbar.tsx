@@ -68,7 +68,7 @@ export function ClinicalTopBar({ theme, title, withRail = false }: ClinicalTopBa
   const [openOverlay, setOpenOverlay] = useState<TopbarOverlay>(null)
   const [contactCopyStatus, setContactCopyStatus] = useState<ContactCopyStatus>('idle')
   const contactCloseTimerRef = useRef<number | null>(null)
-  const helpButtonRef = useRef<HTMLButtonElement>(null)
+  const originStoryButtonRef = useRef<HTMLButtonElement>(null)
   const resolvedTitle = title ?? getCopy(copy.shell.brand.darkSubtitle, locale)
   const railOffset = withRail ? shellViewportOffsetClass : 'left-0 w-full'
   const contactLabel = getCopy(copy.shell.topbar.contact.label, locale)
@@ -154,12 +154,12 @@ export function ClinicalTopBar({ theme, title, withRail = false }: ClinicalTopBa
           className="t-control-press flex h-10 w-10 items-center justify-center rounded-[var(--ff-radius-md)] border border-[var(--ff-border-default)] bg-[var(--ff-surface-panel)] text-[var(--ff-text-primary)] transition-colors hover:border-[var(--ff-accent-primary)] hover:text-[var(--ff-accent-primary)] sm:h-11 sm:w-11"
           data-topbar-action="origin-story"
           onClick={() => setOpenOverlay((current) => (current === 'origin-story' ? null : 'origin-story'))}
-          ref={helpButtonRef}
+          ref={originStoryButtonRef}
           title={locale === 'zh' ? '为什么做一页萤屿' : 'Why Firefly Isle'}
           type="button"
         >
-          <span className="material-symbols-outlined text-[22px]">
-          help
+          <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
+            eco
           </span>
         </button>
         <div className="relative inline-flex shrink-0">
@@ -227,7 +227,7 @@ export function ClinicalTopBar({ theme, title, withRail = false }: ClinicalTopBa
           ) : null}
         </div>
       </div>
-      <OriginStoryPaper anchorRef={helpButtonRef} onClose={() => setOpenOverlay(null)} open={originStoryOpen} theme={theme} />
+      <OriginStoryPaper anchorRef={originStoryButtonRef} onClose={() => setOpenOverlay(null)} open={originStoryOpen} theme={theme} />
     </TopBarShell>
   )
 }
