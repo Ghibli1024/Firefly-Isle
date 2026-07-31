@@ -13,7 +13,7 @@ clinical-analysis.test.ts: 临床辅助分析回归测试，约束非诊断 prom
 theme.tsx: Dark / Light 主题状态、持久化与 document 根节点主题标记同步，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.tsx: 全局 locale 状态中心，负责 zh / en 切换、持久化恢复、HTML lang/data-locale 同步与 useLocale 消费入口，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 locale.test.ts: locale 文档语义回归测试，约束 zh/en 到 HTML lang/data-locale 的映射与 LocaleProvider 同步桥接，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
-copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含顶栏邮件联系弹窗与复制反馈、背景音乐播放/暂停/拦截文案、简洁歌单控制、简洁社交认证、病历/检验报告上传、OCR/编辑/新病历/BMI 与病程资料空态文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+copy.ts: app shell、background audio、login、workspace、record 的语言真相源，包含顶栏邮件联系弹窗与复制反馈、背景音乐播放/暂停/拦截文案、简洁歌单控制、简洁社交认证、无病历侧栏“先提取”提示、病历/检验报告上传、OCR/编辑/新病历/BMI 与病程资料空态文案，禁止组件继续内联双语字符串，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.ts: 正式病历导出工具，复用 html2canvas 与 jsPDF 生成 PDF/PNG，并在克隆 DOM 中清洗现代 CSS 色值供 /record/:id 独占消费，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 export-record.test.ts: 正式病历导出工具回归测试，约束 PDF/PNG 继续走共享截图、分页、下载链路与 html2canvas 安全色/背景图/滤镜降级，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 file-size-contract.test.ts: 结构债回归测试，递归约束 src、functions、supabase 下 .ts/.tsx/.sql 文件均不超过 800 行，[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Background music work is archived under `openspec/changes/archive/2026-05-03-add-background-music-toggle/` and `openspec/changes/archive/2026-05-03-add-local-background-playlist/`; current baseline behavior lives in `openspec/specs/background-audio*.md`.
 - Lab analytics, P0 clinical analysis, secure sharing, restored TimelineTable, full-product Demo, PWA foundation, and Capacitor mobile shell work are archived under `openspec/changes/archive/2026-05-16-*`; current behavior lives in `openspec/specs/`.
 - Product context lives in `README.md`, `README.en.md`, `docs/products/prd-implementation-status.md`, `docs/products/product-priority-roadmap.md`, and archived product snapshots / historical Goal drafts under `docs/products/archive/`.
-- Current visual-system entrypoint lives in `DESIGN.md`, which links to the active V3 design source under `docs/design/Image-2/V3/DESIGN.md`.
+- Current visual-system entrypoint lives in `DESIGN.md`: V3 under `docs/design/Image-2/V3/DESIGN.md` remains the production source, while V4 under `docs/design/Image-2/V4/DESIGN.md` is an isolated evaluation source until an explicit direction is selected.
 - Community governance now lives at the repository root: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`.
 
 ## Common commands
@@ -52,9 +52,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `tsconfig.*.json`
   - TypeScript boundaries split by runtime: SPA app, Vite node config, Cloudflare Pages Functions, and Supabase Edge Functions
 - `DESIGN.md`
-  - project-level design-system entrypoint linking to the current V3 `DESIGN.md` source
+  - project-level design-system entrypoint separating the V3 production source from the V4 evaluation source and migration boundary
 - `docs/design/`
-  - `Image-2/` — image-model redesign batches, including V3 screenshot-derived design tokens and visual rules
+  - `Image-2/` — image-model redesign batches, including V3 production rules and the V4 Clinical Calm / Firefly Glass / Living Archive evaluation contract
   - `stitch/` — Stitch-origin design references and runtime screenshot evidence
 - `docs/products/`
   - `prd-implementation-status.md` — current PRD implementation status, preserving the implemented / partial / not implemented feature audit
@@ -134,7 +134,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Core workflow:** natural-language intake → structured extraction → up to 3 clarification rounds → timeline table render → inline editing → formal record page → AI auxiliary analysis / read-only sharing / PDF/PNG export
 - **Demo workflow:** login page links to public `/demo` routes; Demo pages reuse the real record and analytics surfaces with a visible Demo reminder, optional Supabase public share-code record, unified sample patient/lab fallback data, static non-diagnostic AI analysis preview, disabled share preview and client-side export, without creating Supabase records from Demo
 - **Privacy boundary:** first-use privacy gate and `/privacy` page share the same text source in `src/lib/privacy.ts`
-- **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual-system guidance starts at `DESIGN.md` and `docs/design/`; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
+- **Current truth sources:** behavior lives in `openspec/specs/**/*.md`; visual ownership starts at `DESIGN.md`, with V3 as production and V4 as evaluation only; implementation details live in `src/`, `supabase/`, `.github/`, and `public/`; archive change designs are historical rationale, not the primary current-state entrypoint
 
 ### Core domain model
 
@@ -166,7 +166,7 @@ When implementation starts, read these in roughly this order:
 
 1. `README.md` — concise project purpose and current repo baseline
 2. `docs/products/prd-implementation-status.md` — current PRD implementation status and pointers to archived product docs
-3. `DESIGN.md` — project-level visual-system entrypoint, linking to the active detailed design source
+3. `DESIGN.md` — project-level visual-system entrypoint, separating the active V3 production source from the isolated V4 evaluation source
 4. `docs/products/archive/prd.md` — archived original user/problem framing and scope boundaries, when historical PRD context is needed
 5. `openspec/specs/**/*.md` — current baseline behavior requirements
 6. `src/**`, `supabase/**`, `.github/**`, `public/**` — current implementation reality and runtime boundaries
