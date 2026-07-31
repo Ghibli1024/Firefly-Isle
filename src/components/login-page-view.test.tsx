@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 node:fs 的源码合同检查，依赖 react-dom/server 的静态渲染，依赖 react-router-dom 的 MemoryRouter，依赖 BackgroundAudioProvider 与 ./login-page-view 的 LoginPageView。
- * [OUTPUT]: 对外提供登录页主题壳层、Demo 入口、认证弹层语义与 Transitions.dev 弹层动效合同的回归测试。
- * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航、旧伪技术装饰、点阵背景，锁住 A 版首屏节奏、右下角主题/语言/音乐工具区、内页同源品牌字标、双主题扁平全屏背景、无圆形光晕主入口、紧凑登录 CTA、Demo CTA、默认不挂载统一登录弹层、认证模式标题一致性、手机/微信敬请期待占位、认证弹层开闭动效、登录 scene 全站动效与无伪控件边界。
+ * [OUTPUT]: 对外提供登录页八章叙事、单一认证弹层、SSR 安全 ScrollTrigger、reduced-motion、Transitions.dev 与单一 WebGL 背景合同的回归测试。
+ * [POS]: components 的登录页主题测试，约束 V3 入口页不混入工作区导航与旧伪技术装饰，锁住首屏节奏、八章顺序、首尾同源登录 CTA、无 Demo 入口、双主题、认证模式、CSS sticky + spacer、动效生命周期与液体折射边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs'
@@ -60,6 +60,30 @@ function readLoginSource() {
 
 function readTraceMapSource() {
   return readFileSync(new URL('./login/login-trace-map.tsx', import.meta.url), 'utf8')
+}
+
+function readLiquidEffectSource() {
+  return readFileSync(new URL('./ui/liquid-effect-animation.tsx', import.meta.url), 'utf8')
+}
+
+function readStorySectionsSource() {
+  return readFileSync(new URL('./login/login-story-sections.tsx', import.meta.url), 'utf8')
+}
+
+function readStoryMotionSource() {
+  return readFileSync(new URL('./login/scroll-story-motion.ts', import.meta.url), 'utf8')
+}
+
+function readTransitionSource() {
+  return readFileSync(new URL('../styles/transitions-dev.css', import.meta.url), 'utf8')
+}
+
+function readThreeTypesSource() {
+  return readFileSync(new URL('../types/threejs-components.d.ts', import.meta.url), 'utf8')
+}
+
+function countOccurrences(source: string, fragment: string) {
+  return source.split(fragment).length - 1
 }
 
 describe('LoginPageView theme shell', () => {
@@ -136,13 +160,56 @@ describe('LoginPageView theme shell', () => {
     expect(markup).not.toContain('等待凭证')
   })
 
-  it('offers a public Demo entry without opening the auth overlay', () => {
+  it('removes the public Demo entry from the login page without opening the auth overlay', () => {
     const markup = renderLogin('dark')
+    const loginSource = readLoginSource()
 
-    expect(markup).toContain('data-testid="login-demo-cta"')
-    expect(markup).toContain('href="/demo/record"')
-    expect(markup).toContain('查看 Demo')
+    expect(markup).not.toContain('data-testid="login-demo-cta"')
+    expect(markup).not.toContain('href="/demo/record"')
+    expect(markup).not.toContain('查看 Demo')
+    expect(loginSource).not.toContain('IntroDemoCta')
     expect(markup).not.toContain('data-testid="login-auth-overlay"')
+  })
+
+  it('renders all eight scroll-story chapters in the fixed OpenSpec order', () => {
+    const markup = renderLogin('dark')
+    const chapterIds = [
+      'story-hero',
+      'story-problem',
+      'story-intake',
+      'story-timeline',
+      'story-views',
+      'story-labs',
+      'story-boundary',
+      'story-cta',
+    ]
+
+    const chapterIndexes = chapterIds.map((id) => markup.indexOf(`id="${id}"`))
+    expect(chapterIndexes.every((index) => index >= 0)).toBe(true)
+    expect(chapterIndexes).toEqual([...chapterIndexes].sort((left, right) => left - right))
+    expect(markup).toContain('最多进行 3 轮澄清')
+    expect(markup).toContain('最近两个相邻区间都上涨超过 20%')
+    expect(markup).toContain('错误授权码也不泄露病历是否存在')
+  })
+
+  it('preserves the intentional line breaks shared by scroll-story headings', () => {
+    const markup = renderLogin('dark')
+    const storySource = readStorySectionsSource()
+
+    expect(markup).toContain('text-balance whitespace-pre-line')
+    expect(storySource).toContain("'把散落的治疗史，\\n收回一条可追溯的线。'")
+  })
+
+  it('renders two login CTAs backed by one auth state and one AuthOverlay instance', () => {
+    const closedMarkup = renderLogin('dark')
+    const openMarkup = renderLogin('dark', { defaultAuthOpen: true })
+    const loginSource = readLoginSource()
+
+    expect(countOccurrences(closedMarkup, 'data-testid="login-auth-cta"')).toBe(2)
+    expect(countOccurrences(openMarkup, 'data-testid="login-auth-cta"')).toBe(2)
+    expect(countOccurrences(openMarkup, 'data-testid="login-auth-overlay"')).toBe(1)
+    expect(countOccurrences(loginSource, '<AuthOverlay')).toBe(1)
+    expect(loginSource).toContain('closingCta={<IntroAccessCta isOpen={isAuthOpen} locale={locale} onOpen={openAuth} />}')
   })
 
   it('keeps credential actions out of the initial narrow-screen markup', () => {
@@ -177,9 +244,11 @@ describe('LoginPageView theme shell', () => {
 
     expect(markup).toContain('min-h-dvh')
     expect(markup).toContain('w-full')
-    expect(markup).toContain('xl:h-dvh')
-    expect(markup).toContain('xl:grid-cols-1')
-    expect(markup).toContain('overflow-x-hidden px-7 pb-8 pt-24')
+    expect(markup).not.toContain('xl:h-dvh')
+    expect(markup).not.toContain('xl:grid-cols-1')
+    expect(markup).toContain('w-full overflow-x-clip')
+    expect(markup).not.toContain('min-h-dvh w-full overflow-x-hidden font-')
+    expect(markup).toContain('overflow-hidden px-7 pb-8 pt-24')
     expect(markup).not.toContain('xl:grid-cols-[minmax(0,1fr)_112px]')
     expect(markup).not.toContain('order-first')
     expect(markup).not.toContain('order-last')
@@ -220,10 +289,123 @@ describe('LoginPageView theme shell', () => {
 
     expect(markup).toContain('t-route-reveal')
     expect(markup).toContain('t-login-backdrop')
+    expect(markup).toContain('data-testid="login-liquid-ripple"')
+    expect(markup).toContain('data-testid="login-liquid-refraction-filter"')
     expect(markup).toContain('t-stagger')
     expect(markup).toContain('style="--t-order:0"')
     expect(markup).toContain('style="--t-order:4"')
     expect(markup).toContain('t-control-press')
+  })
+
+  it('keeps the WebGL ripple out of static render execution', () => {
+    const loginSource = readLoginSource()
+    const traceMapSource = readTraceMapSource()
+    const liquidEffectSource = readLiquidEffectSource()
+    const storySectionsSource = readStorySectionsSource()
+    const threeTypesSource = readThreeTypesSource()
+    const markup = renderLogin('dark')
+
+    expect(traceMapSource).toContain('LiquidEffectAnimation')
+    expect(traceMapSource).toContain('enabled={enabled}')
+    expect(loginSource).toContain('<LoginTraceMap enabled={!prefersReducedMotion}')
+    expect(traceMapSource).toContain('displacementScale={skin.displacementScale}')
+    expect(traceMapSource).toContain('refraction')
+    expect(traceMapSource).toContain("backdropOpacity: 'opacity-5'")
+    expect(traceMapSource).toContain("liquidOpacity: 'opacity-100'")
+    expect(traceMapSource).toContain('metalness: 0.06')
+    expect(traceMapSource).toContain('roughness: 0.82')
+    expect(traceMapSource).toContain('brightness(0.72) contrast(1.34) saturate(1.14)')
+    expect(traceMapSource).toContain('backgroundColor="transparent"')
+    expect(traceMapSource).toContain('metalness={skin.metalness}')
+    expect(traceMapSource).toContain('roughness={skin.roughness}')
+    expect(traceMapSource).toContain('visualFilter={skin.visualFilter}')
+    expect(liquidEffectSource).toContain('requestAnimationFrame')
+    expect(liquidEffectSource).toContain('pointermove')
+    expect(liquidEffectSource).toContain('await runtime.app.loadImage(config.imageSrc)')
+    expect(liquidEffectSource).toContain('liquidRuntimeRef.current = runtime')
+    expect(liquidEffectSource).toContain('syncLiquidRuntime(runtime, latestConfigRef.current)')
+    expect(liquidEffectSource).toContain('}, [enabled])')
+    expect(countOccurrences(liquidEffectSource, 'createLiquidBackground(')).toBe(1)
+    expect(liquidEffectSource).not.toContain("getContext('webgl")
+    expect(liquidEffectSource).not.toContain("document.createElement('canvas')")
+    expect(threeTypesSource).toContain('loadImage: (imageUrl: string) => Promise<void>')
+    expect(countOccurrences(markup, 'data-testid="login-trace-map"')).toBe(1)
+    expect(countOccurrences(markup, 'data-testid="login-liquid-ripple"')).toBe(1)
+    expect(countOccurrences(traceMapSource, '<LiquidEffectAnimation')).toBe(1)
+    expect(storySectionsSource).not.toContain('LiquidEffectAnimation')
+    expect(storySectionsSource).not.toContain('threejs-components')
+    expect(storySectionsSource).not.toContain('<canvas')
+    expect(markup).toContain('data-testid="login-liquid-ripple"')
+    expect(markup).toContain('data-testid="login-liquid-refraction-filter"')
+    expect(markup).not.toContain('threejs-components')
+    expect(markup).not.toContain('__liquidApp')
+    expect(markup).not.toContain('cdn.jsdelivr.net')
+    expect(markup).not.toContain('document.body.appendChild(script)')
+    expect(markup).not.toContain('__refractionDemoApp')
+    expect(markup).not.toContain('__refractionStageApp')
+    expect(liquidEffectSource).not.toContain('cdn.jsdelivr.net')
+    expect(liquidEffectSource).not.toContain('document.body.appendChild(script)')
+    expect(liquidEffectSource).not.toContain('__refractionDemoApp')
+    expect(liquidEffectSource).not.toContain('__refractionStageApp')
+  })
+
+  it('keeps GSAP and ScrollTrigger inside the client effect boundary', () => {
+    const markup = renderLogin('dark')
+    const motionSource = readStoryMotionSource()
+    const effectIndex = motionSource.indexOf('useEffect(() => {')
+    const gsapImportIndex = motionSource.indexOf("import('gsap')")
+    const triggerImportIndex = motionSource.indexOf("import('gsap/ScrollTrigger')")
+    const registerIndex = motionSource.indexOf('gsap.registerPlugin(ScrollTrigger)')
+
+    expect(markup).not.toContain('gsap')
+    expect(markup).not.toContain('ScrollTrigger')
+    expect(motionSource).not.toMatch(/from ['"]gsap(?:\/ScrollTrigger)?['"]/)
+    expect(effectIndex).toBeGreaterThan(-1)
+    expect(gsapImportIndex).toBeGreaterThan(effectIndex)
+    expect(triggerImportIndex).toBeGreaterThan(effectIndex)
+    expect(registerIndex).toBeGreaterThan(triggerImportIndex)
+    expect(motionSource).toContain('gsap.context(() => {')
+    expect(motionSource).toContain('context?.revert()')
+  })
+
+  it('locks the OpenSpec ScrollTrigger mapping and linear scrub easing', () => {
+    const motionSource = readStoryMotionSource()
+    const frozenConfigs = [
+      "end: 'top 60%', scrub: 0.3, start: 'top 80%'",
+      "end: 'top 55%', scrub: 0.3, start: 'top 75%'",
+      "end: 'top 50%', scrub: 0.3, start: 'top 70%'",
+      "end: 'top 30%', scrub: 0.5, start: 'top 70%'",
+      "end: 'bottom center'",
+      "scrub: 0.5",
+      "start: '80% center'",
+      "end: 'center top', scrub: 1, start: 'top 30%'",
+    ]
+
+    frozenConfigs.forEach((config) => expect(motionSource).toContain(config))
+    expect(countOccurrences(motionSource, "ease: 'none'")).toBeGreaterThanOrEqual(7)
+  })
+
+  it('uses CSS sticky plus a sibling spacer and preserves all content in reduced motion', () => {
+    const storySource = readStorySectionsSource()
+    const motionSource = readStoryMotionSource()
+    const transitionSource = readTransitionSource()
+
+    expect(storySource).toContain('className="story-sticky-panel')
+    expect(storySource).toContain('className="story-scroll-spacer"')
+    expect(storySource).toContain('id="story-views-exit"')
+    expect(storySource.indexOf('className="story-scroll-spacer"')).toBeGreaterThan(storySource.indexOf('id="story-views-sticky"'))
+    expect(motionSource).toContain("const viewsExit = one('#story-views-exit')")
+    expect(motionSource).toContain('gsap.to(viewsExit')
+    expect(motionSource).not.toContain('gsap.to(viewsFrame')
+    expect(motionSource).not.toContain('pin:')
+    expect(motionSource).not.toContain('ScrollSmoother')
+    expect(motionSource).not.toContain('Lenis')
+    expect(transitionSource).toContain("[data-scroll-story-mode='reduced'] .story-scroll-spacer")
+    expect(transitionSource).toContain('display: none;')
+    expect(transitionSource).toContain("[data-scroll-story-mode='reduced'] .story-view-stack")
+    expect(transitionSource).toContain('flex-direction: column;')
+    expect(transitionSource).toContain("[data-scroll-story-mode='reduced'] .story-view-stack > [data-story-view-panel]")
+    expect(transitionSource).toContain('opacity: 1 !important;')
   })
 
   it('uses the same artistic brand wordmark contract as inner pages', () => {
@@ -367,7 +549,8 @@ describe('LoginPageView theme shell', () => {
     expect(inactiveWaypointCount).toBe(0)
     expect(markup).toContain('登录页主题海岸背景')
     expect(markup).toContain('absolute inset-0 select-none overflow-hidden')
-    expect(markup).toContain('absolute inset-0 h-full w-full object-cover object-center opacity-100')
+    expect(markup).toContain('absolute inset-0 h-full w-full object-cover object-center opacity-5')
+    expect(markup).toContain('absolute inset-0 h-full w-full touch-none pointer-events-auto opacity-100')
     expect(markup).not.toContain('pointer-events-none absolute inset-0 z-20 hidden xl:block')
     expect(markup).not.toContain('data-testid="login-compass-overlay"')
     expect(markup).not.toContain('stroke-dasharray="7 16"')
@@ -386,6 +569,8 @@ describe('LoginPageView theme shell', () => {
   it('keeps theme, language and music controls in flow on small screens and fixed on large screens', () => {
     const markup = renderLogin('light')
     const loginSource = readLoginSource()
+    const heroIndex = markup.indexOf('id="story-hero"')
+    const heroCloseIndex = markup.indexOf('</section>', heroIndex)
     const utilityIndex = markup.indexOf('data-testid="login-page-utility-controls"')
     const ctaIndex = markup.indexOf('data-testid="login-auth-cta"')
     const securityIndex = markup.indexOf('data-testid="login-security-status"')
@@ -394,15 +579,22 @@ describe('LoginPageView theme shell', () => {
     const musicLabelIndex = markup.indexOf('>音乐</span>')
     const themeIconIndex = markup.indexOf('>dark_mode</span>')
     const languageIconIndex = markup.indexOf('>g_translate</span>')
-    const musicIconIndex = markup.indexOf('>pause</span>')
+    const musicIconIndex = markup.indexOf('>play_arrow</span>')
 
     expect(markup.indexOf('登录')).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(-1)
     expect(utilityIndex).toBeGreaterThan(ctaIndex)
-    expect(markup).toContain('t-route-reveal relative min-w-0 overflow-x-hidden')
+    expect(heroCloseIndex).toBeGreaterThan(heroIndex)
+    expect(utilityIndex).toBeGreaterThan(heroCloseIndex)
+    expect(markup).toContain('story-section t-route-reveal relative min-h-dvh min-w-0 overflow-hidden')
+    expect(markup).toContain('data-story-utility-shell="global"')
+    expect(markup).toContain('relative z-20 flex justify-center px-7 pb-8 md:px-14 lg:contents')
     expect(markup).toContain('t-stagger relative z-20 mt-6 flex w-full')
     expect(markup).toContain('lg:fixed lg:bottom-6 lg:left-auto lg:right-6')
     expect(markup).toContain('style="--t-order:4"')
+    expect(loginSource).toContain('preserveScrollPosition(onToggleTheme)')
+    expect(loginSource).toContain('preserveScrollPosition(toggleLocale)')
+    expect(loginSource).toContain('window.requestAnimationFrame(() => window.scrollTo(scrollX, scrollY))')
     expect(loginSource).not.toContain('className="t-stagger" style={{ \'--t-order\': 4 } as CSSProperties}')
     expect(markup).not.toContain('fixed bottom-4 left-4 right-4')
     expect(markup).not.toContain('data-testid="login-auth-overlay"')

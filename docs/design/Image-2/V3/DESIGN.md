@@ -172,7 +172,7 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 - **暗色模式**是黑色临床控制室，强调实时提取、系统状态、行动压力与荧光橙焦点。
 - **亮色模式**是白色医疗档案室，强调纸面秩序、病历阅读、留痕与长期保存。
 - 两个模式必须共享同一骨架：左侧默认展开导航、顶部状态条、主内容纵向流、1px 边界、8px 圆角、橙色行动线。
-- 登录页是独立入口场景：首屏先呈现品牌、价值与安全状态，用户点击主 CTA 后打开居中认证 modal。它不是工作区 shell，也不使用侧栏/顶栏。
+- 登录页是独立的八章纵向叙事入口：首屏呈现品牌、价值与安全状态，随后依次解释问题、录入、时间线、三视图、实验室趋势与隐私边界，末章回到登录 CTA。它不是工作区 shell，也不使用侧栏/顶栏。
 
 本文件来自 `docs/design/Image-2/V3/` 的截图提取。实现时以 `03-app-dark-new.png` 作为 `/app` 暗色参考，旧的 `03-app-dark.png` 仅保留生成历史；新版已经替换橙黑萤火 mark，并移除了“当前提取参数”区块，让病史输入后直接进入治疗时间线。
 
@@ -211,7 +211,7 @@ V3 的北极星是 **Clinical Archive Console**：一个把复杂治疗史整理
 - **Top bar:** 顶部只承载页面名、系统状态、帮助和设置，不塞入业务表单。
 - **Workspace `/app`:** 病史输入在最上，导出与提取动作紧跟输入区；下方的病历预览采用 Dense Clinical Ledger：基本信息以连续 1px 台账格呈现，缺失字段只使用细橙左条、小感叹号和低强度橙底，治疗时间线保持横向病程轨，不回到厚重卡片堆叠。
 - **Record `/record/:id`:** 详情页必须是可滚动长卷，顶部概要之后进入纵向治疗时间轴，右侧卡片承载免疫组化、基因检测、疗效评估。
-- **Login `/login`:** 全屏品牌入口场景，首屏显示 Firefly mark、品牌名、价值陈述、安全状态和唯一“登录” CTA；认证表单不是右侧常驻栏，而是点击 CTA 后出现的居中 modal。暗亮主题共享同一信息架构和 modal 行为，只替换背景图、材料明暗与文字语气。
+- **Login `/login`:** 八章连续纵向滚动入口，固定顺序为 `hero → problem → intake → timeline → views → labs → boundary → cta`。首屏显示 Firefly mark、品牌名、价值陈述、安全状态和“登录” CTA，末章复用同一 CTA 与同一认证 modal；页面不提供 Demo CTA。暗亮主题共享同一章节、布局和交互，只替换材料明暗与文字语气。
 - **Component strip:** 组件状态必须成组出现，覆盖 active、hover、normal、disabled，避免实现时只做默认态。
 
 不要把病历详情压缩成一屏控制台。这个产品的核心体验是“读完一份结构化病史”，滚动是信息秩序的一部分。
@@ -252,7 +252,10 @@ Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制�
 - **Tab switch:** 登录邮箱/手机、病历详情档案/Gantt、模型设置模式选择使用 `t-tab-switch`，选中态可以有橙色焦点光，但不能新增蓝紫渐变。
 - **Record motion:** 病历详情视图切换使用 `t-record-view`；纵向时间线 rail 使用 `t-timeline-rail` draw-in；Gantt 条使用 `t-gantt-grow` 从左向右生长，当前治疗线允许更明确的橙色强调。
 - **Scene breathing:** 登录背景图可使用 `t-login-backdrop` 极慢呼吸，周期要长，幅度要小；普通工作区、隐私页、病历页禁止背景呼吸。
-- **Reduced motion:** 所有新增 `t-*` 动效必须在 `prefers-reduced-motion: reduce` 中关闭 animation/transition，保留最终布局与语义。
+- **Login liquid refraction:** 登录背景图可叠加鼠标/触摸水波扰动、液体折射与轻量色差拖影，扰动只作用于背景图层；黑色主题必须让背景图进入 WebGL canvas 并以 `opacity-100` 作为主畸变层，静态背景图只以 `opacity-5` 兜底；黑色主题 liquid 材质使用低高光参数，并用 `brightness(0.72) contrast(1.34) saturate(1.14)` 压住 WebGL 灰雾，避免刷新后灰雾化或生成中央白色光晕；品牌字标、标题、CTA、工具区和认证 modal 必须保持代码原生 UI，不得被渲染进 WebGL 画布。
+- **Login scroll story:** `story-hero` 继续消费 `t-route-reveal` / `t-stagger`；hero 后章节由客户端副作用内动态注册的 GSAP ScrollTrigger 绑定滚动进度，scrub 动画统一线性缓动。停留几何使用 CSS sticky + sibling spacer，不使用 GSAP `pin`、ScrollSmoother、Lenis 或全屏 snap；主题或语言变化只能 refresh，不能重置滚动位置。
+- **Single WebGL context:** 登录页只允许 `LoginTraceMap` 持有一个长生命周期液体折射 canvas；叙事章节不得各自创建 Three.js 上下文。首屏离开可视区后由底层 `IntersectionObserver` 暂停渲染，不销毁并重建 renderer；主题切换只在现有实例上同步图片与材质，静态图继续承担视觉兜底。
+- **Reduced motion:** 所有新增 `t-*` 动效必须在 `prefers-reduced-motion: reduce` 中关闭 animation/transition；登录滚动叙事不得注册 ScrollTrigger，sticky spacer 收缩，八章与三视图全部按顺序静态可读。
 
 禁用场景：长正文阅读过程、表格滚动、病历导出捕获区域、隐私条款正文、任何可能造成文字溢出或遮挡的容器。动效是系统反馈，不是注意力税。
 
@@ -274,9 +277,11 @@ Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制�
 
 **Clinical Cards:** 免疫组化、基因检测、疗效评估、耐药分析使用窄卡片承载键值数据；卡片内部用细线分隔，不使用厚表格网格。
 
-**Auth Entry Scene:** 登录页首屏是未认证入口，不是工作台。它由背景图、Firefly mark、品牌标题、能力一句话、安全状态和一个橙色主 CTA 构成；主题、语言、背景音乐是右下角辅助工具，不参与主任务流。
+**Auth Scroll Story:** 登录页是未认证叙事入口，不是工作台。首章由唯一液体背景、Firefly mark、品牌标题、能力一句话、安全状态和橙色主 CTA 构成；后续章节以已实现产品能力解释工作流和边界，末章复用同一 CTA。主题、语言、背景音乐是全局辅助工具，不参与主任务流。
 
 **Auth Modal:** “身份访问控制台”以居中 modal 出现。它包含顶部 auth beacon 图像、邮箱/手机 tab、Google、微信敬请期待、匿名会话、隐私摘要、登录/注册/重置密码状态。该 modal 是 containment component，可使用登录专属圆角和阴影 token，但表单控件仍需沿用 `accent`、`success`、`text`、`border` 等语义。
+
+**Origin Note Dialog:** 已登录工作区的“创作初衷”使用暗亮同构的临床档案阅读弹层：1px 系统边界、8px 圆角、`surface.panel` 主面、`surface.inset` 页脚、mono 元数据、display 副标题与 UI 正文。长文只保留单一 DOM 滚动层，所有故事段落为普通字重，来源 URL 作为正文末尾纯文本；不得创建羊皮纸色板、Canvas 字体绘制、布料模拟或第二个 WebGL 上下文。关闭按钮必须始终可见并支持 Esc、遮罩、焦点约束与焦点恢复。
 
 **Provider Glyphs:** Google / WeChat 官方图形可保留品牌原色；这些颜色只存在于 provider glyph 内，不能成为产品 UI token。
 
@@ -290,15 +295,15 @@ Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制�
 2. `src/lib/theme/tokens.ts` 与 `src/index.css` 承载运行时 token 与 CSS 变量。
 3. `src/components/system/` 承载 Shell、Sidebar、TopBar、Main、Panel、Section、Action surface 等系统基元。
 4. `src/components/ui/` 只承载 shadcn 原子组件，不定义项目级壳层语义。
-5. `src/components/login-page-view.tsx` 当前承载登录 scene 的 component token maps（`loginThemeSkins`、`authCardSkins`）。这些 map 是登录入口的 bounded component tokens，不得被复制到其他页面；后续若继续扩展，应提升为 `src/lib/theme` 下的命名 token。
-6. `src/styles/transitions-dev.css` 承载全站 `t-*` 动效语法；页面和组件只能消费语义 class，不在业务组件内发明 keyframes。
+5. `src/components/login/` 承载登录 scene 的 bounded component tokens、八章内容、单一 AuthOverlay、ScrollTrigger 客户端边界与唯一液体背景；这些登录语义不得复制到其他页面。
+6. `src/styles/transitions-dev.css` 承载全站 `t-*` 动效语法，以及登录叙事的 sticky/spacer/视图叠层与 reduced-motion 几何；页面和组件只能消费语义 class，不在业务组件内发明 keyframes。
 7. 页面路由只能组合 system/feature 组件并消费 token，不得直接发明新的颜色、surface、壳层结构、主题分支或局部动画系统。
 
 ### Runtime Geometry Rules
 
 - `/app` 是响应式工作台，主内容默认使用全宽可用区域；输入区与报告预览只能在内部 grid 中分栏。
 - `/record/:id` 是宽幅长卷档案，允许使用宽幅版心，但不能回退到固定窄画布；证据卡随断点从下方堆叠变为右侧栏。
-- `/login` 是未认证入口页，不属于工作区壳层；首屏是 CTA 驱动的品牌场景，认证面板以 modal/dialog 承载，modal 宽度约 520-568px，整页必须保持响应式入口骨架。
+- `/login` 是未认证的八章纵向叙事页，不属于工作区壳层；首尾 CTA 共用一个 modal/dialog，三视图停留段使用 CSS sticky + spacer，整页保持原生纵向滚动与响应式入口骨架，且不暴露 Demo CTA。
 - `/privacy` 与 `PrivacyGate` 属于阅读页或 modal，可以使用阅读宽度；这不是 app shell 的页面级宽度规则。
 - 固定尺寸只允许出现在按钮、徽标、弹层、登录卡、图标按钮、短元数据块等局部组件。
 
@@ -307,7 +312,7 @@ Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制�
 - 改设计，先改本文件；改实现，再改 runtime token 和 system component。
 - 新颜色必须先归入既有 `accent`、`success`、`warning`、`surface`、`border` 或 `text` 语义；无法归入时先扩展 token contract。
 - 新壳层结构必须先判断能否由 `src/components/system/` 现有基元承担。
-- 新动效必须先归入 `route reveal`、`stagger`、`control press`、`popover`、`accordion`、`tab switch`、`record view` 或 `gantt grow` 语义；无法归入时先扩展 `transitions-dev.css` 合同和本文件 Motion 规则。
+- 新动效必须先归入 `route reveal`、`stagger`、`control press`、`popover`、`accordion`、`tab switch`、`record view`、`gantt grow` 或已定义的 `scroll story` 语义；无法归入时先扩展 `transitions-dev.css` 合同和本文件 Motion 规则。
 - 主题切换只改变材料、明暗和文字语气，不改变信息架构、操作位置或布局身份。
 - 页面中出现散写 hex、未命名 surface、整页固定宽度或暗亮主题结构跳变，视为设计系统回归；唯一例外是登录 scene 已命名的 component token maps 与第三方 provider glyph 原色。
 
@@ -315,7 +320,7 @@ Clinical Archive Motion 是 V3 的全站动效层。它服务临床档案控制�
 
 - Do 保持暗亮主题同骨架、同组件、同状态语言，只改变材料明暗。
 - Do 把橙色留给行动、焦点、风险和当前位置。
-- Do 把登录页看作 CTA-driven entry scene：首屏建立信任，modal 承载身份输入。
+- Do 把登录页看作 CTA-driven scroll story：首屏建立信任，中段解释真实能力与边界，首尾 CTA 共用一个 modal 承载身份输入。
 - Do 使用 `t-*` 语义类建立进入、切换、响应三类动效，并始终保留 reduced-motion 退路。
 - Do 让病历详情页纵向滚动，治疗节点按时间自然展开。
 - Do 让临床缺失信息在原字段和汇总告警中同时可见。

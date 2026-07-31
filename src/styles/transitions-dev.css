@@ -518,6 +518,81 @@
   will-change: transform;
 }
 
+/* Scroll-story geometry stays in CSS; ScrollTrigger only writes visual progress. */
+.story-section {
+  scroll-margin-top: 1rem;
+}
+
+.story-motion-target,
+.story-layer-motion,
+.story-lab-line,
+.story-view-stack > [data-story-view-panel] {
+  will-change: transform, opacity;
+}
+
+.story-sticky-stage {
+  position: relative;
+}
+
+.story-sticky-panel {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+}
+
+.story-scroll-spacer {
+  height: 220svh;
+  pointer-events: none;
+}
+
+.story-view-stack {
+  display: grid;
+}
+
+.story-view-stack > [data-story-view-panel] {
+  grid-area: 1 / 1;
+}
+
+[data-scroll-story-mode='animated'] .story-view-stack > [data-story-view-panel]:not(:first-child) {
+  opacity: 0;
+}
+
+.story-lab-line {
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+
+[data-scroll-story-mode='reduced'] .story-section:not([data-story-chapter='hero']) {
+  min-height: auto !important;
+}
+
+[data-scroll-story-mode='reduced'] .story-sticky-panel {
+  position: relative;
+  top: auto;
+  min-height: auto;
+}
+
+[data-scroll-story-mode='reduced'] .story-scroll-spacer {
+  display: none;
+  height: 0;
+}
+
+[data-scroll-story-mode='reduced'] .story-view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+[data-scroll-story-mode='reduced'] .story-motion-target,
+[data-scroll-story-mode='reduced'] .story-view-stack > [data-story-view-panel] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+[data-scroll-story-mode='reduced'] .story-lab-line {
+  transform: scaleX(1) !important;
+}
+
 .t-panel-slide {
   transform: translateY(var(--panel-translate-y));
   opacity: 0;
@@ -718,6 +793,9 @@
   .t-selection-pulse,
   .t-edit-flip,
   .t-login-backdrop,
+  .story-motion-target,
+  .story-layer-motion,
+  .story-view-stack > [data-story-view-panel],
   .t-popover,
   .t-audio-popover,
   .t-panel-slide,
@@ -729,5 +807,40 @@
   .t-digit-group .t-digit {
     animation: none !important;
     transition: none !important;
+  }
+
+  .t-control-press {
+    transform: none !important;
+  }
+
+  .story-section:not([data-story-chapter='hero']) {
+    min-height: auto !important;
+  }
+
+  .story-sticky-panel {
+    position: relative;
+    top: auto;
+    min-height: auto;
+  }
+
+  .story-scroll-spacer {
+    display: none;
+    height: 0;
+  }
+
+  .story-view-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .story-motion-target,
+  .story-view-stack > [data-story-view-panel] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .story-lab-line {
+    transform: scaleX(1) !important;
   }
 }
