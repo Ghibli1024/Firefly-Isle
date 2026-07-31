@@ -1,6 +1,6 @@
 ## Purpose
 
-定义 docs/log 提交历史日志的粒度、证据边界与置信度标注规则。
+定义 docs/log 提交历史日志的粒度、证据边界与置信度标注规则，使每份历史记录能够由 Git 事实、OpenSpec 上下文与真实验证证据共同追溯。
 
 ## Requirements
 

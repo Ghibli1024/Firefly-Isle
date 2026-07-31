@@ -1,6 +1,6 @@
 ## Purpose
 
-定义患者相关资源的 Supabase Storage 基础设施、访问隔离与 MVP 范围边界。
+定义患者相关资源的 Supabase Storage 基础设施、访问隔离与 MVP 范围边界，确保附件能力可以扩展，但不会绕过认证身份、RLS 语义或当前产品主流程的范围约束。
 
 ## Requirements
 
