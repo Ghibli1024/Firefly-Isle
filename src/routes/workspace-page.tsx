@@ -593,7 +593,7 @@ function DarkWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabel
 
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="dark">
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="dark" tone="base">
-          <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
+          <div className={`${shellContentWidthClass} t-route-reveal space-y-6`}>
             <ExtractionComposer
               composerMode={getWorkspaceComposerMode(record)}
               error={error}
@@ -680,7 +680,7 @@ function LightWorkspacePage({ isSigningOut, onSignOut, userIsAnonymous, userLabe
 
       <MainShell className={`${topBarOffsetClass} ${sidebarOffsetClass} min-h-screen`} theme="light">
         <SectionSurface className="border-0 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-4" theme="light" tone="base">
-          <div className={`${shellContentWidthClass} t-route-reveal t-stagger space-y-6`} style={{ '--t-order': 0 } as CSSProperties}>
+          <div className={`${shellContentWidthClass} t-route-reveal space-y-6`}>
             <ExtractionComposer
               composerMode={getWorkspaceComposerMode(record)}
               error={error}

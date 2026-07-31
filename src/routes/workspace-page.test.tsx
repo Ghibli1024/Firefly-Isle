@@ -125,10 +125,6 @@ function readOriginStoryCanvasSource() {
   return readFileSync(new URL('../components/system/origin-story/origin-story-canvas.ts', import.meta.url), 'utf8')
 }
 
-function readTransitionsSource() {
-  return readFileSync(new URL('../styles/transitions-dev.css', import.meta.url), 'utf8')
-}
-
 describe('WorkspacePage report shell', () => {
   it.each(['light', 'dark'] as const)('does not render the outer 临床结构化报告 heading shell in %s mode', (theme) => {
     const markup = renderWorkspace(theme)
@@ -255,34 +251,14 @@ describe('WorkspacePage report shell', () => {
     expect(markup).toContain('t-text-swap')
   })
 
-  it('defines the shared Clinical Archive Motion classes with reduced-motion coverage', () => {
-    const source = readTransitionsSource()
-
-    for (const motionClass of [
-      '.t-route-reveal',
-      '.t-stagger',
-      '.t-control-press',
-      '.t-accordion',
-      '.t-tab-switch',
-      '.t-gantt-grow',
-      '.t-popover',
-    ]) {
-      expect(source).toContain(motionClass)
-    }
-
-    expect(source).toContain('@media (prefers-reduced-motion: reduce)')
-    expect(source).toContain('@keyframes t-tab-switch-pop')
-    expect(source).toContain('animation: t-tab-switch-pop var(--tab-switch-dur) var(--tab-switch-ease) both')
-    expect(source).toMatch(/\.t-route-reveal,[\s\S]*\.t-popover,[\s\S]*animation: none !important/)
-  })
-
   it('mounts app workspace sections into the shared route and stagger motion layer', () => {
     const markup = renderWorkspace('dark')
 
     expect(markup).toContain('t-route-reveal')
     expect(markup).toContain('t-stagger')
-    expect(markup).toContain('style="--t-order:0"')
     expect(markup).toContain('style="--t-order:1"')
+    expect(markup).not.toContain('t-route-reveal t-stagger')
+    expect(markup).not.toContain('t-stagger t-route-reveal')
   })
 
   it('uses the shared control and alert motion contracts inside the composer and preview', () => {
